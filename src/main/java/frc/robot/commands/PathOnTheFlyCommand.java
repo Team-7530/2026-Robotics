@@ -5,6 +5,7 @@ import com.pathplanner.lib.path.PathConstraints;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 
 public class PathOnTheFlyCommand extends Command {
@@ -30,7 +31,7 @@ public class PathOnTheFlyCommand extends Command {
 
   @Override
   public void execute() {
-    pathCommand.schedule();
+    CommandScheduler.getInstance().schedule(pathCommand);
   }
 
   // Returns true when the command should end.

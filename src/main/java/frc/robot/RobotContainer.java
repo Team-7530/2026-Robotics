@@ -178,7 +178,7 @@ public class RobotContainer {
     // Add commands to Autonomous Sendable Chooser
     autoChooser = AutoBuilder.buildAutoChooser("Forward");
 
-    PathfindingCommand.warmupCommand().schedule();
+    CommandScheduler.getInstance().schedule(PathfindingCommand.warmupCommand());
   }
 
   private void configureDefaultCommands() {
@@ -254,7 +254,7 @@ public class RobotContainer {
   public void autonomousInit() {
     autonomousCommand = this.getAutonomousCommand();
     if (autonomousCommand != null) {
-      autonomousCommand.schedule();
+      CommandScheduler.getInstance().schedule(autonomousCommand);
     }
   }
 

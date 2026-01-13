@@ -2,6 +2,7 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
 
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
@@ -95,7 +96,7 @@ public final class Constants {
   }
 
   public static final class ArmConstants {
-    public static final String CANBUS = "CANFD";
+    public static final CANBus CANBUS = new CANBus("CANFD");
     public static final int ARMMOTOR_ID = 31;
     public static final int ARMENCODER_ID = 32;
 
@@ -135,7 +136,7 @@ public final class Constants {
   }
 
   public static final class WristConstants {
-    public static final String CANBUS = "rio";
+    public static final CANBus CANBUS = CANBus.roboRIO();
     public static final int WRISTMOTOR_ID = 33;
     public static final int WRISTENCODER_ID = 34;
 
@@ -175,7 +176,7 @@ public final class Constants {
   }
 
   public static final class IntakeConstants {
-    public static final String CANBUS = "rio";
+    public static final CANBus CANBUS = CANBus.roboRIO();
     public static final int LINTAKEMOTOR_ID = 35;
     public static final int RINTAKEMOTOR_ID = 36;
     public static final int RANGESENSOR_ID = 37;
@@ -214,7 +215,7 @@ public final class Constants {
   }
 
   public static final class ClimberConstants {
-    public static final String CANBUS = "CANFD";
+    public static final CANBus CANBUS = new CANBus("CANFD");
     public static final int CLIMBMOTOR_ID = 41;
     public static final int CLIMBMOTORFOLLOWER_ID = 42;
     public static final int CLIMBENCODER_ID = 43;

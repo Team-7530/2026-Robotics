@@ -56,7 +56,6 @@ import java.util.Set;
 import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
-import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 import org.photonvision.simulation.PhotonCameraSim;
 import org.photonvision.simulation.SimCameraProperties;
 import org.photonvision.simulation.VisionSystemSim;
@@ -88,9 +87,7 @@ public class VisionSubsystem implements Subsystem {
             name, pose.getX(), pose.getY(), pose.getZ(), rot.getX(), rot.getY(), rot.getZ());
       } else {
         PhotonPoseEstimator photonEstimator =
-            new PhotonPoseEstimator(
-                FieldConstants.fieldLayout, PoseStrategy.LOWEST_AMBIGUITY, pose);
-        photonEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
+            new PhotonPoseEstimator(FieldConstants.fieldLayout, pose);
         photonCameras.add(Pair.of(new PhotonCamera(name), photonEstimator));
       }
     }
@@ -144,7 +141,7 @@ public class VisionSubsystem implements Subsystem {
       for (var change : camera.getFirst().getAllUnreadResults()) {
         allCameraTargets.addAll(change.getTargets());
 
-        visionEst = camera.getSecond().update(change);
+        visionEst = camera.getSecond().estimateLowestAmbiguityPose(change);
         if (visionEst.isPresent()) {
           allVisionEstimates.add(visionEst.get());
         }
