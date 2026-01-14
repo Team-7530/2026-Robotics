@@ -4,12 +4,10 @@ import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.networktables.DoubleArrayPublisher;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.networktables.StringPublisher;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -28,15 +26,14 @@ public class Telemetry {
     MaxSpeed = maxSpeed;
     SignalLogger.start();
     // SignalLogger.stop();
+    SmartDashboard.putData("Field", field);
   }
 
   /* What to publish over networktables for telemetry */
   private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
 
-  /* Robot pose for field positioning */
-  private final NetworkTable table = inst.getTable("Pose");
-  private final DoubleArrayPublisher fieldPub = table.getDoubleArrayTopic("robotPose").publish();
-  private final StringPublisher fieldTypePub = table.getStringTopic(".type").publish();
+  /* Robot pose visualization */
+  private final Field2d field = new Field2d();
 
   /* Robot speeds for general checking */
   private final NetworkTable driveStats = inst.getTable("Drive");
@@ -98,8 +95,7 @@ public class Telemetry {
   m_poseArray[1] = pose.getY();
   m_poseArray[2] = pose.getRotation().getDegrees();
 
-    fieldTypePub.set("Field2d");
-    fieldPub.set(m_poseArray);
+  field.setRobotPose(pose);
 
   /* Telemeterize the robot's general speeds */
   var currentTime = Utils.getCurrentTimeSeconds();
