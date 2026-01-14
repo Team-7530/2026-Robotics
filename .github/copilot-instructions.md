@@ -33,7 +33,7 @@ Note: `build.gradle` uses Java 17 and creates a fat jar; the manifest points to 
 - Telemetry (SignalLogger + NetworkTables) is centralized in `Telemetry.java` and registered by subsystems (e.g., `drivetrain.registerTelemetry(logger::telemeterize)`). Use the same API for consistent outputs.
 
 ## Integration points / external dependencies
-- Vendor libraries and JNI are declared in `build.gradle` (CTRE Phoenix, PathPlanner, Photon/limelight wrappers). Vendordep files are in `vendordeps/`.
+- Vendor libraries and JNI are declared in `build.gradle` (CTRE Phoenix, PathPlanner, limelight wrappers). Vendordep files are in `vendordeps/`.
 - Static files under `src/main/deploy` are deployed to `/home/lvuser/deploy` on the RoboRIO and used at runtime (paths, autos, apriltag maps).
 - NetworkTables is used for telemetry and dashboard integration; SignalLogger is used for logged telemetry.
 
