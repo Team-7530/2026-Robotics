@@ -15,9 +15,7 @@ import com.ctre.phoenix6.Utils;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.math.Matrix;
-// Pair and VecBuilder not needed after Photon removal
 import edu.wpi.first.math.geometry.Pose2d;
-// import edu.wpi.first.math.geometry.Pose3d; (unused)
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.numbers.N1;
@@ -33,7 +31,6 @@ import frc.robot.Robot;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-// Removed unused imports after refactor
 
 public class VisionSubsystem implements Subsystem {
   private final List<String> limelightCameras = new ArrayList<>();
@@ -97,7 +94,6 @@ public class VisionSubsystem implements Subsystem {
    * @return An {@link EstimatedRobotPose} with an estimated pose, estimate timestamp, and targets
    *     used for estimation.
    */
-  // PhotonVision removed; limelight-only flow uses getVisionMeasurement_MT1/MT2.
 
   /**
    * Update standard deviations heuristic for Limelight PoseEstimate.
