@@ -34,7 +34,7 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.Pair;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Pose3d;
+// import edu.wpi.first.math.geometry.Pose3d; (unused)
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
@@ -42,6 +42,7 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.RobotState;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.lib.limelightvision.LimelightHelpers;
@@ -49,10 +50,8 @@ import frc.lib.limelightvision.LimelightHelpers.PoseEstimate;
 import frc.lib.util.FieldConstants;
 import frc.robot.Robot;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
@@ -69,6 +68,18 @@ public class VisionSubsystem implements Subsystem {
   // Simulation
   private final List<PhotonCameraSim> photonCameraSims = new ArrayList<>();
   private VisionSystemSim visionSim;
+
+  // Hysteresis / selection state for choosing which camera's estimate to use
+  private String lastSelectedCameraName = "";
+  // hysteresis parameters (ambiguity-delta-based)
+  private double lastSelectedAmbiguity = Double.MAX_VALUE;
+  private EstimatedRobotPose lastChosenEstimate = null;
+  private PhotonPoseEstimator lastChosenEstimator = null;
+  private double switchConfidence = 0.0; // grows when candidate is meaningfully better
+  private static final double AMBIGUITY_DELTA_THRESHOLD = 0.15; // new ambiguity must be this much lower
+  private static final double CONFIRM_THRESHOLD = 3.0; // confidence needed to commit a switch
+  private static final double CONFIDENCE_INCREMENT = 1.0; // per-frame increment when condition met
+  private static final double CONFIDENCE_DECREMENT = 0.5; // per-frame decrement when condition not met
 
   /* Cameras */
   public UsbCamera cam0;
@@ -133,79 +144,121 @@ public class VisionSubsystem implements Subsystem {
    *     used for estimation.
    */
   public Optional<EstimatedRobotPose> getEstimatedGlobalPose() {
-    List<PhotonTrackedTarget> allCameraTargets = new ArrayList<>();
-    List<EstimatedRobotPose> allVisionEstimates = new ArrayList<>();
+  // Collect estimates per camera and pick the best single-camera estimate based on
+  // the strongest AprilTag detection (lowest ambiguity).
+  List<EstimatedRobotPose> collectedEstimates = new ArrayList<>();
+  // Keep parallel lists of the estimators and photon cameras that produced each
+  // estimate so we can update stddevs and publish per-camera telemetry.
+  List<PhotonPoseEstimator> correspondingEstimators = new ArrayList<>();
+  List<PhotonCamera> correspondingCameras = new ArrayList<>();
 
-    Optional<EstimatedRobotPose> visionEst = Optional.empty();
     for (var camera : photonCameras) {
       for (var change : camera.getFirst().getAllUnreadResults()) {
-        allCameraTargets.addAll(change.getTargets());
-
-        visionEst = camera.getSecond().estimateLowestAmbiguityPose(change);
+        var visionEst = camera.getSecond().estimateLowestAmbiguityPose(change);
         if (visionEst.isPresent()) {
-          allVisionEstimates.add(visionEst.get());
-        }
+          collectedEstimates.add(visionEst.get());
+          correspondingEstimators.add(camera.getSecond());
+          correspondingCameras.add(camera.getFirst());
 
-        if (Robot.isSimulation()) {
-          visionEst.ifPresentOrElse(
-              est ->
-                  getSimDebugField()
-                      .getObject("VisionEstimation" + camera.getFirst().getName())
-                      .setPose(est.estimatedPose.toPose2d()),
-              () ->
-                  getSimDebugField()
-                      .getObject("VisionEstimation" + camera.getFirst().getName())
-                      .setPoses());
+          if (Robot.isSimulation()) {
+            getSimDebugField()
+                .getObject("VisionEstimation" + camera.getFirst().getName())
+                .setPose(visionEst.get().estimatedPose.toPose2d());
+          }
+        } else if (Robot.isSimulation()) {
+          getSimDebugField()
+              .getObject("VisionEstimation" + camera.getFirst().getName())
+              .setPoses();
         }
       }
     }
-    updateEstimationStdDevs(
-        allVisionEstimates.isEmpty()
-            ? Optional.empty()
-            : Optional.of(allVisionEstimates.get(allVisionEstimates.size() - 1)),
-        allCameraTargets,
-        photonCameras.get(0).getSecond());
 
-    return averageVisionEstimates(allVisionEstimates);
-  }
-
-  private Optional<EstimatedRobotPose> averageVisionEstimates(List<EstimatedRobotPose> estimates) {
-    if (estimates.isEmpty()) {
+    if (collectedEstimates.isEmpty()) {
+      // No estimates available
+      updateEstimationStdDevs(Optional.empty(), new ArrayList<>(), photonCameras.get(0).getSecond());
       return Optional.empty();
     }
 
-    double x = 0.0, y = 0.0, rotation = 0.0;
-    double latestTimestamp = 0.0;
-    List<PhotonTrackedTarget> combinedTargets = new ArrayList<>();
-    Set<Integer> seenTargets = new HashSet<>();
-
-    for (EstimatedRobotPose estimate : estimates) {
-      Pose2d pose = estimate.estimatedPose.toPose2d();
-      x += pose.getX();
-      y += pose.getY();
-      rotation += pose.getRotation().getRadians();
-
-      if (estimate.timestampSeconds > latestTimestamp) {
-        latestTimestamp = estimate.timestampSeconds;
+    // Choose the estimate whose best-used target has the lowest ambiguity (strongest detection).
+    int bestIndex = 0;
+    double bestAmbiguity = Double.MAX_VALUE;
+    for (int i = 0; i < collectedEstimates.size(); ++i) {
+      var est = collectedEstimates.get(i);
+      double minAmb = Double.MAX_VALUE;
+      for (var tgt : est.targetsUsed) {
+        // PhotonTrackedTarget#getPoseAmbiguity() gives lower = better
+        double amb = tgt.getPoseAmbiguity();
+        if (amb < minAmb) minAmb = amb;
       }
+      // Publish per-camera ambiguity telemetry
+      String camName = correspondingCameras.get(i).getName();
+      SmartDashboard.putNumber("Vision/Camera/" + camName + "/Ambiguity", minAmb == Double.MAX_VALUE ? -1 : minAmb);
 
-      for (PhotonTrackedTarget target : estimate.targetsUsed) {
-        if (seenTargets.add(target.getFiducialId())) {
-          combinedTargets.add(target);
+      // Prefer estimates with any target (minAmb < MAX) and lower ambiguity.
+      if (minAmb < bestAmbiguity) {
+        bestAmbiguity = minAmb;
+        bestIndex = i;
+      } else if (minAmb == bestAmbiguity) {
+        // Tie-breaker: prefer the estimate with more targets used
+        if (est.targetsUsed.size() > collectedEstimates.get(bestIndex).targetsUsed.size()) {
+          bestIndex = i;
         }
       }
     }
 
-    x /= estimates.size();
-    y /= estimates.size();
-    rotation /= estimates.size();
+    var bestEstimate = collectedEstimates.get(bestIndex);
+    var bestEstimator = correspondingEstimators.get(bestIndex);
+    String selectedCameraName = correspondingCameras.get(bestIndex).getName();
 
-    Pose3d avgPose = new Pose3d(x, y, 0, new Rotation3d(0, 0, rotation));
+    // Ambiguity-delta-based hysteresis: grow confidence when the candidate ambiguity is
+    // meaningfully lower than the currently selected camera's ambiguity.
+    if (lastChosenEstimate == null || lastSelectedCameraName.isEmpty()) {
+      // No previous selection: accept immediately
+      lastSelectedCameraName = selectedCameraName;
+      lastSelectedAmbiguity = bestAmbiguity;
+      lastChosenEstimate = bestEstimate;
+      lastChosenEstimator = bestEstimator;
+      switchConfidence = 0.0;
+    } else {
+      double delta = lastSelectedAmbiguity - bestAmbiguity;
+      boolean candidateBetter = delta >= AMBIGUITY_DELTA_THRESHOLD;
 
-    return Optional.of(
-        new EstimatedRobotPose(
-            avgPose, latestTimestamp, combinedTargets, estimates.get(0).strategy));
+      if (candidateBetter) {
+        switchConfidence = Math.min(CONFIRM_THRESHOLD, switchConfidence + CONFIDENCE_INCREMENT);
+      } else {
+        switchConfidence = Math.max(0.0, switchConfidence - CONFIDENCE_DECREMENT);
+      }
+
+      double progress = switchConfidence / CONFIRM_THRESHOLD;
+      SmartDashboard.putString("Vision/PendingSwitchTo", selectedCameraName);
+      SmartDashboard.putNumber("Vision/SwitchConfidence", progress);
+
+      if (switchConfidence >= CONFIRM_THRESHOLD) {
+        // Commit the switch
+        lastSelectedCameraName = selectedCameraName;
+        lastSelectedAmbiguity = bestAmbiguity;
+        lastChosenEstimate = bestEstimate;
+        lastChosenEstimator = bestEstimator;
+        switchConfidence = 0.0;
+        SmartDashboard.putString("Vision/PendingSwitchTo", "");
+        SmartDashboard.putNumber("Vision/SwitchConfidence", 1.0);
+      }
+    }
+
+    // Update dashboard indicators for the active selection
+    SmartDashboard.putString("Vision/SelectedCamera", lastSelectedCameraName == null ? "" : lastSelectedCameraName);
+    SmartDashboard.putNumber("Vision/SelectedAmbiguity", lastSelectedAmbiguity == Double.MAX_VALUE ? -1 : lastSelectedAmbiguity);
+
+    // Use the current chosen estimate (may be previous one until switchConfidence completes)
+    if (lastChosenEstimate != null && lastChosenEstimator != null) {
+      updateEstimationStdDevs(Optional.of(lastChosenEstimate), lastChosenEstimate.targetsUsed, lastChosenEstimator);
+      return Optional.of(lastChosenEstimate);
+    }
+
+    return Optional.empty();
   }
+
+  // averageVisionEstimates removed — selection by lowest ambiguity is used instead.
 
   /**
    * Calculates new standard deviations This algorithm is a heuristic that creates dynamic standard

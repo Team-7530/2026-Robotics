@@ -32,7 +32,10 @@ public final class Constants {
 
     public static final boolean USE_LIMELIGHT = true;
     public static final String LIMELIGHTNAME = "limelight";
-    public static final String LIMELIGHTURL = "limelight.local";
+  public static final String LIMELIGHTURL = "limelight.local";
+  // Optional second limelight (e.g. limelight2). Update name/URL if you have a second camera.
+  public static final String LIMELIGHTNAME_2 = "limelight2";
+  public static final String LIMELIGHTURL_2 = "limelight2.local";
     public static final String PHOTONVISIONURL = "photonvision.local";
 
     // Cam mounted - x = +toward front, 0 center, -toward rear in meters.
@@ -49,9 +52,14 @@ public final class Constants {
             // 0, 0))),
             // Pair.of("OV9281-2", new Transform3d(new Translation3d(0.228, -0.3048, 0.16), new
             // Rotation3d(0, 0, 0))),
-            Pair.of(
+          Pair.of(
                 LIMELIGHTNAME,
-                new Transform3d(new Translation3d(0.28, 0, 0.16), new Rotation3d(0, 0, 0))));
+                new Transform3d(new Translation3d(0.28, 0, 0.16), new Rotation3d(0, 0, 0))),
+              // Example second limelight mounted slightly left (+y) of center. Adjust transform to match
+              // your physical mounting.
+              Pair.of(
+                LIMELIGHTNAME_2,
+                new Transform3d(new Translation3d(0.28, 0.10, 0.16), new Rotation3d(0, 0, 0))));
 
     // The standard deviations of our vision estimated poses, which affect correction rate
     // (Fake values. Experiment and determine estimation noise on an actual robot.)
