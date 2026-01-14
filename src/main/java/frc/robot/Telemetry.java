@@ -92,24 +92,24 @@ public class Telemetry {
 
   /** Accept the swerve drive state and telemeterize it to SmartDashboard and SignalLogger. */
   public void telemeterize(SwerveDriveState state) {
-    /* Telemeterize the pose */
-    Pose2d pose = state.Pose;
-    m_poseArray[0] = pose.getX();
-    m_poseArray[1] = pose.getY();
-    m_poseArray[2] = pose.getRotation().getDegrees();
+  /* Telemeterize the pose */
+  var pose = state.Pose;
+  m_poseArray[0] = pose.getX();
+  m_poseArray[1] = pose.getY();
+  m_poseArray[2] = pose.getRotation().getDegrees();
 
     fieldTypePub.set("Field2d");
     fieldPub.set(m_poseArray);
 
-    /* Telemeterize the robot's general speeds */
-    double currentTime = Utils.getCurrentTimeSeconds();
-    double diffTime = currentTime - lastTime;
-    lastTime = currentTime;
+  /* Telemeterize the robot's general speeds */
+  var currentTime = Utils.getCurrentTimeSeconds();
+  var diffTime = currentTime - lastTime;
+  lastTime = currentTime;
 
-    Translation2d distanceDiff = pose.minus(m_lastPose).getTranslation();
-    m_lastPose = pose;
+  var distanceDiff = pose.minus(m_lastPose).getTranslation();
+  m_lastPose = pose;
 
-    Translation2d velocities = distanceDiff.div(diffTime);
+  var velocities = distanceDiff.div(diffTime);
 
     speed.set(velocities.getNorm());
     velocityX.set(velocities.getX());
