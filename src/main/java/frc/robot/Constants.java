@@ -143,6 +143,73 @@ public final class Constants {
     public static final double kArmTeleopFactor = 0.02;
   }
 
+  public static final class ShooterConstants {
+    public static final CANBus CANBUS = new CANBus("CANFD");
+
+    // Placeholder CAN IDs - update to match your wiring
+    public static final int TURRET_MASTER_ID = 51;
+    public static final int TURRET_ENCODER_ID = 52;
+
+    public static final int FLYWHEEL_MASTER_ID = 53;
+    public static final int FLYWHEEL_FOLLOWER_ID = 54;
+
+    // Turret limits in degrees (180-degree travel centered on 0)
+    public static final double TURRET_MIN_DEG = -90.0;
+    public static final double TURRET_MAX_DEG = 90.0;
+
+    public static final InvertedValue kTurretInverted = InvertedValue.CounterClockwise_Positive;
+    public static final NeutralModeValue kTurretNeutralMode = NeutralModeValue.Brake;
+    public static final SensorDirectionValue kTurretEncoderDirection =
+        SensorDirectionValue.CounterClockwise_Positive;
+    public static final double kTurretEncoderOffset = 0.0;
+
+    public static final double kTurretChainRatio = 1.0 / 1.0;
+    public static final double kTurretGearboxRatio = 1.0; // 1:1
+    // Gear ratio between rotor and turret (1.0 means 1 rotor rev = 360 deg)
+    public static final double kTurretGearRatio =
+        kTurretChainRatio * kTurretGearboxRatio; // chain ratio * Gearbox ratio
+
+    public static final double turretMotorKS = 0.0;
+    public static final double turretMotorKV = 0.0;
+    public static final double turretMotorKA = 0.0;
+    public static final double turretMotorKP = 30.0; // 45
+    public static final double turretMotorKI = 0.0;
+    public static final double turretMotorKD = 0.0;
+    public static final double MMagicCruiseVelocity = 1;
+    public static final double MMagicAcceleration = 2;
+    public static final double MMagicJerk = 8000;
+    public static final double MMagicExpo_kV = 0.12; // kV is around 0.12 V/rps
+    public static final double MMagicExpo_kA = 0.1; // Use a slower kA of 0.1 V/(rps/s)
+
+    public static final double kTurretPeakForwardVoltage = 8.0; // Peak output of 8 volts
+    public static final double kTurretPeakReverseVoltage = -8.0; // Peak output of 8 volts
+
+    // Flywheel tuning
+    public static final double FLYWHEEL_MAX_RPM = 6000.0; // adjust to your flywheel
+    public static final double FLYWHEEL_DEFAULT_RPM = 3000.0;
+
+    public static final InvertedValue kFlywheelInverted = InvertedValue.CounterClockwise_Positive;
+    public static final NeutralModeValue kFlywheelNeutralMode = NeutralModeValue.Brake;
+
+    public static final double kFlywheelChainRatio = 1.0 / 1.0;
+    public static final double kFlywheelGearboxRatio = 1.0; // 1:1
+    // Gear ratio between rotor and turret (1.0 means 1 rotor rev = 360 deg)
+    public static final double kFlywheelGearRatio =
+        kFlywheelChainRatio * kFlywheelGearboxRatio; // chain ratio * Gearbox ratio
+
+    // Flywheel control tuning (Velocity closed-loop)
+    public static final double FLYWHEEL_kS = 0.0;
+    public static final double FLYWHEEL_kP = 0.1;
+    public static final double FLYWHEEL_kI = 0.0;
+    public static final double FLYWHEEL_kD = 0.0;
+
+    public static final double kFlywheelPeakForwardVoltage = 8.0; // Peak output of 8 volts
+    public static final double kFlywheelPeakReverseVoltage = -8.0; // Peak output of 8 volts
+
+    public static final double kTurretTeleopSpeed = 0;
+
+  }
+
   public static final class WristConstants {
     public static final CANBus CANBUS = CANBus.roboRIO();
     public static final int WRISTMOTOR_ID = 33;

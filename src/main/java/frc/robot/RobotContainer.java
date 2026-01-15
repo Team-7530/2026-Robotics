@@ -15,13 +15,11 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
-import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.commands.*;
 import frc.robot.generated.TunerConstants;
 import frc.robot.operator_interface.OISelector;
 import frc.robot.operator_interface.OperatorInterface;
-import frc.robot.sim.Mechanisms;
+// import frc.robot.sim.Mechanisms;
 import frc.robot.sim.PhysicsSim;
 import frc.robot.subsystems.*;
 
@@ -48,7 +46,7 @@ public class RobotContainer {
   public final PowerDistribution power = new PowerDistribution();
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
   public final VisionSubsystem vision = new VisionSubsystem();
-  public final ArmSubsystem arm = new ArmSubsystem();
+  public final ShooterSubsystem shooter = new ShooterSubsystem();
   public final WristSubsystem wrist = new WristSubsystem();
   public final IntakeSubsystem intake = new IntakeSubsystem();
   public final ClimberSubsystem climber = new ClimberSubsystem();
@@ -57,7 +55,7 @@ public class RobotContainer {
   private SendableChooser<Command> autoChooser;
   private Command autonomousCommand;
 
-  private Mechanisms mechanism = new Mechanisms();
+  // private Mechanisms mechanism = new Mechanisms();
 
   public static RobotContainer GetInstance() {
     return instance;
@@ -144,18 +142,13 @@ public class RobotContainer {
     oi.getAButton().onTrue(intake.intakeCommand());
     oi.getXButton().onTrue(intake.outtakeL2Command());
     oi.getBButton().onTrue(intake.outtakeL1Command());
-    oi.getYButton().onTrue(this.cruisePositionCommand());
 
-    oi.getPOVUp().onTrue(this.getCoralPositionCommand());
-    oi.getPOVDown().onTrue(this.climbPositionCommand());
-    oi.getPOVLeft().onTrue(this.l1ScoringPositionCommand());
-    oi.getPOVRight().onTrue(this.l2ScoringPositionCommand());
 
     oi.getLeftBumper().onTrue(climber.clampCommand(false));
     oi.getRightBumper().onTrue(climber.clampCommand(true));
 
-    oi.getLeftTrigger().onTrue(this.cruisePositionCommand());
-    oi.getRightTrigger().onTrue(new SequentialCommandGroup(this.getCoralPositionCommand(), intake.intakeCommand()));
+    oi.getLeftTrigger().onTrue(shooter.shooterToVelocityCommand(2000)).onFalse(shooter.shooterToPercentCommand(0.0));
+    // oi.getRightTrigger().onTrue(new SequentialCommandGroup(this.getCoralPositionCommand(), intake.intakeCommand()));
 
     //oi.getLeftTrigger().onTrue(climber.climbToStartPositionCommand());
     //oi.getRightTrigger().onTrue(climber.climbToFullPositionCommand());
@@ -184,7 +177,7 @@ public class RobotContainer {
   private void configureDefaultCommands() {
     drivetrain.setDefaultCommand(new SwerveTeleopCommand(drivetrain, oi));
 
-    arm.setDefaultCommand(Commands.run(() -> arm.teleop(-oi.getLeftThumbstickY()), arm));
+    shooter.setDefaultCommand(Commands.run(() -> shooter.teleop(-oi.getLeftThumbstickY()), shooter));
     wrist.setDefaultCommand(Commands.run(() -> wrist.teleop(oi.getLeftThumbstickX()), wrist));
     climber.setDefaultCommand(
         Commands.run(() -> climber.teleopClimb(-oi.getRightThumbstickY()), climber));
@@ -195,11 +188,6 @@ public class RobotContainer {
     NamedCommands.registerCommand("Intake", intake.intakeCommand());
     NamedCommands.registerCommand("Outtake", intake.outtakeL2Command());
     NamedCommands.registerCommand("OuttakeSpin", intake.outtakeL1Command());
-    NamedCommands.registerCommand("SetClimbPos", this.climbPositionCommand());
-    NamedCommands.registerCommand("SetCruisePos", this.cruisePositionCommand());
-    NamedCommands.registerCommand("GetCoral", this.getCoralPositionCommand());
-    NamedCommands.registerCommand("SetL1Score", this.l1ScoringPositionCommand());
-    NamedCommands.registerCommand("SetL2Score", this.l2ScoringPositionCommand());
     NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
   }
 
@@ -210,11 +198,6 @@ public class RobotContainer {
     SmartDashboard.putData("Intake", intake.intakeCommand());
     SmartDashboard.putData("Outtake", intake.outtakeL2Command());
     SmartDashboard.putData("OuttakeSpin", intake.outtakeL1Command());
-    SmartDashboard.putData("GetCoral", this.getCoralPositionCommand());
-    SmartDashboard.putData("SetClimbPos", this.climbPositionCommand());
-    SmartDashboard.putData("SetCruisePos", this.cruisePositionCommand());
-    SmartDashboard.putData("SetL1Score", this.l1ScoringPositionCommand());
-    SmartDashboard.putData("SetL2Score", this.l2ScoringPositionCommand());
     SmartDashboard.putData("ClimbToFull", climber.climbToFullPositionCommand());
     SmartDashboard.putData("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
     SmartDashboard.putData(
@@ -222,12 +205,12 @@ public class RobotContainer {
   }
 
   public void robotPeriodic() {
-    mechanism.update(
-        arm.getRotorPosition(),
-        arm.getPosition(),
-        wrist.getPosition(),
-        climber.getRotorPosition(),
-        climber.getPosition());
+    // mechanism.update(
+    //     shooter.getRotorPosition(),
+    //     shooter.getPosition(),
+    //     wrist.getPosition(),
+    //     climber.getRotorPosition(),
+    //     climber.getPosition());
   }
 
   public void simulationInit() {}
@@ -285,49 +268,5 @@ public class RobotContainer {
 
   public void disabledPeriodic() {
     this.updateOI();
-  }
-
-  public Command armWristToPositionCommand(double armPos, double wristPos) {
-    return new ParallelCommandGroup(
-            arm.armToPositionCommand(armPos), wrist.wristToPositionCommand(wristPos))
-        .withName("ArmWristToPositionCommand")
-        .withTimeout(5.0);
-  }
-
-  public Command cruisePositionCommand() {
-    return armWristToPositionCommand(
-            ScoringConstants.CruiseArmPosition, ScoringConstants.CruiseWristPosition)
-        .withName("cruisePositionCommand");
-  }
-
-  public Command getCoralPositionCommand() {
-    return armWristToPositionCommand(
-            ScoringConstants.LoadArmPosition, ScoringConstants.LoadWristPosition)
-        .withName("getCoralPositionCommand");
-  }
-
-  public Command l1ScoringPositionCommand() {
-    return armWristToPositionCommand(
-            ScoringConstants.L1ArmPosition, ScoringConstants.L1WristPosition)
-        .withName("l1ScoringPositionCommand");
-  }
-
-  public Command l2ScoringPositionCommand() {
-    return armWristToPositionCommand(
-            ScoringConstants.L2ArmPosition, ScoringConstants.L2WristPosition)
-        .withName("l2ScoringPositionCommand");
-  }
-
-  public Command climbPositionCommand() {
-    return new SequentialCommandGroup(
-            arm.armToPositionCommand(ScoringConstants.ClimbArmPosition), 
-            wrist.wristToPositionCommand(ScoringConstants.ClimbWristPosition))
-        .withName("climbPositionCommand")
-        .withTimeout(5)
-        .finallyDo(
-            () -> {
-              arm.stop();
-              wrist.stop();
-            });
   }
 }
