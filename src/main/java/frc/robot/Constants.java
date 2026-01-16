@@ -34,8 +34,8 @@ public final class Constants {
     public static final String LIMELIGHTNAME = "limelight";
   public static final String LIMELIGHTURL = "limelight.local";
   // Optional second limelight (e.g. limelight2). Update name/URL if you have a second camera.
-  public static final String LIMELIGHTNAME_2 = "limelight2";
-  public static final String LIMELIGHTURL_2 = "limelight2.local";
+  public static final String LIMELIGHTNAME_2 = "limelight-two";
+  public static final String LIMELIGHTURL_2 = "limelight-two.local";
     // PhotonVision is no longer used; keep vendordeps if needed but remove runtime URL constant.
 
     // Cam mounted - x = +toward front, 0 center, -toward rear in meters.
