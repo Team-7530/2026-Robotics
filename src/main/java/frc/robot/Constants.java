@@ -65,6 +65,35 @@ public final class Constants {
     // (Fake values. Experiment and determine estimation noise on an actual robot.)
     public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(2, 2, 8);
     public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.5, 0.5, 2);
+
+  // ------------------------------------------------------------------
+  // Limelight pipeline indices
+  // Define the pipeline index numbers you create in the Limelight web UI here so
+  // code can select the appropriate camera processing mode at runtime.
+  //
+  // Recommended pipeline definitions (author on each Limelight's UI):
+  //  - Hub pipeline (multi-tag): filter only the HUB apriltags for your alliance
+  //    * Create a fiducial/apriltag pipeline that only enables/accepts the tag IDs
+  //      that correspond to your alliance's HUB tags. Save that pipeline as index X.
+  //  - Tower pipeline (single-tag/tower): filter only the Tower apriltag for the
+  //    current alliance to allow climbing alignment in autonomous. Save that as Y.
+  //
+  // How to author pipelines on the camera (short):
+  // 1. Open the Limelight web UI (http://limelight.local or the camera's IP).
+  // 2. Go to the "Pipelines" or "Fiducials / Apriltag" section.
+  // 3. Create a new pipeline; set the detector to "apriltag" and set the tag
+  //    ID whitelist to only include the tags you want this pipeline to detect.
+  // 4. Save the pipeline and note its index (0..9). Repeat for each desired
+  //    pipeline (hub-blue, hub-red, tower-blue, tower-red, etc.).
+  // 5. Test live in the UI and adjust detection thresholds or downscale as
+  //    necessary before using from robot code.
+
+  // Pipeline indices (placeholders) - update these to the indices you configure
+  // on each Limelight. Use constants for clarity in code.
+  public static final int LIMELIGHT_PIPELINE_HUB_BLUE = 1;
+  public static final int LIMELIGHT_PIPELINE_HUB_RED = 2;
+  public static final int LIMELIGHT_PIPELINE_TOWER_BLUE = 3;
+  public static final int LIMELIGHT_PIPELINE_TOWER_RED = 4;
   }
 
   public static final class DriveTrainConstants {

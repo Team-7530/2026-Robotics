@@ -25,6 +25,7 @@ import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
+import edu.wpi.first.wpilibj.DriverStation;
 import frc.lib.limelightvision.LimelightHelpers;
 import frc.lib.limelightvision.LimelightHelpers.PoseEstimate;
 import frc.robot.Robot;
@@ -273,6 +274,65 @@ public class VisionSubsystem implements Subsystem {
 
   public Command updateGlobalPoseCommand(CommandSwerveDrivetrain drivetrain) {
     return run(() -> this.updateGlobalPose(drivetrain)).withName("UpdateGlobalPoseCommand");
+  }
+
+  // ---------- Limelight pipeline helpers
+  /** Set the pipeline index on a single limelight camera. */
+  public void setPipelineForCamera(String limelightName, int pipelineIndex) {
+    if (limelightName == null) return;
+    LimelightHelpers.setPipelineIndex(limelightName, pipelineIndex);
+    SmartDashboard.putNumber("Vision/Camera/" + limelightName + "/Pipeline", pipelineIndex);
+  }
+
+  /** Set the pipeline index for every configured limelight camera. */
+  public void setPipelineForAllCameras(int pipelineIndex) {
+    for (String name : limelightCameras) {
+      setPipelineForCamera(name, pipelineIndex);
+    }
+  }
+
+  /**
+   * Convenience helper: set the pipeline that filters HUB tags for the current alliance.
+   * Pass true for blue alliance, false for red. Indices are defined in
+   * {@link frc.robot.Constants.Vision}.
+   */
+  public void setHubPipelineForAlliance(boolean isBlue) {
+    int idx = isBlue ? LIMELIGHT_PIPELINE_HUB_BLUE : LIMELIGHT_PIPELINE_HUB_RED;
+    setPipelineForAllCameras(idx);
+    SmartDashboard.putString("Vision/ActiveMode", "HubPipeline");
+  }
+
+  /**
+   * Convenience helper: set the pipeline that filters Tower tags for the current alliance.
+   * Pass true for blue alliance, false for red.
+   */
+  public void setTowerPipelineForAlliance(boolean isBlue) {
+    int idx = isBlue ? LIMELIGHT_PIPELINE_TOWER_BLUE : LIMELIGHT_PIPELINE_TOWER_RED;
+    setPipelineForAllCameras(idx);
+    SmartDashboard.putString("Vision/ActiveMode", "TowerPipeline");
+  }
+
+  // ---------- Command-returning helpers for use in Command groups / events
+
+  /** Return a command that sets a specific pipeline index on all cameras when executed. */
+  public Command setPipelineForAllCamerasCommand(int pipelineIndex) {
+    return run(() -> setPipelineForAllCameras(pipelineIndex)).withName("SetPipelineAll-" + pipelineIndex);
+  }
+
+  /** Return a command that selects Hub pipeline based on the DriverStation alliance at runtime. */
+  public Command setHubPipelineCommand() {
+    return run(
+            () ->
+        setHubPipelineForAlliance(DriverStation.getAlliance().get() == DriverStation.Alliance.Blue))
+        .withName("SetHubPipeline");
+  }
+
+  /** Return a command that selects Tower pipeline based on the DriverStation alliance at runtime. */
+  public Command setTowerPipelineCommand() {
+    return run(
+            () ->
+        setTowerPipelineForAlliance(DriverStation.getAlliance().get() == DriverStation.Alliance.Blue))
+        .withName("SetTowerPipeline");
   }
 
   // ----- Simulation
