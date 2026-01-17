@@ -75,21 +75,21 @@ public class Mechanisms {
   MechanismLigament2d ccArmLen =
       ccArm.append(new MechanismLigament2d("ccArmLen", 0.3, 0, 8, new Color8Bit(Color.kBlue)));
 
-  /* Wrist Mechanism Ligaments */
-  MechanismLigament2d ccWrist =
-      ccArmLen.append(new MechanismLigament2d("ccWrist", .025, 0, 6, new Color8Bit(Color.kOrange)));
-  MechanismLigament2d wristSide2 =
-      ccWrist.append(
-          new MechanismLigament2d("wristSide2", 0.2, -90, 6, new Color8Bit(Color.kOrange)));
-  MechanismLigament2d wristSide3 =
-      wristSide2.append(
-          new MechanismLigament2d("wristSide3", 0.05, -90, 6, new Color8Bit(Color.kOrange)));
-  MechanismLigament2d wristSide4 =
-      wristSide3.append(
-          new MechanismLigament2d("wristSide4", 0.2, -90, 6, new Color8Bit(Color.kOrange)));
-  MechanismLigament2d wristSide5 =
-      wristSide4.append(
-          new MechanismLigament2d("wristSide5", 0.025, -90, 6, new Color8Bit(Color.kOrange)));
+  /* Rake Mechanism Ligaments */
+  MechanismLigament2d ccRake =
+      ccArmLen.append(new MechanismLigament2d("ccRake", .025, 0, 6, new Color8Bit(Color.kOrange)));
+  MechanismLigament2d rakeSide2 =
+      ccRake.append(
+          new MechanismLigament2d("rakeSide2", 0.2, -90, 6, new Color8Bit(Color.kOrange)));
+  MechanismLigament2d rakeSide3 =
+      rakeSide2.append(
+          new MechanismLigament2d("rakeSide3", 0.05, -90, 6, new Color8Bit(Color.kOrange)));
+  MechanismLigament2d rakeSide4 =
+      rakeSide3.append(
+          new MechanismLigament2d("rakeSide4", 0.2, -90, 6, new Color8Bit(Color.kOrange)));
+  MechanismLigament2d rakeSide5 =
+      rakeSide4.append(
+          new MechanismLigament2d("rakeSide5", 0.025, -90, 6, new Color8Bit(Color.kOrange)));
 
   /* climber Mechanism Ligaments */
   MechanismLigament2d rotorClimb =
@@ -135,13 +135,13 @@ public class Mechanisms {
   public void update(
       double armRotorPos,
       double armEncoderPos,
-      double wristEncoderPos,
+      double rakeEncoderPos,
       double climbRotorPos,
       double climbEncoderPos) {
-    // BaseStatusSignal.refreshAll(armRotorPosition, armEncoderPosition, wristEncoderPosition);
+    // BaseStatusSignal.refreshAll(armRotorPosition, armEncoderPosition, rakeEncoderPosition);
     rotorArm.setAngle(armRotorPos * 360);
     ccArm.setAngle(armEncoderPos * 360);
-    ccWrist.setAngle(wristEncoderPos * 360);
+    ccRake.setAngle(rakeEncoderPos * 360);
     rotorClimb.setAngle(climbRotorPos * 360);
     ccClimb.setAngle(100 + climbEncoderPos * 360);
     SmartDashboard.putData("mech2d", mech); // Creates mech2d in SmartDashboard
