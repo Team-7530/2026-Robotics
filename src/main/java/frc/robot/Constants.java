@@ -115,19 +115,19 @@ public final class Constants {
 
   public static final class ScoringConstants {
     public static final double L1ArmPosition = 0.28;
-    public static final double L1WristPosition = -0.3;
+    public static final double L1RakePosition = -0.3;
 
     public static final double L2ArmPosition = 0.25;
-    public static final double L2WristPosition = -0.22;
+    public static final double L2RakePosition = -0.22;
 
     public static final double LoadArmPosition = 0.25;
-    public static final double LoadWristPosition = -0.125;
+    public static final double LoadRakePosition = -0.125;
 
     public static final double ClimbArmPosition = 0.405;
-    public static final double ClimbWristPosition = 0.20;
+    public static final double ClimbRakePosition = 0.20;
 
     public static final double CruiseArmPosition = 0.405;
-    public static final double CruiseWristPosition = -0.33; //
+    public static final double CruiseRakePosition = -0.33; //
 
     public static final Translation2d L2BackupAmount = new Translation2d(-0.3, 0.0);
   }
@@ -239,31 +239,31 @@ public final class Constants {
 
   }
 
-  public static final class WristConstants {
+  public static final class RakeConstants {
     public static final CANBus CANBUS = CANBus.roboRIO();
-    public static final int WRISTMOTOR_ID = 33;
-    public static final int WRISTENCODER_ID = 34;
+    public static final int RAKEMOTOR_ID = 33;
+    public static final int RAKEENCODER_ID = 34;
 
-    public static final InvertedValue kWristInverted = InvertedValue.Clockwise_Positive;
-    public static final NeutralModeValue kWristNeutralMode = NeutralModeValue.Brake;
-    public static final SensorDirectionValue kWristEncoderDirection =
+    public static final InvertedValue kRakeInverted = InvertedValue.Clockwise_Positive;
+    public static final NeutralModeValue kRakeNeutralMode = NeutralModeValue.Brake;
+    public static final SensorDirectionValue kRakeEncoderDirection =
         SensorDirectionValue.Clockwise_Positive;
-    public static final double kWristEncoderOffset = -0.171;// add 0.25 offset, sub it later
+    public static final double kRakeEncoderOffset = -0.171;// add 0.25 offset, sub it later
 
-    public static final double kWristChainRatio = 1.0; // 1:1
-    public static final double kWristGearboxRatio = 45.0; // 1:45
-    public static final double kWristGearRatio =
-        kWristChainRatio * kWristGearboxRatio; // chain ratio * Gearbox ratio
+    public static final double kRakeChainRatio = 1.0; // 1:1
+    public static final double kRakeGearboxRatio = 45.0; // 1:45
+    public static final double kRakeGearRatio =
+        kRakeChainRatio * kRakeGearboxRatio; // chain ratio * Gearbox ratio
 
-    public static final double wristMotorKG = 0.0;
-    public static final double wristMotorKS = 0.0;
-    public static final double wristMotorKS_slow = 0.0;
-    public static final double wristMotorKV = 0.0;
-    public static final double wristMotorKA = 0.0;
-    public static final double wristMotorKP = 35.0; // 70
-    public static final double wristMotorKP_slow = 25.0;
-    public static final double wristMotorKI = 0.0;
-    public static final double wristMotorKD = 0.0;
+    public static final double rakeMotorKG = 0.0;
+    public static final double rakeMotorKS = 0.0;
+    public static final double rakeMotorKS_slow = 0.0;
+    public static final double rakeMotorKV = 0.0;
+    public static final double rakeMotorKA = 0.0;
+    public static final double rakeMotorKP = 35.0; // 70
+    public static final double rakeMotorKP_slow = 25.0;
+    public static final double rakeMotorKI = 0.0;
+    public static final double rakeMotorKD = 0.0;
     public static final double MMagicCruiseVelocity = 0;
     public static final double MMagicAcceleration = 0;
     public static final double MMagicJerk = 0;
@@ -272,11 +272,11 @@ public final class Constants {
     public static final double peakForwardVoltage = 8.0; // Peak output of 8 volts
     public static final double peakReverseVoltage = -8.0; // Peak output of 8 volts
 
-    public static final double kWristPositionMax = 0.25;
-    public static final double kWristPositionMin = -0.334;
+    public static final double kRakePositionMax = 0.25;
+    public static final double kRakePositionMin = -0.334;
 
-    public static final double kWristTeleopSpeed = 0.1;
-    public static final double kWristTeleopFactor = 0.05;
+    public static final double kRakeTeleopSpeed = 0.1;
+    public static final double kRakeTeleopFactor = 0.05;
   }
 
   public static final class IntakeConstants {

@@ -47,7 +47,7 @@ public class RobotContainer {
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
   public final VisionSubsystem vision = new VisionSubsystem();
   public final ShooterSubsystem shooter = new ShooterSubsystem();
-  public final WristSubsystem wrist = new WristSubsystem();
+  public final RakeSubsystem rake = new RakeSubsystem();
   public final IntakeSubsystem intake = new IntakeSubsystem();
   public final ClimberSubsystem climber = new ClimberSubsystem();
 
@@ -154,7 +154,7 @@ public class RobotContainer {
     //oi.getRightTrigger().onTrue(climber.climbToFullPositionCommand());
 
     //    oi.getStartButton().onTrue(Commands.runOnce(() -> climber.resetMotorPostion()));
-    //    oi.getBackButton().onTrue(new DoAllResetCommand(arm, wrist, climber));
+    //    oi.getBackButton().onTrue(new DoAllResetCommand(arm, rake, climber));
   }
 
   /**
@@ -178,7 +178,7 @@ public class RobotContainer {
     drivetrain.setDefaultCommand(new SwerveTeleopCommand(drivetrain, oi));
 
     shooter.setDefaultCommand(Commands.run(() -> shooter.teleop(-oi.getLeftThumbstickY()), shooter));
-    wrist.setDefaultCommand(Commands.run(() -> wrist.teleop(oi.getLeftThumbstickX()), wrist));
+    rake.setDefaultCommand(Commands.run(() -> rake.teleop(oi.getLeftThumbstickX()), rake));
     climber.setDefaultCommand(
         Commands.run(() -> climber.teleopClimb(-oi.getRightThumbstickY()), climber));
     vision.setDefaultCommand(vision.updateGlobalPoseCommand(drivetrain));
@@ -208,7 +208,7 @@ public class RobotContainer {
     // mechanism.update(
     //     shooter.getRotorPosition(),
     //     shooter.getPosition(),
-    //     wrist.getPosition(),
+    //     rake.getPosition(),
     //     climber.getRotorPosition(),
     //     climber.getPosition());
   }
