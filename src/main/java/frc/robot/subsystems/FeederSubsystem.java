@@ -18,7 +18,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.FeederConstants;
-import frc.robot.Constants.IntakeConstants;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 //Subsystem for rollers inside of hopper
@@ -27,8 +26,6 @@ public class FeederSubsystem extends SubsystemBase {
 
     private final TalonFX m_FeederMotor =
       new TalonFX(FeederConstants.FEEDERMOTOR_ID, FeederConstants.CANBUS);
-    private final CANrange m_RangeSensor =
-      new CANrange(FeederConstants.RANGESENSOR_ID, FeederConstants.CANBUS);
 
     private final VelocityTorqueCurrentFOC m_velocityRequest =
       new VelocityTorqueCurrentFOC(0).withSlot(0);
@@ -38,7 +35,6 @@ public class FeederSubsystem extends SubsystemBase {
 
     public FeederSubsystem() {
         initFeederConfigs();
-        initRangeSensor();
 }
 
     private void initFeederConfigs() {
@@ -56,51 +52,20 @@ public class FeederSubsystem extends SubsystemBase {
         configs.Slot0.kI = FeederConstants.feederMotorTorqueKI;
         configs.Slot0.kD = FeederConstants.feederMotorTorqueKD;
 
-        configs.HardwareLimitSwitch.ReverseLimitSource = ReverseLimitSourceValue.RemoteCANrange;
-        configs.HardwareLimitSwitch.ReverseLimitType = ReverseLimitTypeValue.NormallyOpen;
-        configs.HardwareLimitSwitch.ReverseLimitRemoteSensorID = m_RangeSensor.getDeviceID();
-        configs.HardwareLimitSwitch.ReverseLimitEnable = true;
-
         StatusCode status = m_FeederMotor.getConfigurator().apply(configs);
         if (!status.isOK()) {
         System.out.println("Could not apply top configs, error code: " + status.toString());
         }
 }
-    private void initRangeSensor() {
-        CANrangeConfiguration config = new CANrangeConfiguration();
-        config.FovParams.FOVCenterX = FeederConstants.kRangeFOVCenterX;
-        config.FovParams.FOVCenterY = FeederConstants.kRangeFOVCenterY;
-        config.FovParams.FOVRangeX = FeederConstants.kRangeFOVRangeX;
-        config.FovParams.FOVRangeY = FeederConstants.kRangeFOVRangeY;
-        config.ProximityParams.ProximityThreshold = FeederConstants.kProxThreshold;
-        config.ProximityParams.ProximityHysteresis = FeederConstants.kProxHysteresis;
-        config.ProximityParams.MinSignalStrengthForValidMeasurement = FeederConstants.kMinSigStrength;
-
-        /* User can change the configs if they want, or leave it empty for factory-default */
-        StatusCode status = m_RangeSensor.getConfigurator().apply(config);
-        if (!status.isOK()) {
-        System.out.println("Could not apply top configs, error code: " + status.toString());
-        }
-
-        /* Set the signal update rate */
-        BaseStatusSignal.setUpdateFrequencyForAll(
-            50,
-            m_RangeSensor.getDistance(),
-            m_RangeSensor.getSignalStrength(),
-            m_RangeSensor.getIsDetected());
-
-    
-  }
     @Override
     public void periodic() {
     updateSmartDashboard();
   }
 
   /**
-   * Sets the motors Target velocity
+   * Sets the motor Target velocity
    *
-   * @param Lvelocity left motors target velocity
-   * @param Rvelocity Right motors target velocity
+   * @param Fvelocity left motors target velocity
    */
     public void setFeederVelocity(double Fvelocity) {
         m_FeederMotor.setControl(
@@ -128,11 +93,7 @@ public class FeederSubsystem extends SubsystemBase {
 
   /** Updates the Smart Dashboard */
     private void updateSmartDashboard() {
-        SmartDashboard.putNumber("LIntake Speed", m_FeederMotor.getVelocity().getValueAsDouble());
-
-        SmartDashboard.putNumber("Distance", m_RangeSensor.getDistance().getValueAsDouble());
-        SmartDashboard.putNumber("Strength", m_RangeSensor.getSignalStrength().getValueAsDouble());
-        SmartDashboard.putBoolean("Detected", m_RangeSensor.getIsDetected().getValue());
+        SmartDashboard.putNumber("FeederIntake Speed", m_FeederMotor.getVelocity().getValueAsDouble());
   }
 
     public Command feederCommand() {

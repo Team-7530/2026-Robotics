@@ -321,7 +321,6 @@ public final class Constants {
   public static final class FeederConstants{
     public static final CANBus CANBUS = CANBus.roboRIO();
     public static final int FEEDERMOTOR_ID = 65;
-    public static final int RANGESENSOR_ID = 67;
 
     public static final InvertedValue kFeederInverted = InvertedValue.CounterClockwise_Positive;
     public static final NeutralModeValue kFeederNeutralMode = NeutralModeValue.Coast;
@@ -341,15 +340,6 @@ public final class Constants {
     public static final double feederMotorTorqueKD = 0.001; // 1000 rps^2 incr 1 amp output
 
     public static final double feederVelocity = -3.0;
-
-    public static final Distance rangeThreshold = Inches.of(5.0);
-    public static final double kRangeFOVCenterX = 0;
-    public static final double kRangeFOVCenterY = 0;
-    public static final double kRangeFOVRangeX = 27;
-    public static final double kRangeFOVRangeY = 27;
-    public static final double kProxThreshold = 0.1;
-    public static final double kProxHysteresis = 0.01;
-    public static final double kMinSigStrength = 2500;
   }
 
   public static final class ClimberConstants {
