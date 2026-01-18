@@ -8,142 +8,51 @@ import edu.wpi.first.wpilibj.util.Color8Bit;
 
 /** Class to keep all the mechanism-specific objects together and out of the main example */
 public class Mechanisms {
+  // Visual area scale for mechanism2d
   double HEIGHT = 1; // Controls the height of the mech2d SmartDashboard
-  double WIDTH = 1; // Controls the height of the mech2d SmartDashboard
+  double WIDTH = 1; // Controls the width of the mech2d SmartDashboard
 
   Mechanism2d mech = new Mechanism2d(WIDTH, HEIGHT);
-  /* arm rotor rotor Ligaments */
-  MechanismLigament2d rotorArm =
-      mech.getRoot("rotorArmPivotPoint", 0.5, 0.2)
-          .append(new MechanismLigament2d("rotorArm", .04, 0, 0, new Color8Bit(Color.kAliceBlue)));
 
-  MechanismLigament2d rotorArmSide1 =
-      rotorArm.append(
-          new MechanismLigament2d(
-              "rotorArmSide1", 0.038267, 120, 6, new Color8Bit(Color.kAliceBlue)));
-  MechanismLigament2d rotorArmSide2 =
-      rotorArmSide1.append(
-          new MechanismLigament2d(
-              "rotorArmSide2", 0.038267, 60, 6, new Color8Bit(Color.kAliceBlue)));
-  MechanismLigament2d rotorArmSide3 =
-      rotorArmSide2.append(
-          new MechanismLigament2d(
-              "rotorArmSide3", 0.038267, 60, 6, new Color8Bit(Color.kAliceBlue)));
-  MechanismLigament2d rotorArmSide4 =
-      rotorArmSide3.append(
-          new MechanismLigament2d(
-              "rotorArmSide4", 0.038267, 60, 6, new Color8Bit(Color.kAliceBlue)));
-  MechanismLigament2d rotorArmSide5 =
-      rotorArmSide4.append(
-          new MechanismLigament2d(
-              "rotorArmSide5", 0.038267, 60, 6, new Color8Bit(Color.kAliceBlue)));
-  MechanismLigament2d rotorArmSide6 =
-      rotorArmSide5.append(
-          new MechanismLigament2d(
-              "rotorArmSide6", 0.038267, 60, 6, new Color8Bit(Color.kAliceBlue)));
+  // ----- Rake arm (single pivot on the left side, near middle of robot)
+  // Pivot placed at x=0.0 (left bumper area), y=0.5 (center/middle along Y)
+  // Arm length set a bit longer than half the base so the rake extends past the bumper.
+  MechanismLigament2d leftArmRoot =
+      mech.getRoot("leftPivot", 0.0, 0.5)
+          .append(new MechanismLigament2d("rakeArm", 0.55, 0, 8, new Color8Bit(Color.kBlue)));
 
-  /* Arm ligaments */
-  MechanismLigament2d ccArm =
-      mech.getRoot("armPivotPoint", 0.5, 0.2)
-          .append(new MechanismLigament2d("ccArm", .1, 0, 0, new Color8Bit(Color.kAntiqueWhite)));
+  MechanismLigament2d leftRakeBase =
+      leftArmRoot.append(new MechanismLigament2d("rakeBase", 0.04, 0, 6, new Color8Bit(Color.kOrange)));
+  // two 90-degree over-the-bumper segments (visuals)
+  MechanismLigament2d leftRakeSeg1 =
+      leftRakeBase.append(new MechanismLigament2d("rakeSeg1", 0.22, -90, 6, new Color8Bit(Color.kOrange)));
+  MechanismLigament2d leftRakeSeg2 =
+      leftRakeSeg1.append(new MechanismLigament2d("rakeSeg2", 0.18, -90, 6, new Color8Bit(Color.kOrange)));
 
-  MechanismLigament2d ccSide1 =
-      ccArm.append(
-          new MechanismLigament2d(
-              "ccSide1", 0.076535, 112.5, 6, new Color8Bit(Color.kAntiqueWhite)));
-  MechanismLigament2d ccSide2 =
-      ccSide1.append(
-          new MechanismLigament2d("ccSide2", 0.076535, 45, 6, new Color8Bit(Color.kAntiqueWhite)));
-  MechanismLigament2d ccSide3 =
-      ccSide2.append(
-          new MechanismLigament2d("ccSide3", 0.076535, 45, 6, new Color8Bit(Color.kAntiqueWhite)));
-  MechanismLigament2d ccSide4 =
-      ccSide3.append(
-          new MechanismLigament2d("ccSide4", 0.076535, 45, 6, new Color8Bit(Color.kAntiqueWhite)));
-  MechanismLigament2d ccSide5 =
-      ccSide4.append(
-          new MechanismLigament2d("ccSide5", 0.076535, 45, 6, new Color8Bit(Color.kAntiqueWhite)));
-  MechanismLigament2d ccSide6 =
-      ccSide5.append(
-          new MechanismLigament2d("ccSide6", 0.076535, 45, 6, new Color8Bit(Color.kAntiqueWhite)));
-  MechanismLigament2d ccSide7 =
-      ccSide6.append(
-          new MechanismLigament2d("ccSide7", 0.076535, 45, 6, new Color8Bit(Color.kAntiqueWhite)));
-  MechanismLigament2d ccSide8 =
-      ccSide7.append(
-          new MechanismLigament2d("ccSide8", 0.076535, 45, 6, new Color8Bit(Color.kAntiqueWhite)));
-  MechanismLigament2d ccArmLen =
-      ccArm.append(new MechanismLigament2d("ccArmLen", 0.3, 0, 8, new Color8Bit(Color.kBlue)));
+  // (No middle arm - design uses a single rake pivoted on the left side)
 
-  /* Rake Mechanism Ligaments */
-  MechanismLigament2d ccRake =
-      ccArmLen.append(new MechanismLigament2d("ccRake", .025, 0, 6, new Color8Bit(Color.kOrange)));
-  MechanismLigament2d rakeSide2 =
-      ccRake.append(
-          new MechanismLigament2d("rakeSide2", 0.2, -90, 6, new Color8Bit(Color.kOrange)));
-  MechanismLigament2d rakeSide3 =
-      rakeSide2.append(
-          new MechanismLigament2d("rakeSide3", 0.05, -90, 6, new Color8Bit(Color.kOrange)));
-  MechanismLigament2d rakeSide4 =
-      rakeSide3.append(
-          new MechanismLigament2d("rakeSide4", 0.2, -90, 6, new Color8Bit(Color.kOrange)));
-  MechanismLigament2d rakeSide5 =
-      rakeSide4.append(
-          new MechanismLigament2d("rakeSide5", 0.025, -90, 6, new Color8Bit(Color.kOrange)));
+  // ----- Front turret mechanism (centered at front, ~12 inches up visually)
+  MechanismLigament2d turretBase =
+      mech.getRoot("turretBase", 0.5, 0.12)
+          .append(new MechanismLigament2d("turretBase", 0.06, 0, 6, new Color8Bit(Color.kYellow)));
+  MechanismLigament2d turretShaft =
+      turretBase.append(new MechanismLigament2d("turretShaft", 0.12, 0, 6, new Color8Bit(Color.kYellow)));
 
-  /* climber Mechanism Ligaments */
-  MechanismLigament2d rotorClimb =
-      mech.getRoot("rotorClimberPivotPoint", 0.75, 0.3)
-          .append(
-              new MechanismLigament2d("rotorClimb", .04, 0, 0, new Color8Bit(Color.kAliceBlue)));
+    /**
+     * Update mechanism visuals. Angles are provided in degrees.
+     * leftArmDeg, leftRake1Deg, leftRake2Deg: rake arm joint angles
+     * turretDeg: turret rotation in degrees
+     */
+    public void update(
+            double leftArmDeg, double turretDeg) {
+        // leftArmRoot.setAngle(leftArmDeg);
+        leftRakeBase.setAngle(leftArmDeg);
+        // leftRakeSeg1.setAngle(leftRake2Deg);
+        // leftRakeSeg2.setAngle(leftRake2Deg);
 
-  MechanismLigament2d rotorClimbSide1 =
-      rotorClimb.append(
-          new MechanismLigament2d(
-              "rotorClimbSide1", 0.038267, 120, 6, new Color8Bit(Color.kAliceBlue)));
-  MechanismLigament2d rotorClimbSide2 =
-      rotorClimbSide1.append(
-          new MechanismLigament2d(
-              "rotorClimbSide2", 0.038267, 60, 6, new Color8Bit(Color.kAliceBlue)));
-  MechanismLigament2d rotorClimbSide3 =
-      rotorClimbSide2.append(
-          new MechanismLigament2d(
-              "rotorClimbSide3", 0.038267, 60, 6, new Color8Bit(Color.kAliceBlue)));
-  MechanismLigament2d rotorClimbSide4 =
-      rotorClimbSide3.append(
-          new MechanismLigament2d(
-              "rotorClimbSide4", 0.038267, 60, 6, new Color8Bit(Color.kAliceBlue)));
-  MechanismLigament2d rotorClimbSide5 =
-      rotorClimbSide4.append(
-          new MechanismLigament2d(
-              "rotorClimbSide5", 0.038267, 60, 6, new Color8Bit(Color.kAliceBlue)));
-  MechanismLigament2d rotorClimbSide6 =
-      rotorClimbSide5.append(
-          new MechanismLigament2d(
-              "rotorClimbSide6", 0.038267, 60, 6, new Color8Bit(Color.kAliceBlue)));
+        turretBase.setAngle(turretDeg);
+        turretShaft.setAngle(turretDeg);
 
-  MechanismLigament2d ccClimb =
-      mech.getRoot("climbPivotPoint", 0.75, 0.3)
-          .append(new MechanismLigament2d("ccClimb", .15, 90, 6, new Color8Bit(Color.kPurple)));
-  MechanismLigament2d climbSide1 =
-      ccClimb.append(
-          new MechanismLigament2d("climbSide1", .1, -90, 6, new Color8Bit(Color.kPurple)));
-  MechanismLigament2d climbSide2 =
-      ccClimb.append(
-          new MechanismLigament2d("climbSide2", 0.25, 180, 6, new Color8Bit(Color.kPurple)));
-
-  public void update(
-      double armRotorPos,
-      double armEncoderPos,
-      double rakeEncoderPos,
-      double climbRotorPos,
-      double climbEncoderPos) {
-    // BaseStatusSignal.refreshAll(armRotorPosition, armEncoderPosition, rakeEncoderPosition);
-    rotorArm.setAngle(armRotorPos * 360);
-    ccArm.setAngle(armEncoderPos * 360);
-    ccRake.setAngle(rakeEncoderPos * 360);
-    rotorClimb.setAngle(climbRotorPos * 360);
-    ccClimb.setAngle(100 + climbEncoderPos * 360);
-    SmartDashboard.putData("mech2d", mech); // Creates mech2d in SmartDashboard
-  }
+        SmartDashboard.putData("mech2d", mech); // Creates mech2d in SmartDashboard
+    }
 }

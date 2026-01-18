@@ -19,7 +19,7 @@ import frc.robot.commands.*;
 import frc.robot.generated.TunerConstants;
 import frc.robot.operator_interface.OISelector;
 import frc.robot.operator_interface.OperatorInterface;
-// import frc.robot.sim.Mechanisms;
+import frc.robot.sim.Mechanisms;
 import frc.robot.sim.PhysicsSim;
 import frc.robot.subsystems.*;
 
@@ -55,7 +55,7 @@ public class RobotContainer {
   private SendableChooser<Command> autoChooser;
   private Command autonomousCommand;
 
-  // private Mechanisms mechanism = new Mechanisms();
+  private Mechanisms mechanism = new Mechanisms();
 
   public static RobotContainer GetInstance() {
     return instance;
@@ -205,12 +205,9 @@ public class RobotContainer {
   }
 
   public void robotPeriodic() {
-    // mechanism.update(
-    //     shooter.getRotorPosition(),
-    //     shooter.getPosition(),
-    //     rake.getPosition(),
-    //     climber.getRotorPosition(),
-    //     climber.getPosition());
+    mechanism.update(
+        shooter.getTurretAngleDegrees(),
+        rake.getPosition());
   }
 
   public void simulationInit() {}
