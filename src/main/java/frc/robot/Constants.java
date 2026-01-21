@@ -182,6 +182,8 @@ public final class Constants {
     public static final int FLYWHEEL_MASTER_ID = 53;
     public static final int FLYWHEEL_FOLLOWER_ID = 54;
 
+    public static final int INTAKEMOTOR_ID = 35;
+
     // Turret limits in degrees (180-degree travel centered on 0)
     public static final double TURRET_MIN_DEG = -90.0;
     public static final double TURRET_MAX_DEG = 90.0;
@@ -235,8 +237,31 @@ public final class Constants {
     public static final double kFlywheelPeakForwardVoltage = 8.0; // Peak output of 8 volts
     public static final double kFlywheelPeakReverseVoltage = -8.0; // Peak output of 8 volts
 
-    public static final double kTurretTeleopSpeed = 0;
+    // Intake tuning
+    public static final InvertedValue kIntakeInverted = InvertedValue.CounterClockwise_Positive;
+    public static final NeutralModeValue kIntakeNeutralMode = NeutralModeValue.Coast;
+    public static final double kIntakePeakForwardVoltage = 10.0; // Peak output of 8 volts
+    public static final double kIntakePeakReverseVoltage = -10.0; // Peak output of 8 volts
+    public static final double kIntakePeakForwardTorqueCurrent = 40.0; // Peak output of 40 amps
+    public static final double kIntakePeakReverseTorqueCurrent = -40.0; // Peak output of 40 amps
 
+    public static final double kIntakeChainRatio = 24.0 / 10.0; // 24:10
+    public static final double kIntakeGearboxRatio = 1.0; // 1:1
+    public static final double kIntakeGearRatio = kIntakeChainRatio * kIntakeGearboxRatio;
+
+    /* Torque-based velocity does not require a feed forward, as torque will accelerate the rotor up to the desired velocity by itself */
+    public static final double intakeMotorTorqueKS = 0.0; // Static feedforward gain
+    public static final double intakeMotorTorqueKP = 8.0; // error of 1 rps results in 8 amps output
+    public static final double intakeMotorTorqueKI = 0.2; // error of 1 rps incr by 0.2 amps per sec
+    public static final double intakeMotorTorqueKD = 0.001; // 1000 rps^2 incr 1 amp output
+
+    public static final double intakeVelocity = -3.0;
+
+    // Flywheel tuning
+    public static final double INTAKE_MAX_RPM = 6000.0; // adjust to your intake
+    public static final double INTAKE_DEFAULT_RPM = 3000.0;
+
+    public static final double kTurretTeleopSpeed = 0;
   }
 
   public static final class RakeConstants {
