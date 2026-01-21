@@ -47,8 +47,8 @@ public class RobotContainer {
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
   public final VisionSubsystem vision = new VisionSubsystem();
   public final ShooterSubsystem shooter = new ShooterSubsystem();
+  public final FeederSubsystem feeder = new FeederSubsystem();
   public final RakeSubsystem rake = new RakeSubsystem();
-  public final IntakeSubsystem intake = new IntakeSubsystem();
   public final ClimberSubsystem climber = new ClimberSubsystem();
 
   /* Path follower */
@@ -139,9 +139,9 @@ public class RobotContainer {
     //         new PathOnTheFlyCommand(
     //             drivetrain, new Pose2d(13.85, 2.67, Rotation2d.fromDegrees(124))));
 
-    oi.getAButton().onTrue(intake.intakeCommand());
-    oi.getXButton().onTrue(intake.outtakeL2Command());
-    oi.getBButton().onTrue(intake.outtakeL1Command());
+    // oi.getAButton().onTrue(intake.intakeCommand());
+    // oi.getXButton().onTrue(intake.outtakeL2Command());
+    // oi.getBButton().onTrue(intake.outtakeL1Command());
 
 
     oi.getLeftBumper().onTrue(climber.clampCommand(false));
@@ -185,9 +185,9 @@ public class RobotContainer {
   }
 
   private void configureAutoPaths() {
-    NamedCommands.registerCommand("Intake", intake.intakeCommand());
-    NamedCommands.registerCommand("Outtake", intake.outtakeL2Command());
-    NamedCommands.registerCommand("OuttakeSpin", intake.outtakeL1Command());
+    // NamedCommands.registerCommand("Intake", intake.intakeCommand());
+    // NamedCommands.registerCommand("Outtake", intake.outtakeL2Command());
+    // NamedCommands.registerCommand("OuttakeSpin", intake.outtakeL1Command());
     NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
   }
 
@@ -195,9 +195,9 @@ public class RobotContainer {
     drivetrain.registerTelemetry(logger::telemeterize);
 
     SmartDashboard.putData("AutoChooser", autoChooser);
-    SmartDashboard.putData("Intake", intake.intakeCommand());
-    SmartDashboard.putData("Outtake", intake.outtakeL2Command());
-    SmartDashboard.putData("OuttakeSpin", intake.outtakeL1Command());
+    // SmartDashboard.putData("Intake", intake.intakeCommand());
+    // SmartDashboard.putData("Outtake", intake.outtakeL2Command());
+    // SmartDashboard.putData("OuttakeSpin", intake.outtakeL1Command());
     SmartDashboard.putData("ClimbToFull", climber.climbToFullPositionCommand());
     SmartDashboard.putData("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
     SmartDashboard.putData(
@@ -207,7 +207,7 @@ public class RobotContainer {
   public void robotPeriodic() {
     mechanism.update(
         shooter.getTurretAngleDegrees(),
-        rake.getPosition());
+        rake.getRakePosition());
   }
 
   public void simulationInit() {}

@@ -8,6 +8,7 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.MotionMagicExpoVoltage;
 import com.ctre.phoenix6.controls.NeutralOut;
+import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
@@ -19,6 +20,8 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants.CollectorConstants;
+import frc.robot.Constants.RakeConstants;
 import frc.robot.sim.PhysicsSim;
 
 public class RakeSubsystem extends SubsystemBase {
@@ -27,18 +30,25 @@ public class RakeSubsystem extends SubsystemBase {
       new TalonFX(RakeConstants.RAKEMOTOR_ID, RakeConstants.CANBUS);
   private final CANcoder m_rakeEncoder =
       new CANcoder(RakeConstants.RAKEENCODER_ID, RakeConstants.CANBUS);
-
   private final MotionMagicExpoVoltage m_rakeRequest = new MotionMagicExpoVoltage(0).withSlot(0);
-  private final DutyCycleOut m_manualRequest = new DutyCycleOut(0);
+  private final DutyCycleOut m_rakePercentRequest = new DutyCycleOut(0);
   private final NeutralOut m_brake = new NeutralOut();
 
+  private final TalonFX m_CollectorMotor =
+      new TalonFX(CollectorConstants.COLLECTORMOTOR_ID, CollectorConstants.CANBUS);
+
+  private final VelocityTorqueCurrentFOC m_collectorRequest =
+      new VelocityTorqueCurrentFOC(0).withSlot(0);
+  private final DutyCycleOut m_collectorPercentRequest = new DutyCycleOut(0);
+
+
   private double rakeTargetPosition = 0;
-  private int rakeSlot = 0;
   private boolean m_isTeleop = false;
 
   public RakeSubsystem() {
-    initEncoderConfigs();
     initRakeConfigs();
+    initEncoderConfigs();
+    initCollectorConfigs();
 
     if (RobotBase.isSimulation()) initSimulation();
   }
@@ -86,10 +96,8 @@ public class RakeSubsystem extends SubsystemBase {
     configs.SoftwareLimitSwitch.ReverseSoftLimitThreshold = RakeConstants.kRakePositionMin;
     configs.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
 
-    StatusCode status = m_rakeMotor.getConfigurator().apply(configs);
-    if (!status.isOK()) {
-      System.out.println("Could not apply top configs, error code: " + status.toString());
-    }
+    StatusCode s = m_rakeMotor.getConfigurator().apply(configs);
+    if (!s.isOK()) System.out.println("Could not apply top configs, error code: " + s);
   }
 
   private void initEncoderConfigs() {
@@ -99,14 +107,33 @@ public class RakeSubsystem extends SubsystemBase {
     // add offset of 0.25 to abs value so total range keeps sign. sub it below
     configs.MagnetSensor.withMagnetOffset(Units.Rotations.of(RakeConstants.kRakeEncoderOffset));
 
-    StatusCode status = m_rakeEncoder.getConfigurator().apply(configs);
-    if (!status.isOK()) {
-      System.out.println("Could not apply top configs, error code: " + status.toString());
-    }
+    StatusCode s = m_rakeEncoder.getConfigurator().apply(configs);
+    if (!s.isOK()) System.out.println("Could not apply top configs, error code: " + s);
+
     // set starting position to current absolute position
-    status = m_rakeEncoder.setPosition(m_rakeEncoder.getAbsolutePosition().getValueAsDouble());
+    s = m_rakeEncoder.setPosition(m_rakeEncoder.getAbsolutePosition().getValueAsDouble());
+    if (!s.isOK()) System.out.println("Could not apply position to encoder, error code: " + s);
   }
 
+  private void initCollectorConfigs() {
+    TalonFXConfiguration configs = new TalonFXConfiguration();
+
+    configs.MotorOutput.Inverted = CollectorConstants.kCollectorInverted;
+    configs.MotorOutput.NeutralMode = CollectorConstants.kCollectorNeutralMode;
+    configs.Voltage.PeakForwardVoltage = CollectorConstants.peakForwardVoltage;
+    configs.Voltage.PeakReverseVoltage = CollectorConstants.peakReverseVoltage;
+    configs.TorqueCurrent.PeakForwardTorqueCurrent = CollectorConstants.peakForwardTorqueCurrent;
+    configs.TorqueCurrent.PeakReverseTorqueCurrent = CollectorConstants.peakReverseTorqueCurrent;
+
+    configs.Slot0.kS = CollectorConstants.collectorMotorTorqueKS;
+    configs.Slot0.kP = CollectorConstants.collectorMotorTorqueKP;
+    configs.Slot0.kI = CollectorConstants.collectorMotorTorqueKI;
+    configs.Slot0.kD = CollectorConstants.collectorMotorTorqueKD;
+
+    StatusCode s = m_CollectorMotor.getConfigurator().apply(configs);
+    if (!s.isOK()) System.out.println("Could not apply top configs, error code: " + s);
+  }
+    
   private void initSimulation() {
     PhysicsSim.getInstance()
         .addTalonFX(m_rakeMotor, m_rakeEncoder, RakeConstants.kRakeGearRatio, 0.001);
@@ -123,23 +150,21 @@ public class RakeSubsystem extends SubsystemBase {
    *
    * @param pos position between 0 and 1
    */
-  public void setPosition(double pos) {
+  public void setRakePosition(double pos) {
     m_isTeleop = false;
     rakeTargetPosition =
         MathUtil.clamp(pos, RakeConstants.kRakePositionMin, RakeConstants.kRakePositionMax);
-    rakeSlot = (((this.getPosition()) * (rakeTargetPosition)) <= 0.0) ? 1 : 0;
-
-    m_rakeMotor.setControl(m_rakeRequest.withPosition(rakeTargetPosition).withSlot(rakeSlot));
+    m_rakeMotor.setControl(m_rakeRequest.withPosition(rakeTargetPosition));
   }
 
   /** Returns the rake position as a double */
-  public double getPosition() {
+  public double getRakePosition() {
     return m_rakeEncoder.getPosition().getValueAsDouble();
   }
 
   /** Returns true if motor is at target position or within tolerance range */
-  public boolean isAtPosition() {
-    return MathUtil.isNear(rakeTargetPosition, this.getPosition(), POSITION_TOLERANCE);
+  public boolean isRakeAtPosition() {
+    return MathUtil.isNear(rakeTargetPosition, this.getRakePosition(), POSITION_TOLERANCE);
   }
 
   /**
@@ -147,21 +172,53 @@ public class RakeSubsystem extends SubsystemBase {
    *
    * @param wspeed double, target speed
    */
-  public void setSpeed(double wspeed) {
+  public void setRakeSpeed(double wspeed) {
     rakeTargetPosition = 0;
-    m_rakeMotor.setControl(m_manualRequest.withOutput(wspeed));
+    m_rakeMotor.setControl(m_rakePercentRequest.withOutput(wspeed));
   }
 
   /** Stops motor and activates brakes */
-  public void stop() {
+  public void stopRake() {
     rakeTargetPosition = 0;
     m_rakeMotor.setControl(m_brake);
   }
 
-  /** Tells motor to hold current position (can cause jitter) */
-  public void hold() {
-    this.setPosition(this.getPosition());
+  /**
+   * Sets the motor Target velocity
+   *
+   * @param Cvelocity left motors target velocity
+   */
+  public void setCollectorVelocity(double Cvelocity) {
+    m_CollectorMotor.setControl(
+      m_collectorRequest.withVelocity(Cvelocity * CollectorConstants.kCollectorGearRatio));
   }
+
+  /**
+   * returns the motor Target velocity
+   */
+  public double getCollectorVelocity() {
+    return m_CollectorMotor.getVelocity().getValueAsDouble();
+  }
+
+  /**
+   * Sets collector motor speed
+   *
+   * @param speed double
+   */
+  public void setCollectorSpeed(double speed) {
+      m_CollectorMotor.setControl(m_collectorPercentRequest.withOutput(speed));
+  }
+
+  /** Activates motor brakes */
+  public void collectorStop() {
+      m_CollectorMotor.setControl(m_brake);
+  }
+
+  /** Sets motors to constants intake speed */
+  public void collectorIn() {
+      this.setCollectorVelocity(CollectorConstants.collectorVelocity);
+  }
+
 
   /**
    * Teleop controls
@@ -173,28 +230,32 @@ public class RakeSubsystem extends SubsystemBase {
 
     if (wspeed != 0.0) {
       m_isTeleop = true;
-      this.setSpeed(wspeed * RakeConstants.kRakeTeleopSpeed);
+      this.setRakeSpeed(wspeed * RakeConstants.kRakeTeleopSpeed);
     } else if (m_isTeleop) {
       m_isTeleop = false;
-      if (USE_POSITIONCONTROL) {
-        this.hold();
-      } else {
-        this.stop();
-      }
+      this.stopRake();
     }
   }
 
   /** Upddates the Smart Dashboard */
   private void updateSmartDashboard() {
-    SmartDashboard.putNumber("Rake Postion", this.getPosition());
+    SmartDashboard.putNumber("Rake Postion", this.getRakePosition());
     SmartDashboard.putNumber("Rake TargetPostion", rakeTargetPosition);
-    SmartDashboard.putNumber("Rake Slot", rakeSlot);
+    SmartDashboard.putNumber("CollectorIntake Speed", this.getCollectorVelocity());
   }
 
   public Command rakeToPositionCommand(double position) {
-    return run(() -> this.setPosition(position))
+    return run(() -> this.setRakePosition(position))
         .withName("RakeToPositionCommand")
-        .until(this::isAtPosition)
+        .until(this::isRakeAtPosition)
         .withTimeout(5.0);
   }
+
+  public Command feederCommand() {
+    return run(() -> this.collectorIn())
+        .withName("CollectorCommand")
+        .withTimeout(5.0)
+        .finallyDo(() -> this.collectorStop());
+  }
+
 }
