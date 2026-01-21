@@ -367,6 +367,30 @@ public final class Constants {
     public static final double feederVelocity = -3.0;
   }
 
+  public static final class CollectorConstants{
+    public static final CANBus CANBUS = CANBus.roboRIO();
+    public static final int COLLECTORMOTOR_ID = 65;
+
+    public static final InvertedValue kCollectorInverted = InvertedValue.CounterClockwise_Positive;
+    public static final NeutralModeValue kCollectorNeutralMode = NeutralModeValue.Coast;
+    public static final double peakForwardVoltage = 10.0; // Peak output of 8 volts
+    public static final double peakReverseVoltage = -10.0; // Peak output of 8 volts
+    public static final double peakForwardTorqueCurrent = 40.0; // Peak output of 40 amps
+    public static final double peakReverseTorqueCurrent = -40.0; // Peak output of 40 amps
+
+    public static final double kCollectorChainRatio = 24.0 / 10.0; // 24:10
+    public static final double kCollectorGearboxRatio = 1.0; // 1:1
+    public static final double kCollectorGearRatio = kCollectorChainRatio * kCollectorGearboxRatio;
+
+    /* Torque-based velocity does not require a feed forward, as torque will accelerate the rotor up to the desired velocity by itself */
+    public static final double collectorMotorTorqueKS = 0.0; // Static feedforward gain
+    public static final double collectorMotorTorqueKP = 8.0; // error of 1 rps results in 8 amps output
+    public static final double collectorMotorTorqueKI = 0.2; // error of 1 rps incr by 0.2 amps per sec
+    public static final double collectorMotorTorqueKD = 0.001; // 1000 rps^2 incr 1 amp output
+
+    public static final double collectorVelocity = -3.0;
+  }
+
   public static final class ClimberConstants {
     public static final CANBus CANBUS = new CANBus("CANFD");
     public static final int CLIMBMOTOR_ID = 41;
