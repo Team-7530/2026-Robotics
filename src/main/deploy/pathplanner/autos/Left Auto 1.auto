@@ -7,25 +7,19 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Test"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 2.0
+            "pathName": "Left to Depot"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Test 2"
+            "pathName": "Depot to Shoot"
           }
         }
       ]
     }
   },
   "resetOdom": true,
-  "folder": "Test",
+  "folder": null,
   "choreoAuto": false
 }
