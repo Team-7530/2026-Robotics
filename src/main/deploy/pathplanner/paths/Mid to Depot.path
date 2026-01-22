@@ -3,25 +3,25 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 5.1,
-        "y": 2.95
+        "x": 3.4,
+        "y": 4.0
       },
       "prevControl": null,
       "nextControl": {
-        "x": 5.148536184210524,
-        "y": 1.4422697368421054
+        "x": 2.3652112247451487,
+        "y": 4.575938958806817
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 1.25,
-        "y": 0.85
+        "x": 1.35,
+        "y": 6.0
       },
       "prevControl": {
-        "x": 2.491312662760416,
-        "y": 0.8169718424479163
+        "x": 1.830639650168259,
+        "y": 5.527593849811829
       },
       "nextControl": null,
       "isLocked": false,
@@ -41,14 +41,14 @@
     "unlimited": false
   },
   "goalEndState": {
-    "velocity": 0.0,
-    "rotation": -111.09426878657001
+    "velocity": 0,
+    "rotation": 180.0
   },
   "reversed": false,
-  "folder": "Reef_To_Coral",
+  "folder": null,
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 119.99999999999999
+    "rotation": 180.0
   },
   "useDefaultConstraints": true
 }
