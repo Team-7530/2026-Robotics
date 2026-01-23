@@ -11,6 +11,12 @@
           }
         },
         {
+          "type": "named",
+          "data": {
+            "name": "collectorCommand"
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "Outpost to Shoot"
