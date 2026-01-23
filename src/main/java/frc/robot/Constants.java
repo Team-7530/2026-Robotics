@@ -365,6 +365,7 @@ public final class Constants {
     public static final double feederMotorTorqueKD = 0.001; // 1000 rps^2 incr 1 amp output
 
     public static final double feederVelocity = -3.0;
+    public static final double feederUnstuckVelocity = 3.0;
   }
 
   public static final class CollectorConstants{
@@ -389,6 +390,7 @@ public final class Constants {
     public static final double collectorMotorTorqueKD = 0.001; // 1000 rps^2 incr 1 amp output
 
     public static final double collectorVelocity = -3.0;
+    public static final double collectorUnstuckVelocity = 3.0;
   }
 
   public static final class ClimberConstants {

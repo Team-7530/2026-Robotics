@@ -83,6 +83,11 @@ public class FeederSubsystem extends SubsystemBase {
         this.setFeederVelocity(FeederConstants.feederVelocity);
   }
 
+  /** Sets motors to constants intake speed */
+  public void feederUnstuck() {
+      this.setFeederVelocity(FeederConstants.feederUnstuckVelocity);
+  }
+
   /** Updates the Smart Dashboard */
     private void updateSmartDashboard() {
         SmartDashboard.putNumber("FeederIntake Speed", m_FeederMotor.getVelocity().getValueAsDouble());
@@ -93,6 +98,13 @@ public class FeederSubsystem extends SubsystemBase {
             .withName("FeederCommand")
             .withTimeout(5.0)
             .finallyDo(() -> this.feederStop());
+  }
+
+    public Command feederUnstuckCommand() {
+      return run(() -> this.feederUnstuck())
+          .withName("UnstuckCommand")
+          .withTimeout(5.0)
+          .finallyDo(() -> this.feederStop());
   }
 }
 

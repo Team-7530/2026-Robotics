@@ -142,12 +142,15 @@ public class RobotContainer {
     // oi.getAButton().onTrue(intake.intakeCommand());
     // oi.getXButton().onTrue(intake.outtakeL2Command());
     // oi.getBButton().onTrue(intake.outtakeL1Command());
-
+    oi.getAButton().onTrue(feeder.feederCommand());
+    oi.getBButton().onTrue(feeder.feederUnstuckCommand());
+    oi.getXButton().onTrue(rake.collectorUnstuckCommand());
 
     oi.getLeftBumper().onTrue(climber.clampCommand(false));
     oi.getRightBumper().onTrue(climber.clampCommand(true));
 
     oi.getLeftTrigger().onTrue(shooter.shooterToVelocityCommand(2000)).onFalse(shooter.shooterToPercentCommand(0.0));
+    oi.getRightTrigger().onTrue(rake.collectorCommand());
     // oi.getRightTrigger().onTrue(new SequentialCommandGroup(this.getCoralPositionCommand(), intake.intakeCommand()));
 
     //oi.getLeftTrigger().onTrue(climber.climbToStartPositionCommand());

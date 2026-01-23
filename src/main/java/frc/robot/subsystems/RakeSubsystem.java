@@ -219,6 +219,10 @@ public class RakeSubsystem extends SubsystemBase {
       this.setCollectorVelocity(CollectorConstants.collectorVelocity);
   }
 
+  public void collectorUnstuck() {
+    this.setCollectorVelocity(CollectorConstants.collectorUnstuckVelocity);
+  }
+
 
   /**
    * Teleop controls
@@ -251,11 +255,18 @@ public class RakeSubsystem extends SubsystemBase {
         .withTimeout(5.0);
   }
 
-  public Command feederCommand() {
+  public Command collectorCommand() {
     return run(() -> this.collectorIn())
         .withName("CollectorCommand")
         .withTimeout(5.0)
         .finallyDo(() -> this.collectorStop());
+  }
+
+  public Command collectorUnstuckCommand() {
+  return run(() -> this.collectorIn())
+      .withName("CollectorUnstuckCommand")
+      .withTimeout(5.0)
+      .finallyDo(() -> this.collectorStop());
   }
 
 }
