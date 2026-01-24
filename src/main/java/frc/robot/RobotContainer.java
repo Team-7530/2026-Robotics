@@ -192,6 +192,9 @@ public class RobotContainer {
     // NamedCommands.registerCommand("Outtake", intake.outtakeL2Command());
     // NamedCommands.registerCommand("OuttakeSpin", intake.outtakeL1Command());
     NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
+    NamedCommands.registerCommand("collectorCommand", rake.collectorCommand());
+    NamedCommands.registerCommand("rakeDeploy", rake.rakeToPositionCommand(RakeConstants.kRakePositionMin));
+    NamedCommands.registerCommand("rakeRetract", rake.rakeToPositionCommand(RakeConstants.kRakePositionMax));
   }
 
   private void configureTelemetry() {

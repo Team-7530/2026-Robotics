@@ -132,45 +132,45 @@ public final class Constants {
     public static final Translation2d L2BackupAmount = new Translation2d(-0.3, 0.0);
   }
 
-  public static final class ArmConstants {
-    public static final CANBus CANBUS = new CANBus("CANFD");
-    public static final int ARMMOTOR_ID = 31;
-    public static final int ARMENCODER_ID = 32;
+  // public static final class ArmConstants {
+  //   public static final CANBus CANBUS = new CANBus("CANFD");
+  //   public static final int ARMMOTOR_ID = 31;
+  //   public static final int ARMENCODER_ID = 32;
 
-    public static final InvertedValue kArmInverted = InvertedValue.CounterClockwise_Positive;
-    public static final NeutralModeValue kArmNeutralMode = NeutralModeValue.Brake;
-    public static final SensorDirectionValue kArmEncoderDirection =
-        SensorDirectionValue.CounterClockwise_Positive;
-    public static final double kArmEncoderOffset = -0.37;
+  //   public static final InvertedValue kArmInverted = InvertedValue.CounterClockwise_Positive;
+  //   public static final NeutralModeValue kArmNeutralMode = NeutralModeValue.Brake;
+  //   public static final SensorDirectionValue kArmEncoderDirection =
+  //       SensorDirectionValue.CounterClockwise_Positive;
+  //   public static final double kArmEncoderOffset = -0.37;
 
-    public static final double kArmChainRatio = 74.0 / 50.0;
-    public static final double kArmGearboxRatio = 64.0; // 1:64
-    public static final double kArmGearRatio =
-        kArmChainRatio * kArmGearboxRatio; // chain ratio * Gearbox ratio
+  //   public static final double kArmChainRatio = 74.0 / 50.0;
+  //   public static final double kArmGearboxRatio = 64.0; // 1:64
+  //   public static final double kArmGearRatio =
+  //       kArmChainRatio * kArmGearboxRatio; // chain ratio * Gearbox ratio
 
-    public static final double armMotorKG = 0.5;
-    public static final double armMotorKS = 0.0;
-    public static final double armMotorKV = 0.0;
-    public static final double armMotorKA = 0.0;
-    public static final double armMotorKP = 30.0; // 45
-    public static final double armMotorKI = 0.0;
-    public static final double armMotorKD = 0.0;
-    public static final double MMagicCruiseVelocity = 1;
-    public static final double MMagicAcceleration = 2;
-    public static final double MMagicJerk = 8000;
-    public static final double MMagicExpo_kV = 0.12; // kV is around 0.12 V/rps
-    public static final double MMagicExpo_kA = 0.1; // Use a slower kA of 0.1 V/(rps/s)
-    public static final double peakForwardVoltage = 8.0; // Peak output of 8 volts
-    public static final double peakReverseVoltage = -8.0; // Peak output of 8 volts
+  //   public static final double armMotorKG = 0.5;
+  //   public static final double armMotorKS = 0.0;
+  //   public static final double armMotorKV = 0.0;
+  //   public static final double armMotorKA = 0.0;
+  //   public static final double armMotorKP = 30.0; // 45
+  //   public static final double armMotorKI = 0.0;
+  //   public static final double armMotorKD = 0.0;
+  //   public static final double MMagicCruiseVelocity = 1;
+  //   public static final double MMagicAcceleration = 2;
+  //   public static final double MMagicJerk = 8000;
+  //   public static final double MMagicExpo_kV = 0.12; // kV is around 0.12 V/rps
+  //   public static final double MMagicExpo_kA = 0.1; // Use a slower kA of 0.1 V/(rps/s)
+  //   public static final double peakForwardVoltage = 8.0; // Peak output of 8 volts
+  //   public static final double peakReverseVoltage = -8.0; // Peak output of 8 volts
 
-    public static final double kArmPositionMax = 0.405;
-    public static final double kArmPositionMin = 0.138;
+  //   public static final double kArmPositionMax = 0.405;
+  //   public static final double kArmPositionMin = 0.138;
 
-    public static final double kTargetArmHigh = 0.405;
-    public static final double kTargetArmLow = 0.138;
-    public static final double kArmTeleopSpeed = 0.1;
-    public static final double kArmTeleopFactor = 0.02;
-  }
+  //   public static final double kTargetArmHigh = 0.405;
+  //   public static final double kTargetArmLow = 0.138;
+  //   public static final double kArmTeleopSpeed = 0.1;
+  //   public static final double kArmTeleopFactor = 0.02;
+  // }
 
   public static final class ShooterConstants {
     public static final CANBus CANBUS = new CANBus("CANFD");
