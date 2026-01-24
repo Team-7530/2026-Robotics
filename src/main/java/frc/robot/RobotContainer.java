@@ -193,8 +193,8 @@ public class RobotContainer {
     // NamedCommands.registerCommand("OuttakeSpin", intake.outtakeL1Command());
     NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
     NamedCommands.registerCommand("collectorCommand", rake.collectorCommand());
-    NamedCommands.registerCommand("rakeDeploy", rake.rakeToPositionCommand(RakeConstants.kRakePositionMin));
-    NamedCommands.registerCommand("rakeRetract", rake.rakeToPositionCommand(RakeConstants.kRakePositionMax));
+    NamedCommands.registerCommand("rakeDeploy", rake.rakeToPositionCommand(RakeSubsystem.kRakePositionMin));
+    NamedCommands.registerCommand("rakeRetract", rake.rakeToPositionCommand(RakeSubsystem.kRakePositionMax));
   }
 
   private void configureTelemetry() {
@@ -206,8 +206,6 @@ public class RobotContainer {
     // SmartDashboard.putData("OuttakeSpin", intake.outtakeL1Command());
     SmartDashboard.putData("ClimbToFull", climber.climbToFullPositionCommand());
     SmartDashboard.putData("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
-    SmartDashboard.putData(
-        "L2Backup", drivetrain.driveDistanceCommand(ScoringConstants.L2BackupAmount, 0.5));
   }
 
   public void robotPeriodic() {

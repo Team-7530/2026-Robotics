@@ -9,15 +9,17 @@
 package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
-import static frc.robot.Constants.Vision.*;
 
 import com.ctre.phoenix6.Utils;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.Pair;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.RobotState;
@@ -34,6 +36,63 @@ import java.util.List;
 import java.util.Optional;
 
 public class VisionSubsystem implements Subsystem {
+  public static final String LIMELIGHTNAME = "limelight";
+  public static final String LIMELIGHTURL = "limelight.local";
+  
+  // Optional second limelight (e.g. limelight2). Update name/URL if you have a second camera.
+  public static final String LIMELIGHTNAME_2 = "limelight-two";
+  public static final String LIMELIGHTURL_2 = "limelight-two.local";
+
+  // Cam - x = +toward front, 0 center, -toward rear in meters.
+  //       y = +left of center, 0 center, -right of center in meters
+  //       z = +up from base of robot in meters
+  //    roll = rotate around front/rear in radians. PI = upsidedown
+  //   pitch = tilt down/up along left/right axis. PI/4 = tilt down 45 degrees, -PI/4 = tilt up 45
+  //     yaw = rotate left/right around z axis. PI/4 = rotate camera to the left 45 degrees.
+  public static final List<Pair<String, Transform3d>> kCamerasList =
+      List.of(
+          // Pair.of("OV9281", new Transform3d(new Translation3d(0.28, 0, 0.15), new Rotation3d(0, 0, 0))),
+        Pair.of(
+          LIMELIGHTNAME,
+          new Transform3d(new Translation3d(0.28, 0, 0.16), new Rotation3d(0, 0, 0))),
+        Pair.of(
+          LIMELIGHTNAME_2,
+          new Transform3d(new Translation3d(0.28, 0.10, 0.16), new Rotation3d(0, 0, 0))));
+
+    // The standard deviations of our vision estimated poses, which affect correction rate
+    // (Fake values. Experiment and determine estimation noise on an actual robot.)
+    public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(2, 2, 8);
+    public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.5, 0.5, 2);
+
+  // ------------------------------------------------------------------
+  // Limelight pipeline indices
+  // Define the pipeline index numbers you create in the Limelight web UI here so
+  // code can select the appropriate camera processing mode at runtime.
+  //
+  // Recommended pipeline definitions (author on each Limelight's UI):
+  //  - Hub pipeline (multi-tag): filter only the HUB apriltags for your alliance
+  //    * Create a fiducial/apriltag pipeline that only enables/accepts the tag IDs
+  //      that correspond to your alliance's HUB tags. Save that pipeline as index X.
+  //  - Tower pipeline (single-tag/tower): filter only the Tower apriltag for the
+  //    current alliance to allow climbing alignment in autonomous. Save that as Y.
+  //
+  // How to author pipelines on the camera (short):
+  // 1. Open the Limelight web UI (http://limelight.local or the camera's IP).
+  // 2. Go to the "Pipelines" or "Fiducials / Apriltag" section.
+  // 3. Create a new pipeline; set the detector to "apriltag" and set the tag
+  //    ID whitelist to only include the tags you want this pipeline to detect.
+  // 4. Save the pipeline and note its index (0..9). Repeat for each desired
+  //    pipeline (hub-blue, hub-red, tower-blue, tower-red, etc.).
+  // 5. Test live in the UI and adjust detection thresholds or downscale as
+  //    necessary before using from robot code.
+
+  // Pipeline indices (placeholders) - update these to the indices you configure
+  // on each Limelight. Use constants for clarity in code.
+  public static final int LIMELIGHT_PIPELINE_HUB_BLUE = 1;
+  public static final int LIMELIGHT_PIPELINE_HUB_RED = 2;
+  public static final int LIMELIGHT_PIPELINE_TOWER_BLUE = 3;
+  public static final int LIMELIGHT_PIPELINE_TOWER_RED = 4;
+
   private final List<String> limelightCameras = new ArrayList<>();
   private Matrix<N3, N1> curStdDevs;
 

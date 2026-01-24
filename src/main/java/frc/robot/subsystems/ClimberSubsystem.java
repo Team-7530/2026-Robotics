@@ -2,6 +2,7 @@ package frc.robot.subsystems;
 
 import static frc.robot.Constants.*;
 
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
@@ -14,7 +15,10 @@ import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.GravityTypeValue;
+import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
+import com.ctre.phoenix6.signals.SensorDirectionValue;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.units.Units;
@@ -27,15 +31,73 @@ import frc.robot.sim.PhysicsSim;
 
 public class ClimberSubsystem implements Subsystem {
 
+  public static final CANBus CANBUS = new CANBus("CANFD");
+  public static final int CLIMBMOTOR_ID = 41;
+  public static final int CLIMBMOTORFOLLOWER_ID = 42;
+  public static final int CLIMBENCODER_ID = 43;
+  public static final int CLAMPSERVO_ID = 0; // Rachet servo 1 plugged into PWM 0
+  public static final int CLAMPSERVOFOLLOWER_ID = 1; // Rachet servo 2 plugged into PWM 1
+
+  public static final InvertedValue kClimberInverted = InvertedValue.CounterClockwise_Positive;
+  public static final InvertedValue kClimberFollowerInverted = InvertedValue.Clockwise_Positive;
+  public static final NeutralModeValue kClimberNeutralMode = NeutralModeValue.Brake;
+  public static final SensorDirectionValue kClimberEncoderDirection =
+      SensorDirectionValue.CounterClockwise_Positive;
+
+  public static final double kClimberChainRatio = 28.0 / 10.0;
+  public static final double kClimberGearboxRatio = 48.0; // 1:48
+  public static final double kClimberGearRatio =
+      kClimberChainRatio * kClimberGearboxRatio; // chain ratio * Gearbox ratio
+
+  public static final double kClimberEncoderOffset = 0.06275;
+  public static final double kClimberEncoderMin = 0.0;
+  public static final double kClimberEncoderMax = 0.45;
+
+  public static final double peakForwardVoltage = 10.0; // Peak output of 10 volts
+  public static final double peakReverseVoltage = -8.0; // Peak output of 10 volts
+  public static final double peakForwardTorqueCurrent = 120.0; // Peak output of 80 amps
+  public static final double peakReverseTorqueCurrent = -80.0; // Peak output of 80 amps
+
+  public static final double climbMotorKG = 0.0;
+  public static final double climbMotorKS = 0.0;
+  public static final double climbMotorKV = 0.0;
+  public static final double climbMotorKA = 0.0;
+  public static final double climbMotorKP = 60.0;
+  public static final double climbMotorKI = 0.0;
+  public static final double climbMotorKD = 0.0;
+
+  public static final double climbMotorTorqueKP = 240.0; // 0.25 rot err == 60 A output
+  public static final double climbMotorTorqueKI = 0.0; // No output for integrated error
+  public static final double climbMotorTorqueKD = 6.0; // vel of 1 rps == 6 A output
+
+  public static final double MMagicCruiseVelocity = 2;
+  public static final double MMagicAcceleration = 1;
+  public static final double MMagicJerk = 0;
+
+  public static final double kUnclampedPositionFollower = 0.46;
+  public static final double kClampedPositionFollower = 0.78;
+
+  public static final double kUnclampedPosition = 0.65; // Min and Max opposite of Original
+  public static final double kClampedPosition = 0.35;
+
+  public static final double kClimberPositionMin = kClimberEncoderMin;
+  public static final double kClimberPositionMax = kClimberEncoderMax;
+
+  public static final double kTargetClimberStart = 0.04;
+  public static final double kTargetClimberFull = 0.26;
+
+  public static final double kClimberSpeed = 0.8;
+  public static final double kClimbTeleopFactor = 10.0;
+    
   private final TalonFX m_ClimbMotor =
-      new TalonFX(ClimberConstants.CLIMBMOTOR_ID, ClimberConstants.CANBUS);
+      new TalonFX(CLIMBMOTOR_ID, CANBUS);
   private final TalonFX m_ClimbMotorFollower =
-      new TalonFX(ClimberConstants.CLIMBMOTORFOLLOWER_ID, ClimberConstants.CANBUS);
+      new TalonFX(CLIMBMOTORFOLLOWER_ID, CANBUS);
   private final CANcoder m_ClimbEncoder =
-      new CANcoder(ClimberConstants.CLIMBENCODER_ID, ClimberConstants.CANBUS);
-  private final Servo m_ClimberClampServo = new Servo(ClimberConstants.CLAMPSERVO_ID);
+      new CANcoder(CLIMBENCODER_ID, CANBUS);
+  private final Servo m_ClimberClampServo = new Servo(CLAMPSERVO_ID);
   private final Servo m_ClimberClampServoFollower =
-      new Servo(ClimberConstants.CLAMPSERVOFOLLOWER_ID);
+      new Servo(CLAMPSERVOFOLLOWER_ID);
 
   private final PositionVoltage m_positionRequest = new PositionVoltage(0).withSlot(0);
   private final MotionMagicTorqueCurrentFOC m_climbRequest =
@@ -56,42 +118,42 @@ public class ClimberSubsystem implements Subsystem {
 
   private void initClimberConfigs() {
     TalonFXConfiguration configs = new TalonFXConfiguration();
-    configs.MotorOutput.Inverted = ClimberConstants.kClimberInverted;
-    configs.MotorOutput.NeutralMode = ClimberConstants.kClimberNeutralMode;
-    configs.Voltage.PeakForwardVoltage = ClimberConstants.peakForwardVoltage;
-    configs.Voltage.PeakReverseVoltage = ClimberConstants.peakReverseVoltage;
-    configs.TorqueCurrent.PeakForwardTorqueCurrent = ClimberConstants.peakForwardTorqueCurrent;
-    configs.TorqueCurrent.PeakReverseTorqueCurrent = ClimberConstants.peakReverseTorqueCurrent;
+    configs.MotorOutput.Inverted = kClimberInverted;
+    configs.MotorOutput.NeutralMode = kClimberNeutralMode;
+    configs.Voltage.PeakForwardVoltage = peakForwardVoltage;
+    configs.Voltage.PeakReverseVoltage = peakReverseVoltage;
+    configs.TorqueCurrent.PeakForwardTorqueCurrent = peakForwardTorqueCurrent;
+    configs.TorqueCurrent.PeakReverseTorqueCurrent = peakReverseTorqueCurrent;
 
     StatusCode status = m_ClimbMotorFollower.getConfigurator().apply(configs);
     if (!status.isOK()) {
       System.out.println("Could not apply configs, error code: " + status.toString());
     }
 
-    configs.Slot0.kP = ClimberConstants.climbMotorKP;
-    configs.Slot0.kI = ClimberConstants.climbMotorKI;
-    configs.Slot0.kD = ClimberConstants.climbMotorKD;
+    configs.Slot0.kP = climbMotorKP;
+    configs.Slot0.kI = climbMotorKI;
+    configs.Slot0.kD = climbMotorKD;
     configs.Slot0.GravityType = GravityTypeValue.Elevator_Static;
     configs.Slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseVelocitySign;
 
-    configs.Slot1.kP = ClimberConstants.climbMotorTorqueKP;
-    configs.Slot1.kI = ClimberConstants.climbMotorTorqueKI;
-    configs.Slot1.kD = ClimberConstants.climbMotorTorqueKD;
+    configs.Slot1.kP = climbMotorTorqueKP;
+    configs.Slot1.kI = climbMotorTorqueKI;
+    configs.Slot1.kD = climbMotorTorqueKD;
     configs.Slot1.GravityType = GravityTypeValue.Elevator_Static;
     configs.Slot1.StaticFeedforwardSign = StaticFeedforwardSignValue.UseVelocitySign;
 
     configs.Feedback.FeedbackRemoteSensorID = m_ClimbEncoder.getDeviceID();
     configs.Feedback.FeedbackSensorSource = FeedbackSensorSourceValue.FusedCANcoder;
     configs.Feedback.SensorToMechanismRatio = 1.0;
-    configs.Feedback.RotorToSensorRatio = ClimberConstants.kClimberGearRatio;
+    configs.Feedback.RotorToSensorRatio = kClimberGearRatio;
 
-    configs.MotionMagic.MotionMagicCruiseVelocity = ClimberConstants.MMagicCruiseVelocity;
-    configs.MotionMagic.MotionMagicAcceleration = ClimberConstants.MMagicAcceleration;
-    configs.MotionMagic.MotionMagicJerk = ClimberConstants.MMagicJerk;
+    configs.MotionMagic.MotionMagicCruiseVelocity = MMagicCruiseVelocity;
+    configs.MotionMagic.MotionMagicAcceleration = MMagicAcceleration;
+    configs.MotionMagic.MotionMagicJerk = MMagicJerk;
 
-    configs.SoftwareLimitSwitch.ForwardSoftLimitThreshold = ClimberConstants.kClimberPositionMax;
+    configs.SoftwareLimitSwitch.ForwardSoftLimitThreshold = kClimberPositionMax;
     configs.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
-    configs.SoftwareLimitSwitch.ReverseSoftLimitThreshold = ClimberConstants.kClimberPositionMin;
+    configs.SoftwareLimitSwitch.ReverseSoftLimitThreshold = kClimberPositionMin;
     configs.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
 
     status = m_ClimbMotor.getConfigurator().apply(configs);
@@ -101,16 +163,16 @@ public class ClimberSubsystem implements Subsystem {
 
     /* Follower is opposite, so we need to invert */
     m_ClimbMotorFollower.setControl(new Follower(m_ClimbMotor.getDeviceID(), MotorAlignmentValue.Opposed));
-    m_ClimberClampServo.set(ClimberConstants.kUnclampedPosition);
-    m_ClimberClampServoFollower.set(ClimberConstants.kUnclampedPositionFollower);
+    m_ClimberClampServo.set(kUnclampedPosition);
+    m_ClimberClampServoFollower.set(kUnclampedPositionFollower);
   }
 
   private void initEncoderConfigs() {
     CANcoderConfiguration configs = new CANcoderConfiguration();
     configs.MagnetSensor.withAbsoluteSensorDiscontinuityPoint(Units.Rotations.of(0.5));
-    configs.MagnetSensor.SensorDirection = ClimberConstants.kClimberEncoderDirection;
+    configs.MagnetSensor.SensorDirection = kClimberEncoderDirection;
     configs.MagnetSensor.withMagnetOffset(
-        Units.Rotations.of(ClimberConstants.kClimberEncoderOffset));
+        Units.Rotations.of(kClimberEncoderOffset));
 
     StatusCode status = m_ClimbEncoder.getConfigurator().apply(configs);
     if (!status.isOK()) {
@@ -122,7 +184,7 @@ public class ClimberSubsystem implements Subsystem {
 
   private void initSimulation() {
     PhysicsSim.getInstance()
-        .addTalonFX(m_ClimbMotor, m_ClimbEncoder, ClimberConstants.kClimberGearRatio, 0.001);
+        .addTalonFX(m_ClimbMotor, m_ClimbEncoder, kClimberGearRatio, 0.001);
     m_ClimbEncoder.setPosition(0);
   }
 
@@ -134,7 +196,7 @@ public class ClimberSubsystem implements Subsystem {
   /** Returns climber to start position */
   public void start() {
     this.setClamp(false);
-    this.setPosition(ClimberConstants.kTargetClimberStart);
+    this.setPosition(kTargetClimberStart);
   }
 
   /** Closes the clamp and moves to climb position */
@@ -142,14 +204,14 @@ public class ClimberSubsystem implements Subsystem {
     this.setClamp(true);
 
     m_isTeleop = false;
-    m_targetPosition = ClimberConstants.kTargetClimberFull;
+    m_targetPosition = kTargetClimberFull;
     m_ClimbMotor.setControl(m_climbRequest.withPosition(m_targetPosition));
   }
 
   /** Stows the climber */
   public void stow() {
     this.setClamp(false);
-    this.setPosition(ClimberConstants.kClimberPositionMax);
+    this.setPosition(kClimberPositionMax);
   }
 
   /**
@@ -161,7 +223,7 @@ public class ClimberSubsystem implements Subsystem {
     m_isTeleop = false;
     m_targetPosition =
         MathUtil.clamp(
-            pos, ClimberConstants.kClimberPositionMin, ClimberConstants.kClimberPositionMax);
+            pos, kClimberPositionMin, kClimberPositionMax);
 
     if (!m_isClamped || (m_targetPosition > this.getPosition())) { // is climbing or no ratchet
       m_ClimbMotor.setControl(m_positionRequest.withPosition(m_targetPosition));
@@ -216,7 +278,7 @@ public class ClimberSubsystem implements Subsystem {
 
     if (val != 0.0) {
       m_isTeleop = true;
-      this.setSpeed(val * ClimberConstants.kClimberSpeed);
+      this.setSpeed(val * kClimberSpeed);
     } else if (m_isTeleop) {
       m_isTeleop = false;
       this.stop();
@@ -233,16 +295,16 @@ public class ClimberSubsystem implements Subsystem {
     this.stop();
 
     m_ClimberClampServo.set(
-        m_isClamped ? ClimberConstants.kClampedPosition : ClimberConstants.kUnclampedPosition);
+        m_isClamped ? kClampedPosition : kUnclampedPosition);
     m_ClimberClampServoFollower.set(
         m_isClamped
-            ? ClimberConstants.kClampedPositionFollower
-            : ClimberConstants.kUnclampedPositionFollower);
+            ? kClampedPositionFollower
+            : kUnclampedPositionFollower);
 
     TalonFXConfiguration configs = new TalonFXConfiguration();
     StatusCode status = m_ClimbMotor.getConfigurator().refresh(configs);
     if (status == StatusCode.OK) {
-      configs.SoftwareLimitSwitch.ForwardSoftLimitThreshold = m_isClamped ? ClimberConstants.kTargetClimberFull : ClimberConstants.kClimberPositionMax;     
+      configs.SoftwareLimitSwitch.ForwardSoftLimitThreshold = m_isClamped ? kTargetClimberFull : kClimberPositionMax;     
 
       status = m_ClimbMotor.getConfigurator().apply(configs);
       if (!status.isOK()) {

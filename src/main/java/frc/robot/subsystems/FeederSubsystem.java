@@ -1,13 +1,15 @@
 package frc.robot.subsystems;
 
-import static frc.robot.Constants.*;
-
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
+
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -16,8 +18,31 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class FeederSubsystem extends SubsystemBase {
 
+    public static final CANBus CANBUS = CANBus.roboRIO();
+    public static final int FEEDERMOTOR_ID = 65;
+
+    public static final InvertedValue kFeederInverted = InvertedValue.CounterClockwise_Positive;
+    public static final NeutralModeValue kFeederNeutralMode = NeutralModeValue.Coast;
+    public static final double peakForwardVoltage = 10.0; // Peak output of 8 volts
+    public static final double peakReverseVoltage = -10.0; // Peak output of 8 volts
+    public static final double peakForwardTorqueCurrent = 40.0; // Peak output of 40 amps
+    public static final double peakReverseTorqueCurrent = -40.0; // Peak output of 40 amps
+
+    public static final double kFeederChainRatio = 24.0 / 10.0; // 24:10
+    public static final double kFeederGearboxRatio = 1.0; // 1:1
+    public static final double kFeederGearRatio = kFeederChainRatio * kFeederGearboxRatio;
+
+    /* Torque-based velocity does not require a feed forward, as torque will accelerate the rotor up to the desired velocity by itself */
+    public static final double feederMotorTorqueKS = 0.0; // Static feedforward gain
+    public static final double feederMotorTorqueKP = 8.0; // error of 1 rps results in 8 amps output
+    public static final double feederMotorTorqueKI = 0.2; // error of 1 rps incr by 0.2 amps per sec
+    public static final double feederMotorTorqueKD = 0.001; // 1000 rps^2 incr 1 amp output
+
+    public static final double feederVelocity = -3.0;
+    public static final double feederUnstuckVelocity = 3.0;
+    
     private final TalonFX m_FeederMotor =
-      new TalonFX(FeederConstants.FEEDERMOTOR_ID, FeederConstants.CANBUS);
+      new TalonFX(FEEDERMOTOR_ID, CANBUS);
 
     private final VelocityTorqueCurrentFOC m_velocityRequest =
       new VelocityTorqueCurrentFOC(0).withSlot(0);
@@ -32,17 +57,17 @@ public class FeederSubsystem extends SubsystemBase {
     private void initFeederConfigs() {
         TalonFXConfiguration configs = new TalonFXConfiguration();
 
-        configs.MotorOutput.Inverted = FeederConstants.kFeederInverted;
-        configs.MotorOutput.NeutralMode = FeederConstants.kFeederNeutralMode;
-        configs.Voltage.PeakForwardVoltage = FeederConstants.peakForwardVoltage;
-        configs.Voltage.PeakReverseVoltage = FeederConstants.peakReverseVoltage;
-        configs.TorqueCurrent.PeakForwardTorqueCurrent = FeederConstants.peakForwardTorqueCurrent;
-        configs.TorqueCurrent.PeakReverseTorqueCurrent = FeederConstants.peakReverseTorqueCurrent;
+        configs.MotorOutput.Inverted = kFeederInverted;
+        configs.MotorOutput.NeutralMode = kFeederNeutralMode;
+        configs.Voltage.PeakForwardVoltage = peakForwardVoltage;
+        configs.Voltage.PeakReverseVoltage = peakReverseVoltage;
+        configs.TorqueCurrent.PeakForwardTorqueCurrent = peakForwardTorqueCurrent;
+        configs.TorqueCurrent.PeakReverseTorqueCurrent = peakReverseTorqueCurrent;
 
-        configs.Slot0.kS = FeederConstants.feederMotorTorqueKS;
-        configs.Slot0.kP = FeederConstants.feederMotorTorqueKP;
-        configs.Slot0.kI = FeederConstants.feederMotorTorqueKI;
-        configs.Slot0.kD = FeederConstants.feederMotorTorqueKD;
+        configs.Slot0.kS = feederMotorTorqueKS;
+        configs.Slot0.kP = feederMotorTorqueKP;
+        configs.Slot0.kI = feederMotorTorqueKI;
+        configs.Slot0.kD = feederMotorTorqueKD;
 
         StatusCode status = m_FeederMotor.getConfigurator().apply(configs);
         if (!status.isOK()) {
@@ -61,7 +86,7 @@ public class FeederSubsystem extends SubsystemBase {
    */
     public void setFeederVelocity(double Fvelocity) {
         m_FeederMotor.setControl(
-            m_velocityRequest.withVelocity(Fvelocity * FeederConstants.kFeederGearRatio));
+            m_velocityRequest.withVelocity(Fvelocity * kFeederGearRatio));
   }
 
   /**
@@ -80,12 +105,12 @@ public class FeederSubsystem extends SubsystemBase {
 
   /** Sets motors to constants intake speed */
     public void feederIn() {
-        this.setFeederVelocity(FeederConstants.feederVelocity);
+        this.setFeederVelocity(feederVelocity);
   }
 
   /** Sets motors to constants intake speed */
   public void feederUnstuck() {
-      this.setFeederVelocity(FeederConstants.feederUnstuckVelocity);
+      this.setFeederVelocity(feederUnstuckVelocity);
   }
 
   /** Updates the Smart Dashboard */
