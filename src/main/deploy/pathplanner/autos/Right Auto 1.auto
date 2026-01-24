@@ -13,13 +13,37 @@
         {
           "type": "named",
           "data": {
+            "name": "rakeDeploy"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
             "name": "collectorCommand"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "rakeRetract"
           }
         },
         {
           "type": "path",
           "data": {
             "pathName": "Outpost to Shoot"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "aimRange"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "shoot"
           }
         }
       ]
