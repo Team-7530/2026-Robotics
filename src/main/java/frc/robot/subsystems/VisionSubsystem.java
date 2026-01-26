@@ -17,6 +17,7 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.Pair;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -26,16 +27,22 @@ import edu.wpi.first.wpilibj.RobotState;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Subsystem;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.DriverStation;
-import frc.lib.limelightvision.LimelightHelpers;
-import frc.lib.limelightvision.LimelightHelpers.PoseEstimate;
 import frc.robot.Robot;
+import limelight.Limelight;
+import limelight.networktables.AngularVelocity3d;
+import limelight.networktables.LimelightPoseEstimator;
+import limelight.networktables.LimelightPoseEstimator.EstimationMode;
+import limelight.networktables.LimelightSettings.LEDMode;
+import limelight.networktables.Orientation3d;
+import limelight.networktables.PoseEstimate;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class VisionSubsystem implements Subsystem {
+public class VisionSubsystem extends SubsystemBase {
   public static final String LIMELIGHTNAME = "limelight";
   public static final String LIMELIGHTURL = "limelight.local";
   
@@ -93,7 +100,8 @@ public class VisionSubsystem implements Subsystem {
   public static final int LIMELIGHT_PIPELINE_TOWER_BLUE = 3;
   public static final int LIMELIGHT_PIPELINE_TOWER_RED = 4;
 
-  private final List<String> limelightCameras = new ArrayList<>();
+  private final List<Limelight> limelightCameras = new ArrayList<>();
+  private final List<LimelightPoseEstimator> poseEstimators = new ArrayList<>();
   private Matrix<N3, N1> curStdDevs;
 
   // Simulation debug field
@@ -115,20 +123,30 @@ public class VisionSubsystem implements Subsystem {
 
   public VisionSubsystem() {
 
-    for (var cam : kCamerasList) {
-      String name = cam.getFirst();
-      Transform3d pose = cam.getSecond();
+    Limelight limelight1 = new Limelight(LIMELIGHTNAME);
 
-      if (name.toLowerCase().startsWith("limelight")) {
-        limelightCameras.add(name);
+    limelight1.getSettings()
+      .withLimelightLEDMode(LEDMode.PipelineControl)
+      .withCameraOffset(new Pose3d(Inches.of(11).in(Meters),
+                                    Inches.of(0).in(Meters),
+                                    Inches.of(6.3).in(Meters),
+                                    Rotation3d.kZero))
+      .save();
 
-        Rotation3d rot = pose.getRotation();
-        LimelightHelpers.setCameraPose_RobotSpace(
-            name, pose.getX(), pose.getY(), pose.getZ(), rot.getX(), rot.getY(), rot.getZ());
-      } else {
-        // Non-limelight camera entries are ignored in limelight-only mode.
-      }
-    }
+    Limelight limelight2 = new Limelight(LIMELIGHTNAME_2);
+    limelight2.getSettings()
+      .withLimelightLEDMode(LEDMode.PipelineControl)
+      .withCameraOffset(new Pose3d(Inches.of(11).in(Meters),
+                                    Inches.of(0).in(Meters),
+                                    Inches.of(6.3).in(Meters),
+                                    new Rotation3d(0, 0, Degrees.of(180.0).in(Radian))))
+      .save();
+
+    limelightCameras.add(limelight1);
+    limelightCameras.add(limelight2);
+
+    poseEstimators.add(limelight1.createPoseEstimator(EstimationMode.MEGATAG2));
+    poseEstimators.add(limelight2.createPoseEstimator(EstimationMode.MEGATAG2));
 
     if (Robot.isReal()) {
       cam0 = CameraServer.startAutomaticCapture();
@@ -142,6 +160,7 @@ public class VisionSubsystem implements Subsystem {
       simDebugField = new Field2d();
       SmartDashboard.putData("Vision/SimField", simDebugField);
     }
+
   }
 
   /**
@@ -161,7 +180,7 @@ public class VisionSubsystem implements Subsystem {
    * kSingleTagStdDevs for close/low-ambiguity single-tag sightings. Falls back to
    * scaled multi-tag stddevs based on average tag distance.
    */
-  private void updateEstimationStdDevsForLimelight(Optional<PoseEstimate> estimatedPose) {
+  private void updateEstimationStdDevs(Optional<PoseEstimate> estimatedPose) {
     if (estimatedPose.isEmpty()) {
       curStdDevs = kSingleTagStdDevs;
       return;
@@ -205,14 +224,23 @@ public class VisionSubsystem implements Subsystem {
   }
 
   public Optional<PoseEstimate> getVisionMeasurement_MT2(double yawdegrees) {
-    for (String name : limelightCameras) {
-      LimelightHelpers.SetRobotOrientation(
-          name, yawdegrees, 0, 0, 0, 0, 0);
+    Orientation3d robotOrientation = new Orientation3d(new Rotation3d(0, 0, Degrees.of(yawdegrees).in(Radians)),
+      new AngularVelocity3d(DegreesPerSecond.of(0),
+                            DegreesPerSecond.of(0),
+                            DegreesPerSecond.of(0)));
 
-      PoseEstimate pose = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(name);
-      if (pose.tagCount >= 1) {
-        curStdDevs = pose.tagCount > 1 ? kMultiTagStdDevs : kSingleTagStdDevs;
-        return Optional.of(pose);
+    for (Limelight limelight : limelightCameras) {
+      limelight.getSettings()
+        .withRobotOrientation(robotOrientation)
+        .save();
+    }
+
+    for (LimelightPoseEstimator poseEst : poseEstimators) {
+      Optional<PoseEstimate> pose = poseEst.getPoseEstimate();
+      
+      if (pose.isPresent() && pose.get().tagCount >= 1) {
+        curStdDevs = pose.get().tagCount > 1 ? kMultiTagStdDevs : kSingleTagStdDevs;
+        return Optional.of(pose.get());
       }
     }
     return Optional.empty();
@@ -223,31 +251,30 @@ public class VisionSubsystem implements Subsystem {
     List<PoseEstimate> candidates = new ArrayList<>();
     List<String> names = new ArrayList<>();
 
-    for (String name : limelightCameras) {
-      PoseEstimate pose = LimelightHelpers.getBotPoseEstimate_wpiBlue(name);
-      if (pose == null) {
-        SmartDashboard.putNumber("Vision/Camera/" + name + "/Ambiguity", -1);
-        continue;
-      }
+    for (int i = 0; i < poseEstimators.size(); ++i) {
+      LimelightPoseEstimator poseEst = poseEstimators.get(i);
+      Optional<PoseEstimate> pose = poseEst.getPoseEstimate();
+
+      if (!pose.isPresent()) continue;
 
       double minAmb = Double.MAX_VALUE;
-      if (pose.rawFiducials != null && pose.rawFiducials.length > 0) {
-        for (var rf : pose.rawFiducials) {
+      if (pose.get().rawFiducials != null && pose.get().rawFiducials.length > 0) {
+        for (var rf : pose.get().rawFiducials) {
           if (rf == null) continue;
           minAmb = Math.min(minAmb, rf.ambiguity);
         }
       }
 
-      SmartDashboard.putNumber("Vision/Camera/" + name + "/Ambiguity", minAmb == Double.MAX_VALUE ? -1 : minAmb);
-
-      candidates.add(pose);
-      names.add(name);
+      // record candidate and the camera name that produced it
+      candidates.add(pose.get());
+      names.add(limelightCameras.get(i).limelightName);
+      // SmartDashboard.putNumber("Vision/Camera/" + limelightCameras.get(i).limelightName + "/Ambiguity", minAmb == Double.MAX_VALUE ? -1 : minAmb);
     }
 
-    if (candidates.isEmpty()) {
-      updateEstimationStdDevsForLimelight(Optional.empty());
-      return Optional.empty();
-    }
+  if (candidates.isEmpty()) {
+    updateEstimationStdDevs(Optional.empty());
+    return Optional.empty();
+  }
 
     // Choose best candidate by lowest ambiguity, tie-break by tagCount then avgTagDist
     int bestIndex = 0;
@@ -306,7 +333,7 @@ public class VisionSubsystem implements Subsystem {
     }
 
     // Update stddevs and return the currently chosen pose estimate
-    updateEstimationStdDevsForLimelight(Optional.of(lastChosenPoseEstimate));
+    updateEstimationStdDevs(Optional.of(lastChosenPoseEstimate));
     SmartDashboard.putString("Vision/SelectedCamera", lastSelectedCameraName == null ? "" : lastSelectedCameraName);
     SmartDashboard.putNumber("Vision/SelectedAmbiguity", lastSelectedAmbiguity == Double.MAX_VALUE ? -1 : lastSelectedAmbiguity);
 
@@ -324,8 +351,8 @@ public class VisionSubsystem implements Subsystem {
       limelightEst.ifPresent(
           est -> {
             if (est.tagCount >= 1) {
-              drivetrain.addVisionMeasurement(
-                  est.pose, Utils.fpgaToCurrentTime(est.timestampSeconds), this.getEstimationStdDevs());
+        drivetrain.addVisionMeasurement(
+          est.pose.toPose2d(), Utils.fpgaToCurrentTime(est.timestampSeconds), this.getEstimationStdDevs());
             }
           });
     }
@@ -337,16 +364,21 @@ public class VisionSubsystem implements Subsystem {
 
   // ---------- Limelight pipeline helpers
   /** Set the pipeline index on a single limelight camera. */
-  public void setPipelineForCamera(String limelightName, int pipelineIndex) {
-    if (limelightName == null) return;
-    LimelightHelpers.setPipelineIndex(limelightName, pipelineIndex);
-    SmartDashboard.putNumber("Vision/Camera/" + limelightName + "/Pipeline", pipelineIndex);
+  public void setPipelineForFrontCamera(int pipelineIndex) {
+    limelightCameras.get(0).getSettings().withPipelineIndex(pipelineIndex).save();
+    SmartDashboard.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/Pipeline", pipelineIndex);
+  }
+
+  public void setPipelineForBackCamera(int pipelineIndex) {
+    limelightCameras.get(1).getSettings().withPipelineIndex(pipelineIndex).save();
+    SmartDashboard.putNumber("Vision/Camera/" + LIMELIGHTNAME_2 + "/Pipeline", pipelineIndex);
   }
 
   /** Set the pipeline index for every configured limelight camera. */
   public void setPipelineForAllCameras(int pipelineIndex) {
-    for (String name : limelightCameras) {
-      setPipelineForCamera(name, pipelineIndex);
+    for (Limelight camera : limelightCameras) {
+      camera.getSettings().withPipelineIndex(pipelineIndex).save();
+      SmartDashboard.putNumber("Vision/Camera/" + camera.limelightName + "/Pipeline", pipelineIndex);
     }
   }
 

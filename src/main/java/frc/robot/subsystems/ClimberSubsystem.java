@@ -26,10 +26,10 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Subsystem;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.sim.PhysicsSim;
 
-public class ClimberSubsystem implements Subsystem {
+public class ClimberSubsystem extends SubsystemBase {
 
   public static final CANBus CANBUS = new CANBus("CANFD");
   public static final int CLIMBMOTOR_ID = 41;
