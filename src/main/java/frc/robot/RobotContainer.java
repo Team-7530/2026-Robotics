@@ -19,7 +19,7 @@ import frc.robot.commands.*;
 import frc.robot.generated.TunerConstants;
 import frc.robot.operator_interface.OISelector;
 import frc.robot.operator_interface.OperatorInterface;
-import frc.robot.sim.Mechanisms;
+// import frc.robot.sim.Mechanisms;
 import frc.robot.sim.PhysicsSim;
 import frc.robot.subsystems.*;
 
@@ -47,7 +47,6 @@ public class RobotContainer {
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
   public final VisionSubsystem vision = new VisionSubsystem();
   public final ShooterSubsystem shooter = new ShooterSubsystem();
-  public final FeederSubsystem feeder = new FeederSubsystem();
   public final RakeSubsystem rake = new RakeSubsystem();
   public final ClimberSubsystem climber = new ClimberSubsystem();
 
@@ -55,7 +54,7 @@ public class RobotContainer {
   private SendableChooser<Command> autoChooser;
   private Command autonomousCommand;
 
-  private Mechanisms mechanism = new Mechanisms();
+  // private Mechanisms mechanism = new Mechanisms();
 
   public static RobotContainer GetInstance() {
     return instance;
@@ -142,8 +141,8 @@ public class RobotContainer {
     // oi.getAButton().onTrue(intake.intakeCommand());
     // oi.getXButton().onTrue(intake.outtakeL2Command());
     // oi.getBButton().onTrue(intake.outtakeL1Command());
-    oi.getAButton().onTrue(feeder.feederCommand());
-    oi.getBButton().onTrue(feeder.feederUnstuckCommand());
+    oi.getAButton().onTrue(shooter.shootCommand());
+    oi.getBButton().onTrue(shooter.feederUnstuckCommand());
     oi.getXButton().onTrue(rake.collectorUnstuckCommand());
 
     oi.getLeftBumper().onTrue(climber.clampCommand(false));
@@ -180,10 +179,10 @@ public class RobotContainer {
   private void configureDefaultCommands() {
     drivetrain.setDefaultCommand(new SwerveTeleopCommand(drivetrain, oi));
 
-    shooter.setDefaultCommand(Commands.run(() -> shooter.teleop(-oi.getLeftThumbstickY()), shooter));
-    rake.setDefaultCommand(Commands.run(() -> rake.teleop(oi.getLeftThumbstickX()), rake));
-    climber.setDefaultCommand(
-        Commands.run(() -> climber.teleopClimb(-oi.getRightThumbstickY()), climber));
+    shooter.setDefaultCommand(Commands.run(() -> shooter.teleop(oi.getLeftThumbstickX(), -oi.getLeftThumbstickY()), shooter));
+    rake.setDefaultCommand(Commands.run(() -> rake.teleop(oi.getRightThumbstickX(), -oi.getRightThumbstickY()), rake));
+    // climber.setDefaultCommand(
+    //     Commands.run(() -> climber.teleopClimb(-oi.getRightThumbstickY()), climber));
     vision.setDefaultCommand(vision.updateGlobalPoseCommand(drivetrain));
   }
 
@@ -209,9 +208,9 @@ public class RobotContainer {
   }
 
   public void robotPeriodic() {
-    mechanism.update(
-        shooter.getTurretAngleDegrees(),
-        rake.getRakePosition());
+    // mechanism.update(
+    //     shooter.getTurretAngleDegrees(),
+    //     rake.getRakePosition());
   }
 
   public void simulationInit() {}

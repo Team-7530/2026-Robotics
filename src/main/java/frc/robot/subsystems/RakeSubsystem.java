@@ -282,17 +282,21 @@ public class RakeSubsystem extends SubsystemBase {
   /**
    * Teleop controls
    *
-   * @param wspeed rake target speed during teleop
+   * @param rspeed rake target speed during teleop
+   * @param cspeed collector target speed during teleop
    */
-  public void teleop(double wspeed) {
-  wspeed = MathUtil.applyDeadband(wspeed, STICK_DEADBAND);
+  public void teleop(double rspeed, double cspeed) {
+  rspeed = MathUtil.applyDeadband(rspeed, STICK_DEADBAND);
+  cspeed = MathUtil.applyDeadband(cspeed, STICK_DEADBAND);
 
-    if (wspeed != 0.0) {
+    if ((rspeed != 0.0) || (cspeed != 0.0)) {
       m_isTeleop = true;
-  this.setRakeSpeed(wspeed * kRakeTeleopSpeed);
+      this.setRakeSpeed(rspeed * kRakeTeleopSpeed);
+      this.setCollectorSpeed(cspeed);
     } else if (m_isTeleop) {
       m_isTeleop = false;
       this.stopRake();
+      this.collectorStop();
     }
   }
 
