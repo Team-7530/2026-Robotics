@@ -64,7 +64,7 @@ public class ShooterSubsystem extends SubsystemBase {
   public Command turretToAngleCommand(double degrees) {
     return run(() -> turret.setTurretAngleDegrees(degrees))
         .withName("TurretToAngleCommand")
-        .until(() -> Math.abs(turret.getTurretAngleDegrees() - degrees) < 2.0)
+        .until(() -> MathUtil.isNear(degrees, turret.getTurretAngleDegrees(), 2.0))
         .withTimeout(5.0);
   }
 

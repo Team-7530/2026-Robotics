@@ -4,8 +4,6 @@ import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.STICK_DEADBAND;
 
 import com.ctre.phoenix6.CANBus;
-import com.ctre.phoenix6.signals.InvertedValue;
-import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.hardware.CANcoder;
@@ -22,6 +20,7 @@ import yams.gearing.GearBox;
 import yams.gearing.MechanismGearing;
 
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -48,8 +47,6 @@ public class TurretSubsystem extends SubsystemBase {
   public static final double TURRET_MIN_DEG = -90.0;
   public static final double TURRET_MAX_DEG = 90.0;
 
-  public static final InvertedValue kTurretInverted = InvertedValue.CounterClockwise_Positive;
-  public static final NeutralModeValue kTurretNeutralMode = NeutralModeValue.Brake;
   public static final SensorDirectionValue kTurretEncoderDirection =
       SensorDirectionValue.CounterClockwise_Positive;
   public static final double kTurretEncoderOffset = 0.0;
@@ -70,9 +67,6 @@ public class TurretSubsystem extends SubsystemBase {
   public static final double MMagicExpo_kV = 0.12; // kV is around 0.12 V/rps
   public static final double MMagicExpo_kA = 0.1; // Use a slower kA of 0.1 V/(rps/s)
 
-  public static final double kTurretPeakForwardVoltage = 8.0; // Peak output of 8 volts
-  public static final double kTurretPeakReverseVoltage = -8.0; // Peak output of 8 volts
-
   public static final double kTurretTeleopSpeed = 0;
 
   // turret
@@ -92,7 +86,7 @@ public class TurretSubsystem extends SubsystemBase {
       .withOpenLoopRampRate(Seconds.of(0.25))
       .withExternalEncoder(m_turretEncoder);
 
-  private final SmartMotorController m_turretMotor = new TalonFXWrapper(m_turretTalon, edu.wpi.first.math.system.plant.DCMotor.getKrakenX60(1), smc_config);
+  private final SmartMotorController m_turretMotor = new TalonFXWrapper(m_turretTalon, DCMotor.getKrakenX60(1), smc_config);
 
   private boolean m_isTeleop = false;
   private double turretTargetDeg = 0.0;
@@ -183,7 +177,7 @@ public class TurretSubsystem extends SubsystemBase {
   public Command turretToAngleCommand(double degrees) {
     return run(() -> this.setTurretAngleDegrees(degrees))
         .withName("TurretToAngleCommand")
-        .until(() -> Math.abs(this.getTurretAngleDegrees() - degrees) < 2.0)
+        .until(() -> MathUtil.isNear(degrees, this.getTurretAngleDegrees(), 2.0))
         .withTimeout(5.0);
   }
 }
