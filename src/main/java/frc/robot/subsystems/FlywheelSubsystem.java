@@ -1,30 +1,33 @@
 package frc.robot.subsystems;
 
-import com.ctre.phoenix6.StatusCode;
-
+import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.STICK_DEADBAND;
 
 import com.ctre.phoenix6.CANBus;
-import com.ctre.phoenix6.signals.InvertedValue;
-import com.ctre.phoenix6.signals.NeutralModeValue;
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.DutyCycleOut;
-import com.ctre.phoenix6.controls.Follower;
-import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.MotorAlignmentValue;
+
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.system.plant.DCMotor;
+
+import yams.gearing.GearBox;
+import yams.gearing.MechanismGearing;
+import yams.motorcontrollers.SmartMotorController;
+import yams.motorcontrollers.SmartMotorControllerConfig;
+import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
+import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
+import yams.motorcontrollers.remote.TalonFXWrapper;
+import yams.mechanisms.config.FlyWheelConfig;
+import yams.mechanisms.velocity.FlyWheel;
+import edu.wpi.first.units.measure.Distance;
+import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.AngularVelocity;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.math.Pair;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-/**
- * ShooterSubsystem controls a turret (absolute encoder + position control) and a two-motor
- * flywheel (master + follower). This is a lightweight, conservative implementation that uses
- * percent open-loop control for the flywheel and position control for the turret. 
- */
 public class FlywheelSubsystem extends SubsystemBase {
 
   public static final CANBus CANBUS = new CANBus("CANFD");
@@ -37,9 +40,6 @@ public class FlywheelSubsystem extends SubsystemBase {
   public static final double FLYWHEEL_MAX_RPM = 6000.0; // adjust to your flywheel
   public static final double FLYWHEEL_DEFAULT_RPM = 3000.0;
 
-  public static final InvertedValue kFlywheelInverted = InvertedValue.CounterClockwise_Positive;
-  public static final NeutralModeValue kFlywheelNeutralMode = NeutralModeValue.Brake;
-
   public static final double kFlywheelChainRatio = 1.0 / 1.0;
   public static final double kFlywheelGearboxRatio = 1.0; // 1:1
   public static final double kFlywheelGearRatio = kFlywheelChainRatio * kFlywheelGearboxRatio;
@@ -50,93 +50,86 @@ public class FlywheelSubsystem extends SubsystemBase {
   public static final double FLYWHEEL_kI = 0.0;
   public static final double FLYWHEEL_kD = 0.0;
 
-  public static final double kFlywheelPeakForwardVoltage = 8.0; // Peak output of 8 volts
-  public static final double kFlywheelPeakReverseVoltage = -8.0; // Peak output of 8 volts
+  // flywheel (master + follower)
+  private final Distance flywheelDiameter = Inches.of(4);
+  private final TalonFX m_flywheelMasterTalon = new TalonFX(FLYWHEEL_MASTER_ID, CANBUS);
+  private final TalonFX m_flywheelFollowerTalon = new TalonFX(FLYWHEEL_FOLLOWER_ID, CANBUS);
 
-  // flywheel
-  private final TalonFX m_flywheelMaster = new TalonFX(FLYWHEEL_MASTER_ID, CANBUS);
-  private final TalonFX m_flywheelFollower = new TalonFX(FLYWHEEL_FOLLOWER_ID, CANBUS);
-  private final VelocityTorqueCurrentFOC m_flywheelVelocityRequest = new VelocityTorqueCurrentFOC(0).withSlot(0);
-  private final DutyCycleOut m_flywheelPercentRequest = new DutyCycleOut(0);
-  private double lastFlywheelPercent = 0.0;
+  private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
+      .withControlMode(ControlMode.CLOSED_LOOP)
+      .withIdleMode(MotorMode.COAST)
+      .withGearing(new MechanismGearing(GearBox.fromReductionStages(1, 1)))
+      .withClosedLoopController(FLYWHEEL_kP, FLYWHEEL_kI, FLYWHEEL_kD)
+      .withStatorCurrentLimit(Amps.of(40))
+      .withMotorInverted(false)
+      .withClosedLoopRampRate(Seconds.of(0.25))
+      .withOpenLoopRampRate(Seconds.of(0.25))
+      .withFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, 0, 0))
+      .withSimFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, 0, 0))
+      .withFollowers(Pair.of(m_flywheelFollowerTalon, true));
+
+  private final SmartMotorController m_flywheelMotor = new TalonFXWrapper(m_flywheelMasterTalon, DCMotor.getKrakenX60(1), smc_config);
+
+  // Construct YAMS FlyWheel config & mechanism (use master controller for mech config)
+  private FlyWheelConfig m_flywheelConfig = new FlyWheelConfig(m_flywheelMotor)
+      .withDiameter(Inches.of(4))
+      .withMass(Pounds.of(1))
+      .withTelemetry("FlywheelMech", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withSoftLimit(RPM.of(-5000), RPM.of(5000))
+      .withSpeedometerSimulation(RPM.of(7500));
+
+  private FlyWheel m_flywheel = new FlyWheel(m_flywheelConfig);
 
   private boolean m_isTeleop = false;
 
   public FlywheelSubsystem() {
-    initFlywheelConfigs();
-
-    if (RobotBase.isSimulation()) initSimulation();
-  }
-
-  private void initFlywheelConfigs() {
-    // Configure flywheel PID slot
-    TalonFXConfiguration flyConfigs = new TalonFXConfiguration();
-    flyConfigs.MotorOutput.Inverted = kFlywheelInverted;
-    flyConfigs.MotorOutput.NeutralMode = kFlywheelNeutralMode;
-    flyConfigs.Voltage.PeakForwardVoltage = kFlywheelPeakForwardVoltage;
-    flyConfigs.Voltage.PeakReverseVoltage = kFlywheelPeakReverseVoltage;
-
-    flyConfigs.Slot0.kS = FLYWHEEL_kS;
-    flyConfigs.Slot0.kP = FLYWHEEL_kP;
-    flyConfigs.Slot0.kI = FLYWHEEL_kI;
-    flyConfigs.Slot0.kD = FLYWHEEL_kD;
-
-    StatusCode s = m_flywheelMaster.getConfigurator().apply(flyConfigs);
-    if (!s.isOK()) System.out.println("Could not apply flywheel configs: " + s);
-
-    s = m_flywheelFollower.getConfigurator().apply(flyConfigs);
-    if (!s.isOK()) System.out.println("Could not apply flywheel configs: " + s);
-    m_flywheelFollower.setControl(new Follower(m_flywheelMaster.getDeviceID(), MotorAlignmentValue.Opposed));
-  }
-
-  private void initSimulation() {
+    // telemetry setup
+    m_flywheelMotor.setupTelemetry();
   }
 
   @Override
   public void periodic() {
     updateSmartDashboard();
+    m_flywheel.updateTelemetry();
   }
 
-  // -- Flywheel control --------------------------------------------------
-  /**
-   * Set flywheel speed as percent output (-1.0..1.0).
-   */
-  public void setFlywheelPercent(double pct) {
-    pct = MathUtil.clamp(pct, -1.0, 1.0);
-    m_flywheelMaster.setControl(m_flywheelPercentRequest.withOutput(pct));
-    // mirror to follower (no high-level follow helper used)
-    m_flywheelFollower.setControl(m_flywheelPercentRequest.withOutput(pct));
-    lastFlywheelPercent = pct;
+  @Override
+  public void simulationPeriodic() {
+    m_flywheel.simIterate();
   }
 
-  /**
-   * Set flywheel velocity by RPM. This implementation maps RPM to percent based on
-   * `FLYWHEEL_MAX_RPM`. For closed-loop control replace this method with
-   * a velocity closed-loop set using appropriate sensor configuration.
-   */
-  public void setFlywheelVelocityRPM(double rpm) {
-    // Convert desired flywheel RPM to motor rotations per second (sensor units)
-    double desiredFlywheelRps = rpm / 60.0;
-    double motorRps = desiredFlywheelRps * kFlywheelGearRatio;
-    m_flywheelMaster.setControl(m_flywheelVelocityRequest.withVelocity(motorRps));
-    // mirror to follower
-    m_flywheelFollower.setControl(m_flywheelVelocityRequest.withVelocity(motorRps));
-    lastFlywheelPercent = MathUtil.clamp(rpm / FLYWHEEL_MAX_RPM, -1.0, 1.0);
+  // YAMS Flywheel API wrappers
+  public AngularVelocity getVelocity() {
+    return m_flywheel.getSpeed();
   }
 
-  public void stopFlywheel() {
-    setFlywheelPercent(0.0);
+  public Command setVelocity(AngularVelocity speed) {
+    return m_flywheel.setSpeed(speed);
   }
 
-  public double getFlywheelPercent() {
-    return lastFlywheelPercent;
+  public Command setDutyCycle(double dutyCycle) {
+    return m_flywheel.set(dutyCycle);
   }
 
-  /** Returns flywheel speed in RPM (based on master sensor). */
-  public double getFlywheelRPM() {
-    double motorRps = m_flywheelMaster.getVelocity().getValueAsDouble();
-    double flywheelRps = motorRps / kFlywheelGearRatio;
-    return flywheelRps * 60.0;
+  public Command setVelocity(java.util.function.Supplier<AngularVelocity> speed) {
+    return m_flywheel.setSpeed(speed);
+  }
+
+  public Command setDutyCycle(java.util.function.Supplier<Double> dutyCycle) {
+    return m_flywheel.set(dutyCycle);
+  }
+
+  public Command sysId() {
+    return m_flywheel.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
+  }
+
+  public Command setRPM(LinearVelocity speed) {
+    return m_flywheel.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
+  }
+
+  public void setRPMDirect(LinearVelocity speed) {
+    // directly set the motor velocity on the master based on linear speed -> rotational
+    m_flywheelMotor.setVelocity(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
   }
 
   /**
@@ -149,27 +142,15 @@ public class FlywheelSubsystem extends SubsystemBase {
 
     if (aspeed != 0.0) {
       m_isTeleop = true;
-      setFlywheelPercent(aspeed);
+      setDutyCycle(aspeed);
     } else if (m_isTeleop) {
       m_isTeleop = false;
-      stopFlywheel();
+      setDutyCycle(0.0);
     }
   }
   // -- SmartDashboard ----------------------------------------------------
   private void updateSmartDashboard() {
-    SmartDashboard.putNumber("Shooter/FlywheelPercent", this.getFlywheelPercent());
-  }
-
-  // -- Commands -----------------------------------------------------------
-  public Command shooterToVelocityCommand(double velocity) {
-    return run(() -> this.setFlywheelVelocityRPM(velocity))
-        .withName("ShooterToVelocityCommand")
-        .withTimeout(5.0);
-  }
-
-  public Command shooterToPercentCommand(double pct) {
-    return run(() -> this.setFlywheelPercent(pct))
-        .withName("ShooterToPercentCommand")
-        .withTimeout(5.0);
+    // Display flywheel speed in RPM
+    SmartDashboard.putNumber("Shooter/FlywheelRPM", this.getVelocity().in(RPM));
   }
 }
