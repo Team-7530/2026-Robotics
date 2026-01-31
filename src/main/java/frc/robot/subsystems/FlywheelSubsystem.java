@@ -59,8 +59,8 @@ public class FlywheelSubsystem extends SubsystemBase {
   private final Mass flywheelMass = Pounds.of(1);
 
   // TalonFX hardware instances
-  private final TalonFX m_flywheelMasterTalon = new TalonFX(FLYWHEEL_MASTER_ID, CANBUS);
-  private final TalonFX m_flywheelFollowerTalon = new TalonFX(FLYWHEEL_FOLLOWER_ID, CANBUS);
+  private final TalonFX m_flywheelMasterMotor = new TalonFX(FLYWHEEL_MASTER_ID, CANBUS);
+  private final TalonFX m_flywheelFollowerMotor = new TalonFX(FLYWHEEL_FOLLOWER_ID, CANBUS);
 
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
       .withControlMode(ControlMode.CLOSED_LOOP)
@@ -83,12 +83,12 @@ public class FlywheelSubsystem extends SubsystemBase {
       .withClosedLoopRampRate(Seconds.of(0.25))
       .withOpenLoopRampRate(Seconds.of(0.25))
       // Follower Motors
-      .withFollowers(Pair.of(m_flywheelFollowerTalon, true));
+      .withFollowers(Pair.of(m_flywheelFollowerMotor, true));
 
-  private final SmartMotorController m_flywheelMotor = new TalonFXWrapper(m_flywheelMasterTalon, DCMotor.getKrakenX60Foc(1), smc_config);
+  private final SmartMotorController m_flywheelSMC = new TalonFXWrapper(m_flywheelMasterMotor, DCMotor.getKrakenX60Foc(1), smc_config);
 
   // Construct YAMS FlyWheel config & mechanism (use master controller for mech config)
-  private FlyWheelConfig m_flywheelConfig = new FlyWheelConfig(m_flywheelMotor)
+  private FlyWheelConfig m_flywheelConfig = new FlyWheelConfig(m_flywheelSMC)
       // Diameter of the flywheel.
       .withDiameter(flywheelDiameter)
       // Mass of the flywheel.
@@ -148,7 +148,7 @@ public class FlywheelSubsystem extends SubsystemBase {
 
   public void setRPMDirect(LinearVelocity speed) {
     // directly set the motor velocity on the master based on linear speed -> rotational
-    m_flywheelMotor.setVelocity(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
+    m_flywheelSMC.setVelocity(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
   }
 
   /**

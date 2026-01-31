@@ -19,8 +19,6 @@ import frc.robot.commands.*;
 import frc.robot.generated.TunerConstants;
 import frc.robot.operator_interface.OISelector;
 import frc.robot.operator_interface.OperatorInterface;
-// import frc.robot.sim.Mechanisms;
-import frc.robot.sim.PhysicsSim;
 import frc.robot.subsystems.*;
 
 /**
@@ -48,6 +46,7 @@ public class RobotContainer {
   public final VisionSubsystem vision = new VisionSubsystem();
   public final ShooterSubsystem shooter = new ShooterSubsystem();
   public final RakeSubsystem rake = new RakeSubsystem();
+  public final CollectorSubsystem collector = new CollectorSubsystem();
   public final ClimberSubsystem climber = new ClimberSubsystem();
 
   /* Path follower */
@@ -143,13 +142,13 @@ public class RobotContainer {
     // oi.getBButton().onTrue(intake.outtakeL1Command());
     oi.getAButton().onTrue(shooter.shootCommand());
     oi.getBButton().onTrue(shooter.feederUnstuckCommand());
-    oi.getXButton().onTrue(rake.collectorUnstuckCommand());
+    oi.getXButton().onTrue(collector.collectorUnstuckCommand());
 
     oi.getLeftBumper().onTrue(climber.clampCommand(false));
     oi.getRightBumper().onTrue(climber.clampCommand(true));
 
     oi.getLeftTrigger().onTrue(shooter.shooterToVelocityCommand(2000)).onFalse(shooter.shooterToPercentCommand(0.0));
-    oi.getRightTrigger().onTrue(rake.collectorCommand());
+    oi.getRightTrigger().onTrue(collector.collectorStartCommand());
     // oi.getRightTrigger().onTrue(new SequentialCommandGroup(this.getCoralPositionCommand(), intake.intakeCommand()));
 
     //oi.getLeftTrigger().onTrue(climber.climbToStartPositionCommand());
@@ -191,9 +190,9 @@ public class RobotContainer {
     // NamedCommands.registerCommand("Outtake", intake.outtakeL2Command());
     // NamedCommands.registerCommand("OuttakeSpin", intake.outtakeL1Command());
     NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
-    NamedCommands.registerCommand("collectorCommand", rake.collectorCommand());
-    NamedCommands.registerCommand("rakeDeploy", rake.rakeToPositionCommand(RakeSubsystem.kRakePositionMin));
-    NamedCommands.registerCommand("rakeRetract", rake.rakeToPositionCommand(RakeSubsystem.kRakePositionMax));
+    NamedCommands.registerCommand("collectorCommand", collector.collectorStartCommand());
+    NamedCommands.registerCommand("rakeDeploy", rake.setRakeAngle(RakeSubsystem.kRakePositionMin));
+    NamedCommands.registerCommand("rakeRetract", rake.setRakeAngle(RakeSubsystem.kRakePositionMax));
   }
 
   private void configureTelemetry() {
@@ -230,8 +229,6 @@ public class RobotContainer {
     // Using max(0.1, voltage) here isn't a *physically correct* solution,
     // but it avoids problems with battery voltage measuring 0.
     RoboRioSim.setVInVoltage(Math.max(0.1, RobotController.getBatteryVoltage()));
-
-    PhysicsSim.getInstance().run();
   }
 
   public void autonomousInit() {

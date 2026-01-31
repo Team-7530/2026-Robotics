@@ -1,67 +1,60 @@
 package frc.robot.subsystems;
 
-import static frc.robot.Constants.POSITION_TOLERANCE;
+import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.STICK_DEADBAND;
 
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import com.ctre.phoenix6.signals.SensorDirectionValue;
-import com.ctre.phoenix6.configs.CANcoderConfiguration;
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.DutyCycleOut;
-import com.ctre.phoenix6.controls.MotionMagicExpoVoltage;
-import com.ctre.phoenix6.controls.NeutralOut;
-import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
-import com.ctre.phoenix6.signals.GravityTypeValue;
-import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
-import com.ctre.phoenix6.StatusCode;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.units.Units;
-import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.math.controller.ArmFeedforward;
+import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularAcceleration;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-import frc.robot.sim.PhysicsSim;
+import yams.gearing.GearBox;
+import yams.gearing.MechanismGearing;
+import yams.mechanisms.config.ArmConfig;
+import yams.mechanisms.config.MechanismPositionConfig;
+import yams.mechanisms.positional.Arm;
+import yams.motorcontrollers.SmartMotorController;
+import yams.motorcontrollers.SmartMotorControllerConfig;
+import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
+import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
+import yams.motorcontrollers.remote.TalonFXWrapper;
 
 public class RakeSubsystem extends SubsystemBase {
 
-  public static final CANBus CANBUS = CANBus.roboRIO();
+  public static final CANBus CANBUS = new CANBus("CANFD");
+
   public static final int RAKEMOTOR_ID = 33;
   public static final int RAKEENCODER_ID = 34;
 
-  public static final InvertedValue kRakeInverted = InvertedValue.Clockwise_Positive;
-  public static final NeutralModeValue kRakeNeutralMode = NeutralModeValue.Brake;
-  public static final SensorDirectionValue kRakeEncoderDirection = SensorDirectionValue.Clockwise_Positive;
   public static final double kRakeEncoderOffset = -0.171; // add 0.25 offset, sub it later
 
   public static final double kRakeChainRatio = 1.0; // 1:1
   public static final double kRakeGearboxRatio = 45.0; // 1:45
   public static final double kRakeGearRatio = kRakeChainRatio * kRakeGearboxRatio;
 
-  public static final double rakeMotorKG = 0.0;
-  public static final double rakeMotorKS = 0.0;
-  public static final double rakeMotorKS_slow = 0.0;
-  public static final double rakeMotorKV = 0.0;
-  public static final double rakeMotorKA = 0.0;
-  public static final double rakeMotorKP = 35.0; // 70
-  public static final double rakeMotorKP_slow = 25.0;
-  public static final double rakeMotorKI = 0.0;
-  public static final double rakeMotorKD = 0.0;
-  public static final double MMagicCruiseVelocity = 0;
-  public static final double MMagicAcceleration = 0;
-  public static final double MMagicJerk = 0;
-  public static final double MMagicExpo_kV = 4.8; // kV is around 0.12 V/rps
-  public static final double MMagicExpo_kA = 4.8; // Use a slower kA of 0.1 V/(rps/s)
-  public static final double peakForwardVoltage = 8.0; // Peak output of 8 volts
-  public static final double peakReverseVoltage = -8.0; // Peak output of 8 volts
+  public static final double RAKE_KG = 0.0;
+  public static final double RAKE_KS = 0.0;
+  public static final double RAKE_KV = 0.0;
+  public static final double RAKE_KA = 0.0;
+  public static final double RAKE_KP = 35.0; // 70
+  public static final double RAKE_KI = 0.0;
+  public static final double RAKE_KD = 0.0;
+  public static final AngularVelocity RAKE_kMaxV = RPM.of(5000);
+  public static final AngularAcceleration RAKE_kMaxA = RotationsPerSecondPerSecond.of(2500);
 
-  public static final double kRakePositionMax = 0.25;
-  public static final double kRakePositionMin = -0.334;
+  public static final Angle kRakePositionMax = Degrees.of(45.0);
+  public static final Angle kRakePositionMin = Degrees.of(0.0);
 
   public static final double kRakeTeleopSpeed = 0.1;
   public static final double kRakeTeleopFactor = 0.05;
@@ -89,138 +82,84 @@ public class RakeSubsystem extends SubsystemBase {
   
   private final TalonFX m_rakeMotor = new TalonFX(RAKEMOTOR_ID, CANBUS);
   private final CANcoder m_rakeEncoder = new CANcoder(RAKEENCODER_ID, CANBUS);
-  private final MotionMagicExpoVoltage m_rakeRequest = new MotionMagicExpoVoltage(0).withSlot(0);
-  private final DutyCycleOut m_rakePercentRequest = new DutyCycleOut(0);
-  private final NeutralOut m_brake = new NeutralOut();
 
-  private final TalonFX m_CollectorMotor = new TalonFX(COLLECTORMOTOR_ID, CANBUS);
+  // YAMS controller and mechanism (initialized at declaration to match FlywheelSubsystem style)
+  private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
+      .withControlMode(ControlMode.CLOSED_LOOP)
+      // PID Constants
+      .withClosedLoopController(RAKE_KP, RAKE_KI, RAKE_KD, RAKE_kMaxV, RAKE_kMaxA)
+      .withSimClosedLoopController(RAKE_KP, RAKE_KI, RAKE_KD, RAKE_kMaxV, RAKE_kMaxA)
+      // Feedforward Constants
+      .withFeedforward(new ArmFeedforward(RAKE_KS, 0, 0))
+      .withSimFeedforward(new ArmFeedforward(RAKE_KS, 0, 0))
+      // Telemetry name and verbosity level
+      .withTelemetry("RakeMotor", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      // Gearing from the motor rotor to final shaft.
+      // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
+      .withGearing(new MechanismGearing(GearBox.fromReductionStages(kRakeChainRatio, kRakeGearboxRatio)))
+      // Motor properties to prevent over currenting.
+      .withMotorInverted(false)
+      .withIdleMode(MotorMode.COAST)
+      // Power Optimization
+      .withStatorCurrentLimit(Amps.of(40))
+      .withClosedLoopRampRate(Seconds.of(0.25))
+      .withOpenLoopRampRate(Seconds.of(0.25))
+      // External Encoder
+      .withExternalEncoder(m_rakeEncoder)
+      .withExternalEncoderGearing(1.0)
+      .withUseExternalFeedbackEncoder(true);
 
-  private final VelocityTorqueCurrentFOC m_collectorRequest = new VelocityTorqueCurrentFOC(0).withSlot(0);
-  private final DutyCycleOut m_collectorPercentRequest = new DutyCycleOut(0);
+  private final SmartMotorController m_rakeSMC = new TalonFXWrapper(m_rakeMotor, DCMotor.getKrakenX60Foc(1), smc_config);
 
-  private double rakeTargetPosition = 0;
+  private final MechanismPositionConfig robotToMechanism = new MechanismPositionConfig()
+      .withMaxRobotHeight(Meters.of(1.5))
+      .withMaxRobotLength(Meters.of(0.75))
+      .withRelativePosition(new Translation3d(Meters.of(0.25), Meters.of(0), Meters.of(0.5)));
+
+  private final ArmConfig m_rakeConfig = new ArmConfig(m_rakeSMC)
+      // Length of the arm.
+      .withLength(Meters.of(0.135))
+      // Angle limits
+      .withHardLimit(Degrees.of(-100), Degrees.of(200))
+      .withStartingPosition(Degrees.of(0))
+//    .withHorizontalZero(Degrees.of(0))
+      // Mass of the flywheel.
+      .withMass(Pounds.of(1))
+      // Telemetry name and verbosity for the arm.
+      .withTelemetry("RakeArm", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withMechanismPositionConfig(robotToMechanism);
+
+  private final Arm m_rake = new Arm(m_rakeConfig);
+
   private boolean m_isTeleop = false;
 
   public RakeSubsystem() {
-    initRakeConfigs();
-    initEncoderConfigs();
-    initCollectorConfigs();
 
-    if (RobotBase.isSimulation()) initSimulation();
-  }
-
-  private void initRakeConfigs() {
-    TalonFXConfiguration configs = new TalonFXConfiguration();
-  configs.MotorOutput.Inverted = kRakeInverted;
-  configs.MotorOutput.NeutralMode = kRakeNeutralMode;
-  configs.Voltage.PeakForwardVoltage = peakForwardVoltage;
-  configs.Voltage.PeakReverseVoltage = peakReverseVoltage;
-
-  configs.Slot0.kG = rakeMotorKG;
-  configs.Slot0.kS = rakeMotorKS;
-  configs.Slot0.kV = rakeMotorKV;
-  configs.Slot0.kA = rakeMotorKA;
-  configs.Slot0.kP = rakeMotorKP;
-  configs.Slot0.kI = rakeMotorKI;
-  configs.Slot0.kD = rakeMotorKD;
-    configs.Slot0.GravityType = GravityTypeValue.Arm_Cosine;
-    configs.Slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseVelocitySign;
-
-  configs.Slot1.kG = rakeMotorKG;
-  configs.Slot1.kS = rakeMotorKS_slow;
-  configs.Slot1.kV = rakeMotorKV;
-  configs.Slot1.kA = rakeMotorKA;
-  configs.Slot1.kP = rakeMotorKP_slow;
-  configs.Slot1.kI = rakeMotorKI;
-  configs.Slot1.kD = rakeMotorKD;
-    configs.Slot1.GravityType = GravityTypeValue.Arm_Cosine;
-    configs.Slot1.StaticFeedforwardSign = StaticFeedforwardSignValue.UseVelocitySign;
-
-    configs.Feedback.FeedbackRemoteSensorID = m_rakeEncoder.getDeviceID();
-    configs.Feedback.FeedbackSensorSource = FeedbackSensorSourceValue.FusedCANcoder;//
-    configs.Feedback.SensorToMechanismRatio = 1.0;
-  configs.Feedback.RotorToSensorRatio = kRakeGearRatio;
-
-  configs.MotionMagic.MotionMagicCruiseVelocity = MMagicCruiseVelocity;
-  configs.MotionMagic.MotionMagicAcceleration = MMagicAcceleration;
-  configs.MotionMagic.MotionMagicJerk = MMagicJerk;
-  configs.MotionMagic.MotionMagicExpo_kV = MMagicExpo_kV;
-  configs.MotionMagic.MotionMagicExpo_kA = MMagicExpo_kA;
-
-  configs.SoftwareLimitSwitch.ForwardSoftLimitThreshold = kRakePositionMax;
-    configs.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
-  configs.SoftwareLimitSwitch.ReverseSoftLimitThreshold = kRakePositionMin;
-    configs.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
-
-    StatusCode s = m_rakeMotor.getConfigurator().apply(configs);
-    if (!s.isOK()) System.out.println("Could not apply top configs, error code: " + s);
-  }
-
-  private void initEncoderConfigs() {
-    CANcoderConfiguration configs = new CANcoderConfiguration();
-    configs.MagnetSensor.withAbsoluteSensorDiscontinuityPoint(Units.Rotations.of(0.5));
-  configs.MagnetSensor.SensorDirection = kRakeEncoderDirection;
-    // add offset of 0.25 to abs value so total range keeps sign. sub it below
-  configs.MagnetSensor.withMagnetOffset(Units.Rotations.of(kRakeEncoderOffset));
-
-    StatusCode s = m_rakeEncoder.getConfigurator().apply(configs);
-    if (!s.isOK()) System.out.println("Could not apply top configs, error code: " + s);
-
-    // set starting position to current absolute position
-    s = m_rakeEncoder.setPosition(m_rakeEncoder.getAbsolutePosition().getValueAsDouble());
-    if (!s.isOK()) System.out.println("Could not apply position to encoder, error code: " + s);
-  }
-
-  private void initCollectorConfigs() {
-    TalonFXConfiguration configs = new TalonFXConfiguration();
-
-  configs.MotorOutput.Inverted = kCollectorInverted;
-  configs.MotorOutput.NeutralMode = kCollectorNeutralMode;
-  configs.Voltage.PeakForwardVoltage = collector_peakForwardVoltage;
-  configs.Voltage.PeakReverseVoltage = collector_peakReverseVoltage;
-  configs.TorqueCurrent.PeakForwardTorqueCurrent = peakForwardTorqueCurrent;
-  configs.TorqueCurrent.PeakReverseTorqueCurrent = peakReverseTorqueCurrent;
-
-  configs.Slot0.kS = collectorMotorTorqueKS;
-  configs.Slot0.kP = collectorMotorTorqueKP;
-  configs.Slot0.kI = collectorMotorTorqueKI;
-  configs.Slot0.kD = collectorMotorTorqueKD;
-
-    StatusCode s = m_CollectorMotor.getConfigurator().apply(configs);
-    if (!s.isOK()) System.out.println("Could not apply top configs, error code: " + s);
   }
     
-  private void initSimulation() {
-  PhysicsSim.getInstance()
-    .addTalonFX(m_rakeMotor, m_rakeEncoder, kRakeGearRatio, 0.001);
-    m_rakeEncoder.setPosition(0);
-  }
-
   @Override
   public void periodic() {
     updateSmartDashboard();
+    m_rake.updateTelemetry();
+  }
+
+  @Override
+  public void simulationPeriodic() {
+    m_rake.simIterate();
   }
 
   /**
    * Sets the rake position
    *
-   * @param pos position between 0 and 1
+   * @param angle angle in degrees
    */
-  public void setRakePosition(double pos) {
-    m_isTeleop = false;
-  rakeTargetPosition =
-    MathUtil.clamp(pos, kRakePositionMin, kRakePositionMax);
-    m_rakeMotor.setControl(m_rakeRequest.withPosition(rakeTargetPosition));
+  public Command setRakeAngle(Angle angle) {
+    return m_rake.setAngle(angle);
   }
 
-  /** Returns the rake position as a double */
-  public double getRakePosition() {
-    return m_rakeEncoder.getPosition().getValueAsDouble();
-  }
-
-  /** Returns true if motor is at target position or within tolerance range */
-  public boolean isRakeAtPosition() {
-  return MathUtil.isNear(rakeTargetPosition, this.getRakePosition(), POSITION_TOLERANCE);
+  /** Returns the rake angle */
+  public Angle getRakePosition() {
+    return m_rake.getAngle();
   }
 
   /**
@@ -228,55 +167,13 @@ public class RakeSubsystem extends SubsystemBase {
    *
    * @param wspeed double, target speed
    */
-  public void setRakeSpeed(double wspeed) {
-    rakeTargetPosition = 0;
-    m_rakeMotor.setControl(m_rakePercentRequest.withOutput(wspeed));
+  public Command setRakeSpeed(double wspeed) {
+    return m_rake.set(wspeed);
   }
 
   /** Stops motor and activates brakes */
-  public void stopRake() {
-    rakeTargetPosition = 0;
-    m_rakeMotor.setControl(m_brake);
-  }
-
-  /**
-   * Sets the motor Target velocity
-   *
-   * @param Cvelocity left motors target velocity
-   */
-  public void setCollectorVelocity(double Cvelocity) {
-    m_CollectorMotor.setControl(
-      m_collectorRequest.withVelocity(Cvelocity * kCollectorGearRatio));
-  }
-
-  /**
-   * returns the motor Target velocity
-   */
-  public double getCollectorVelocity() {
-    return m_CollectorMotor.getVelocity().getValueAsDouble();
-  }
-
-  /**
-   * Sets collector motor speed
-   *
-   * @param speed double
-   */
-  public void setCollectorSpeed(double speed) {
-      m_CollectorMotor.setControl(m_collectorPercentRequest.withOutput(speed));
-  }
-
-  /** Activates motor brakes */
-  public void collectorStop() {
-      m_CollectorMotor.setControl(m_brake);
-  }
-
-  /** Sets motors to constants intake speed */
-  public void collectorIn() {
-  this.setCollectorVelocity(collectorVelocity);
-  }
-
-  public void collectorUnstuck() {
-  this.setCollectorVelocity(collectorUnstuckVelocity);
+  public Command stopRake() {
+    return m_rake.set(0.0);
   }
 
   /**
@@ -292,40 +189,15 @@ public class RakeSubsystem extends SubsystemBase {
     if ((rspeed != 0.0) || (cspeed != 0.0)) {
       m_isTeleop = true;
       this.setRakeSpeed(rspeed * kRakeTeleopSpeed);
-      this.setCollectorSpeed(cspeed);
     } else if (m_isTeleop) {
       m_isTeleop = false;
       this.stopRake();
-      this.collectorStop();
     }
   }
 
   /** Upddates the Smart Dashboard */
   private void updateSmartDashboard() {
-    SmartDashboard.putNumber("Rake Postion", this.getRakePosition());
-    SmartDashboard.putNumber("Rake TargetPostion", rakeTargetPosition);
-    SmartDashboard.putNumber("CollectorIntake Speed", this.getCollectorVelocity());
-  }
-
-  public Command rakeToPositionCommand(double position) {
-    return run(() -> this.setRakePosition(position))
-        .withName("RakeToPositionCommand")
-        .until(this::isRakeAtPosition)
-        .withTimeout(5.0);
-  }
-
-  public Command collectorCommand() {
-    return run(() -> this.collectorIn())
-        .withName("CollectorCommand")
-        .withTimeout(5.0)
-        .finallyDo(() -> this.collectorStop());
-  }
-
-  public Command collectorUnstuckCommand() {
-  return run(() -> this.collectorIn())
-      .withName("CollectorUnstuckCommand")
-      .withTimeout(5.0)
-      .finallyDo(() -> this.collectorStop());
+    SmartDashboard.putNumber("Rake Postion", this.getRakePosition().in(Degrees));
   }
 
 }
