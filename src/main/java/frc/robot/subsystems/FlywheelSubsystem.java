@@ -35,8 +35,8 @@ public class FlywheelSubsystem extends SubsystemBase {
   public static final CANBus CANBUS = new CANBus("CANFD");
 
   // CAN IDs
-  public static final int FLYWHEEL_MASTER_ID = 61;
-  public static final int FLYWHEEL_FOLLOWER_ID = 62;
+  public static final int FLYWHEEL_MASTER_ID = 60;
+  public static final int FLYWHEEL_FOLLOWER_ID = 61;
 
   // Flywheel tuning
   public static final double FLYWHEEL_MAX_RPM = 6000.0; // adjust to your flywheel
