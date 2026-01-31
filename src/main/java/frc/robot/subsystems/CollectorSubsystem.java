@@ -36,7 +36,7 @@ public class CollectorSubsystem extends SubsystemBase {
   public static final CANBus CANBUS = new CANBus("CANFD");
 
   // CAN IDs
-  public static final int COLLECTORMOTOR_ID = 65;
+  public static final int COLLECTORMOTOR_ID = 40;
 
   public static final double kCollectorChainRatio = 24.0 / 10.0; // 24:10
   public static final double kCollectorGearboxRatio = 1.0; // 1:1

@@ -34,8 +34,8 @@ public class RakeSubsystem extends SubsystemBase {
 
   public static final CANBus CANBUS = new CANBus("CANFD");
 
-  public static final int RAKEMOTOR_ID = 33;
-  public static final int RAKEENCODER_ID = 34;
+  public static final int RAKEMOTOR_ID = 30;
+  public static final int RAKEENCODER_ID = 31;
 
   public static final double kRakeEncoderOffset = -0.171; // add 0.25 offset, sub it later
 

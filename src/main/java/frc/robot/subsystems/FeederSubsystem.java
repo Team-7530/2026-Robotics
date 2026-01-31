@@ -36,7 +36,7 @@ public class FeederSubsystem extends SubsystemBase {
   public static final CANBus CANBUS = new CANBus("CANFD");
 
   // CAN IDs
-  public static final int FEEDERMOTOR_ID = 65;
+  public static final int FEEDERMOTOR_ID = 50;
 
   public static final double kFeederChainRatio = 24.0 / 10.0; // 24:10
   public static final double kFeederGearboxRatio = 1.0; // 1:1
