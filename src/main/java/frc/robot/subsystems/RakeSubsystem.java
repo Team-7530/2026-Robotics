@@ -112,9 +112,9 @@ public class RakeSubsystem extends SubsystemBase {
   private final SmartMotorController m_rakeSMC = new TalonFXWrapper(m_rakeMotor, DCMotor.getKrakenX60Foc(1), smc_config);
 
   private final MechanismPositionConfig robotToMechanism = new MechanismPositionConfig()
-      .withMaxRobotHeight(Meters.of(1.5))
-      .withMaxRobotLength(Meters.of(0.75))
-      .withRelativePosition(new Translation3d(Meters.of(0.25), Meters.of(0), Meters.of(0.5)));
+      .withMaxRobotHeight(Inches.of(23.0))
+      .withMaxRobotLength(Inches.of(34.0))
+      .withRelativePosition(new Translation3d(Inches.of(-10), Inches.of(-2), Inches.of(1)));
 
   private final ArmConfig m_rakeConfig = new ArmConfig(m_rakeSMC)
       // Length of the arm.

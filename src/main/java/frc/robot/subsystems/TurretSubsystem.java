@@ -37,11 +37,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-/**
- * ShooterSubsystem controls a turret (absolute encoder + position control) and a two-motor
- * flywheel (master + follower). This is a lightweight, conservative implementation that uses
- * percent open-loop control for the flywheel and position control for the turret. 
- */
 public class TurretSubsystem extends SubsystemBase {
 
   public static final CANBus CANBUS = new CANBus("CANFD");
@@ -105,9 +100,9 @@ public class TurretSubsystem extends SubsystemBase {
   private final SmartMotorController m_turretSMC = new TalonFXWrapper(m_turretMotor, DCMotor.getKrakenX44(1), smc_config);
 
   private final MechanismPositionConfig robotToMechanism = new MechanismPositionConfig()
-      .withMaxRobotHeight(Meters.of(1.5))
-      .withMaxRobotLength(Meters.of(0.75))
-      .withRelativePosition(new Translation3d(Meters.of(-0.25), Meters.of(0), Meters.of(0.5)));
+      .withMaxRobotHeight(Inches.of(23.0))
+      .withMaxRobotLength(Inches.of(34.0))
+      .withRelativePosition(new Translation3d(Inches.of(0.0), Inches.of(8), Inches.of(8)));
 
   PivotConfig m_turretconfig = new PivotConfig(m_turretSMC)
       .withStartingPosition(Degrees.of(0)) // Starting position of the Pivot
