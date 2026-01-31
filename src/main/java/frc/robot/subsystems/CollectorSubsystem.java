@@ -31,48 +31,48 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 //Subsystem for rollers inside of hopper
 
-public class FeederSubsystem extends SubsystemBase {
+public class CollectorSubsystem extends SubsystemBase {
 
   public static final CANBus CANBUS = new CANBus("CANFD");
 
   // CAN IDs
-  public static final int FEEDERMOTOR_ID = 65;
+  public static final int COLLECTORMOTOR_ID = 65;
 
-  public static final double kFeederChainRatio = 24.0 / 10.0; // 24:10
-  public static final double kFeederGearboxRatio = 1.0; // 1:1
-  public static final double kFeederGearRatio = kFeederChainRatio * kFeederGearboxRatio;
+  public static final double kCollectorChainRatio = 24.0 / 10.0; // 24:10
+  public static final double kCollectorGearboxRatio = 1.0; // 1:1
+  public static final double kCollectorGearRatio = kCollectorChainRatio * kCollectorGearboxRatio;
 
   // Torque-based velocity does not require a feed forward, as torque will accelerate the rotor up to the desired velocity by itself
-  public static final double FEEDER_KS = 0.0; // Static feedforward gain
-  public static final double FEEDER_KP = 8.0; // error of 1 rps results in 8 amps output
-  public static final double FEEDER_KI = 0.2; // error of 1 rps incr by 0.2 amps per sec
-  public static final double FEEDER_KD = 0.001; // 1000 rps^2 incr 1 amp output
-  public static final AngularVelocity FEEDER_kMaxV = RPM.of(5000);
-  public static final AngularAcceleration FEEDER_kMaxA = RotationsPerSecondPerSecond.of(2500);
+  public static final double COLLECTOR_KS = 0.0; // Static feedforward gain
+  public static final double COLLECTOR_KP = 8.0; // error of 1 rps results in 8 amps output
+  public static final double COLLECTOR_KI = 0.2; // error of 1 rps incr by 0.2 amps per sec
+  public static final double COLLECTOR_KD = 0.001; // 1000 rps^2 incr 1 amp output
+  public static final AngularVelocity COLLECTOR_kMaxV = RPM.of(5000);
+  public static final AngularAcceleration COLLECTOR_kMaxA = RotationsPerSecondPerSecond.of(2500);
 
   private final Distance flywheelDiameter = Inches.of(4);
   private final Mass flywheelMass = Pounds.of(1);
 
-  public static final AngularVelocity feederVelocity = RPM.of(3000);
-  public static final AngularVelocity feederUnstuckVelocity = RPM.of(-2000);
+  public static final AngularVelocity collectorVelocity = RPM.of(3000);
+  public static final AngularVelocity collectorUnstuckVelocity = RPM.of(-2000);
     
   // TalonFX hardware instance (kept for wrapper)
-  private final TalonFX m_feederMotor = new TalonFX(FEEDERMOTOR_ID, CANBUS);
+  private final TalonFX m_collectorMotor = new TalonFX(COLLECTORMOTOR_ID, CANBUS);
 
   // YAMS controller and mechanism (initialized at declaration to match FlywheelSubsystem style)
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
       .withControlMode(ControlMode.CLOSED_LOOP)
       // PID Constants
-      .withClosedLoopController(FEEDER_KP, FEEDER_KI, FEEDER_KD, FEEDER_kMaxV, FEEDER_kMaxA)
-      .withSimClosedLoopController(FEEDER_KP, FEEDER_KI, FEEDER_KD, FEEDER_kMaxV, FEEDER_kMaxA)
+      .withClosedLoopController(COLLECTOR_KP, COLLECTOR_KI, COLLECTOR_KD, COLLECTOR_kMaxV, COLLECTOR_kMaxA)
+      .withSimClosedLoopController(COLLECTOR_KP, COLLECTOR_KI, COLLECTOR_KD, COLLECTOR_kMaxV, COLLECTOR_kMaxA)
       // Feedforward Constants
-      .withFeedforward(new SimpleMotorFeedforward(FEEDER_KS, 0, 0))
-      .withSimFeedforward(new SimpleMotorFeedforward(FEEDER_KS, 0, 0))
+      .withFeedforward(new SimpleMotorFeedforward(COLLECTOR_KS, 0, 0))
+      .withSimFeedforward(new SimpleMotorFeedforward(COLLECTOR_KS, 0, 0))
       // Telemetry name and verbosity level
-      .withTelemetry("FeederMotor", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withTelemetry("CollectorMotor", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
       // Gearing from the motor rotor to final shaft.
       // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
-      .withGearing(new MechanismGearing(GearBox.fromReductionStages(kFeederChainRatio, kFeederGearboxRatio)))
+      .withGearing(new MechanismGearing(GearBox.fromReductionStages(kCollectorChainRatio, kCollectorGearboxRatio)))
       // Motor properties to prevent over currenting.
       .withMotorInverted(false)
       .withIdleMode(MotorMode.COAST)
@@ -81,82 +81,82 @@ public class FeederSubsystem extends SubsystemBase {
       .withClosedLoopRampRate(Seconds.of(0.25))
       .withOpenLoopRampRate(Seconds.of(0.25));
 
-  private final SmartMotorController m_feederSMC = new TalonFXWrapper(m_feederMotor, DCMotor.getKrakenX60Foc(1), smc_config);
+  private final SmartMotorController m_collectorSMC = new TalonFXWrapper(m_collectorMotor, DCMotor.getKrakenX60Foc(1), smc_config);
 
-  private final FlyWheelConfig m_feederConfig = new FlyWheelConfig(m_feederSMC)
+  private final FlyWheelConfig m_collectorConfig = new FlyWheelConfig(m_collectorSMC)
       // Diameter of the flywheel.
       .withDiameter(flywheelDiameter)
       // Mass of the flywheel.
       .withMass(flywheelMass)
       // Maximum speed of the shooter.
-      .withUpperSoftLimit(FEEDER_kMaxV)
+      .withUpperSoftLimit(COLLECTOR_kMaxV)
       // Telemetry name and verbosity for the arm.
-      .withTelemetry("FeederMech", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
-      .withSpeedometerSimulation(FEEDER_kMaxV);
+      .withTelemetry("CollectorMech", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withSpeedometerSimulation(COLLECTOR_kMaxV);
 
-  private final FlyWheel m_feeder = new FlyWheel(m_feederConfig);
+  private final FlyWheel m_collector = new FlyWheel(m_collectorConfig);
 
   private boolean m_isTeleop = false;
 
-  public FeederSubsystem() {
+  public CollectorSubsystem() {
   }
 
   @Override
   public void periodic() {
     updateSmartDashboard();
-    m_feeder.updateTelemetry();
+    m_collector.updateTelemetry();
   }
 
   @Override
   public void simulationPeriodic() {
-    m_feeder.simIterate();
+    m_collector.simIterate();
   }
 
   // YAMS Flywheel API wrappers
   public AngularVelocity getVelocity() {
-    return m_feeder.getSpeed();
+    return m_collector.getSpeed();
   }
 
   public Command setVelocity(AngularVelocity speed) {
-    return m_feeder.setSpeed(speed);
+    return m_collector.setSpeed(speed);
   }
 
   public Command setVelocity(Supplier<AngularVelocity> speed) {
-    return m_feeder.setSpeed(speed);
+    return m_collector.setSpeed(speed);
   }
 
   public Command setDutyCycle(double duty) {
-    return m_feeder.set(duty);
+    return m_collector.set(duty);
   }
 
   public Command setDutyCycle(Supplier<Double> dutyCycle) {
-    return m_feeder.set(dutyCycle);
+    return m_collector.set(dutyCycle);
   }
 
   public Command sysId() {
-    return m_feeder.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
+    return m_collector.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
   }
 
   public Command setRPM(LinearVelocity speed) {
-    return m_feeder.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
+    return m_collector.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
   }
 
   public void setRPMDirect(LinearVelocity speed) {
     // directly set the motor velocity on the master based on linear speed -> rotational
-    m_feederSMC.setVelocity(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
+    m_collectorSMC.setVelocity(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
   }
 
   /** Sets motors to constants intake speed */
-  public Command feederStartCommand() {
-      return setVelocity(feederVelocity);
+  public Command collectorStartCommand() {
+      return setVelocity(collectorVelocity);
   }
 
-  public Command feederStopCommand() {
+  public Command collectorStopCommand() {
       return setVelocity(RPM.of(0.0));
   }
 
-  public Command feederUnstuckCommand() {
-      return setVelocity(feederUnstuckVelocity);
+  public Command collectorUnstuckCommand() {
+      return setVelocity(collectorUnstuckVelocity);
   }
 
   /**
@@ -178,9 +178,9 @@ public class FeederSubsystem extends SubsystemBase {
   // -- SmartDashboard ----------------------------------------------------
   private void updateSmartDashboard() {
     try {
-      SmartDashboard.putNumber("FeederIntake RPS", getVelocity().in(RotationsPerSecond));
+      SmartDashboard.putNumber("CollectorIntake RPS", getVelocity().in(RotationsPerSecond));
     } catch (Exception e) {
-      SmartDashboard.putNumber("FeederIntake RPS", 0.0);
+      SmartDashboard.putNumber("CollectorIntake RPS", 0.0);
     }
   }
 

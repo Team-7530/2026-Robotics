@@ -74,7 +74,7 @@ public class TurretSubsystem extends SubsystemBase {
   public static final double kTurretTeleopSpeed = 0;
 
   // TalonFX hardware + YAMS controller
-  private final TalonFX m_turretTalon = new TalonFX(TURRET_MASTER_ID, CANBUS);
+  private final TalonFX m_turretMotor = new TalonFX(TURRET_MASTER_ID, CANBUS);
   private final CANcoder m_turretEncoder = new CANcoder(TURRET_ENCODER_ID, CANBUS);
   private final CANcoder m_turretEncoder2 = new CANcoder(TURRET_ENCODER2_ID, CANBUS);
 
@@ -102,14 +102,14 @@ public class TurretSubsystem extends SubsystemBase {
       // External encoders
       .withExternalEncoder(m_turretEncoder);
 
-  private final SmartMotorController m_turretMotor = new TalonFXWrapper(m_turretTalon, DCMotor.getKrakenX44(1), smc_config);
+  private final SmartMotorController m_turretSMC = new TalonFXWrapper(m_turretMotor, DCMotor.getKrakenX44(1), smc_config);
 
   private final MechanismPositionConfig robotToMechanism = new MechanismPositionConfig()
       .withMaxRobotHeight(Meters.of(1.5))
       .withMaxRobotLength(Meters.of(0.75))
       .withRelativePosition(new Translation3d(Meters.of(-0.25), Meters.of(0), Meters.of(0.5)));
 
-  PivotConfig m_turretconfig = new PivotConfig(m_turretMotor)
+  PivotConfig m_turretconfig = new PivotConfig(m_turretSMC)
       .withStartingPosition(Degrees.of(0)) // Starting position of the Pivot
       .withWrapping(Degrees.of(0), Degrees.of(360)) // Wrapping enabled bc the pivot can spin infinitely
       .withHardLimit(Degrees.of(TURRET_MIN_DEG), Degrees.of(TURRET_MAX_DEG)) // Hard limit bc wiring prevents infinite spinning
@@ -170,7 +170,7 @@ public class TurretSubsystem extends SubsystemBase {
     EasyCRT m_ecrt = new EasyCRT(m_ecrtConfig);
     Optional<Angle> angle = m_ecrt.getAngleOptional();
     if (angle.isPresent()) {
-      m_turretMotor.setEncoderPosition(angle.get());
+      m_turretSMC.setEncoderPosition(angle.get());
 
       SmartDashboard.putString("Turret/CRT/SolverStatus", m_ecrt.getLastStatus());
       SmartDashboard.putNumber("Turret/CRT/SolverErrorRot", m_ecrt.getLastErrorRotations());
@@ -196,7 +196,7 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   public void setAngleDirect(Angle angle) {
-    m_turretMotor.setPosition(angle);
+    m_turretSMC.setPosition(angle);
   }
 
   public Command setAngle(Supplier<Angle> angleSupplier) {
@@ -233,7 +233,7 @@ public class TurretSubsystem extends SubsystemBase {
     turretTargetDeg = MathUtil.clamp(degrees, TURRET_MIN_DEG, TURRET_MAX_DEG);
     // convert degrees to rotations (1 rotation = 360 degrees) and apply gear ratio
     double rotations = (turretTargetDeg / 360.0) * kTurretGearRatio;
-    m_turretMotor.setPosition(Rotations.of(rotations));
+    m_turretSMC.setPosition(Rotations.of(rotations));
   }
 
   public double getTurretAngleDegrees() {
@@ -242,8 +242,8 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   public void stopTurret() {
-    m_turretMotor.stopClosedLoopController();
-    m_turretMotor.setDutyCycle(0.0);
+    m_turretSMC.stopClosedLoopController();
+    m_turretSMC.setDutyCycle(0.0);
   }
 
   /**
@@ -257,10 +257,10 @@ public class TurretSubsystem extends SubsystemBase {
     if (aspeed != 0.0) {
       m_isTeleop = true;
       turretTargetDeg = 0;
-      m_turretMotor.setDutyCycle(aspeed * kTurretTeleopSpeed);
+      m_turretSMC.setDutyCycle(aspeed * kTurretTeleopSpeed);
     } else if (m_isTeleop) {
       m_isTeleop = false;
-      m_turretMotor.setDutyCycle(0.0);
+      m_turretSMC.setDutyCycle(0.0);
     }
   }
 
@@ -270,7 +270,7 @@ public class TurretSubsystem extends SubsystemBase {
     SmartDashboard.putNumber("Shooter/TurretTargetDeg", turretTargetDeg);
     // additional telemetry from YAMS controller
     try {
-      SmartDashboard.putNumber("Shooter/TurretRotorPos", m_turretMotor.getRotorPosition().in(Rotations));
+      SmartDashboard.putNumber("Shooter/TurretRotorPos", m_turretSMC.getRotorPosition().in(Rotations));
     } catch (Exception e) {
       // ignore
     }
