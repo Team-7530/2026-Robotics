@@ -15,6 +15,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import frc.robot.Constants.DriveTrainConstants;
 import frc.robot.commands.*;
 import frc.robot.generated.TunerConstants;
 import frc.robot.operator_interface.OISelector;
@@ -48,6 +49,8 @@ public class RobotContainer {
   public final RakeSubsystem rake = new RakeSubsystem();
   public final CollectorSubsystem collector = new CollectorSubsystem();
   public final ClimberSubsystem climber = new ClimberSubsystem();
+  public final TurretSubsystem turret = new TurretSubsystem();
+  public final FeederSubsystem feeder = new FeederSubsystem();
 
   /* Path follower */
   private SendableChooser<Command> autoChooser;
@@ -140,15 +143,26 @@ public class RobotContainer {
     // oi.getAButton().onTrue(intake.intakeCommand());
     // oi.getXButton().onTrue(intake.outtakeL2Command());
     // oi.getBButton().onTrue(intake.outtakeL1Command());
+
+    //Testing Controls
     oi.getAButton().onTrue(shooter.shootCommand());
     oi.getBButton().onTrue(shooter.feederUnstuckCommand());
     oi.getXButton().onTrue(collector.collectorUnstuckCommand());
 
-    oi.getLeftBumper().onTrue(climber.clampCommand(false));
-    oi.getRightBumper().onTrue(climber.clampCommand(true));
+    oi.getLeftBumper().onTrue(feeder.feederStopCommand());
+    oi.getRightBumper().onTrue(feeder.feederStartCommand());
 
-    oi.getLeftTrigger().onTrue(shooter.shooterToVelocityCommand(2000)).onFalse(shooter.shooterToPercentCommand(0.0));
-    oi.getRightTrigger().onTrue(collector.collectorStartCommand());
+    oi.getRightTrigger().onTrue(shooter.shooterToVelocityCommand(2000)).onFalse(shooter.shooterToPercentCommand(0.0));
+    oi.getLeftTrigger().onTrue(collector.collectorStartCommand());
+    
+    oi.getPOVUp().onTrue(rake.setRakeAngle(RakeSubsystem.kRakePositionMax));
+    oi.getPOVDown().onTrue(rake.setRakeAngle(RakeSubsystem.kRakePositionMin));
+    oi.getPOVLeft().onTrue(turret.turretToAngleCommand(20));
+    oi.getPOVRight().onTrue(turret.turretToAngleCommand(-20));
+
+    oi.getStartButton().onTrue(Commands.runOnce(() -> turret.seedTurretPositionCommand()));
+
+    
     // oi.getRightTrigger().onTrue(new SequentialCommandGroup(this.getCoralPositionCommand(), intake.intakeCommand()));
 
     //oi.getLeftTrigger().onTrue(climber.climbToStartPositionCommand());
@@ -178,8 +192,9 @@ public class RobotContainer {
   private void configureDefaultCommands() {
     drivetrain.setDefaultCommand(new SwerveTeleopCommand(drivetrain, oi));
 
-    shooter.setDefaultCommand(Commands.run(() -> shooter.teleop(oi.getLeftThumbstickX(), -oi.getLeftThumbstickY()), shooter));
-    rake.setDefaultCommand(Commands.run(() -> rake.teleop(oi.getRightThumbstickX(), -oi.getRightThumbstickY()), rake));
+    shooter.setDefaultCommand(Commands.run(() -> shooter.teleop(oi.getRightThumbstickX(), -oi.getRightThumbstickY()), shooter));
+    rake.setDefaultCommand(Commands.run(() -> rake.teleop(oi.getRightThumbstickY(), -oi.getRightThumbstickX()), rake));
+
     // climber.setDefaultCommand(
     //     Commands.run(() -> climber.teleopClimb(-oi.getRightThumbstickY()), climber));
     vision.setDefaultCommand(vision.updateGlobalPoseCommand(drivetrain));
