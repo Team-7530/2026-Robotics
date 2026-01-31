@@ -4,7 +4,6 @@ import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.STICK_DEADBAND;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -25,12 +24,8 @@ public class ShooterSubsystem extends SubsystemBase {
       
   public ShooterSubsystem() {
   
-    if (RobotBase.isSimulation()) initSimulation();
   }
   
-  private void initSimulation() {
-  }
-    
   @Override
   public void periodic() {
     updateSmartDashboard();
@@ -81,15 +76,11 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public Command shootCommand() {
-    return run(() -> feeder.feederIn())
-                .withName("FeederShootCommand")
-                .withTimeout(5.0);
+    return feeder.feederStartCommand();
   }
 
   public Command stopShootCommand() {
-    return run(() -> feeder.feederStop())
-                .withName("FeederStopCommand")
-                .withTimeout(5.0);
+    return feeder.feederStopCommand();
   }
 
   public Command feederUnstuckCommand() {

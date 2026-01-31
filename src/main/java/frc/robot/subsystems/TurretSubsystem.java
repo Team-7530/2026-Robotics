@@ -3,6 +3,8 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.STICK_DEADBAND;
 
+import java.util.function.Supplier;
+
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
@@ -15,19 +17,26 @@ import yams.motorcontrollers.SmartMotorController;
 import yams.motorcontrollers.SmartMotorControllerConfig;
 import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
+import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
 import yams.motorcontrollers.remote.TalonFXWrapper;
+import yams.units.EasyCRT;
+import yams.units.EasyCRTConfig;
 import yams.gearing.GearBox;
 import yams.gearing.MechanismGearing;
-
+import yams.mechanisms.config.MechanismPositionConfig;
+import yams.mechanisms.config.PivotConfig;
+import yams.mechanisms.positional.Pivot;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.units.Units;
-import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularAcceleration;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.sim.PhysicsSim;
 
 /**
  * ShooterSubsystem controls a turret (absolute encoder + position control) and a two-motor
@@ -47,20 +56,23 @@ public class TurretSubsystem extends SubsystemBase {
   public static final double TURRET_MIN_DEG = -90.0;
   public static final double TURRET_MAX_DEG = 90.0;
 
-  public static final SensorDirectionValue kTurretEncoderDirection =
-      SensorDirectionValue.CounterClockwise_Positive;
   public static final double kTurretEncoderOffset = 0.0;
+  public static final double kTurretEncoder2Offset = 0.0;
 
   public static final double kTurretChainRatio = 1.0 / 1.0;
   public static final double kTurretGearboxRatio = 1.0; // 1:1
   public static final double kTurretGearRatio = kTurretChainRatio * kTurretGearboxRatio;
 
-  public static final double turretMotorKS = 0.0;
-  public static final double turretMotorKV = 0.0;
-  public static final double turretMotorKA = 0.0;
-  public static final double turretMotorKP = 30.0; // 45
-  public static final double turretMotorKI = 0.0;
-  public static final double turretMotorKD = 0.0;
+  public static final double TURRET_KS = 0.0;
+  public static final double TURRET_KV = 0.0;
+  public static final double TURRET_KA = 0.0;
+  public static final double TURRET_KP = 30.0; // 45
+  public static final double TURRET_KI = 0.0;
+  public static final double TURRET_KD = 0.0;
+  public static final AngularVelocity TURRET_kMaxV = DegreesPerSecond.of(180);
+  public static final AngularAcceleration TURRET_kMaxA = DegreesPerSecondPerSecond.of(90);
+
+  // Motion Magic parameters
   public static final double MMagicCruiseVelocity = 1;
   public static final double MMagicAcceleration = 2;
   public static final double MMagicJerk = 8000;
@@ -69,59 +81,143 @@ public class TurretSubsystem extends SubsystemBase {
 
   public static final double kTurretTeleopSpeed = 0;
 
-  // turret
   // TalonFX hardware + YAMS controller
   private final TalonFX m_turretTalon = new TalonFX(TURRET_MASTER_ID, CANBUS);
   private final CANcoder m_turretEncoder = new CANcoder(TURRET_ENCODER_ID, CANBUS);
+  private final CANcoder m_turretEncoder2 = new CANcoder(TURRET_ENCODER2_ID, CANBUS);
+
 
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
       .withControlMode(ControlMode.CLOSED_LOOP)
-      .withIdleMode(MotorMode.BRAKE)
-      .withGearing(new MechanismGearing(GearBox.fromReductionStages(1, 1)))
-      .withClosedLoopController(turretMotorKP, turretMotorKI, turretMotorKD)
-      .withFeedforward(new SimpleMotorFeedforward(turretMotorKV, turretMotorKA, 0))
-      .withStatorCurrentLimit(Amps.of(40))
+      // PID Constants
+      .withClosedLoopController(TURRET_KP, TURRET_KI, TURRET_KD, TURRET_kMaxV, TURRET_kMaxA)
+      .withSimClosedLoopController(TURRET_KP, TURRET_KI, TURRET_KD, TURRET_kMaxV, TURRET_kMaxA)
+      // Feedforward Constants
+      .withFeedforward(new SimpleMotorFeedforward(TURRET_KV, TURRET_KA, 0))
+      .withSimFeedforward(new SimpleMotorFeedforward(TURRET_KV, TURRET_KA, 0))
+      // Telemetry name and verbosity level
+      .withTelemetry("TurretMotor", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      // Gearing from the motor rotor to final shaft.
+      // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
+      .withGearing(new MechanismGearing(GearBox.fromReductionStages(kTurretChainRatio, kTurretGearboxRatio)))
+      // Motor properties to prevent over currenting.
       .withMotorInverted(false)
+      .withIdleMode(MotorMode.BRAKE)
+      // Power Optimization
+      .withStatorCurrentLimit(Amps.of(40))
       .withClosedLoopRampRate(Seconds.of(0.25))
       .withOpenLoopRampRate(Seconds.of(0.25))
+      // External encoders
       .withExternalEncoder(m_turretEncoder);
 
-  private final SmartMotorController m_turretMotor = new TalonFXWrapper(m_turretTalon, DCMotor.getKrakenX60(1), smc_config);
+  private final SmartMotorController m_turretMotor = new TalonFXWrapper(m_turretTalon, DCMotor.getKrakenX44(1), smc_config);
 
+  private final MechanismPositionConfig robotToMechanism = new MechanismPositionConfig()
+      .withMaxRobotHeight(Meters.of(1.5))
+      .withMaxRobotLength(Meters.of(0.75))
+      .withRelativePosition(new Translation3d(Meters.of(-0.25), Meters.of(0), Meters.of(0.5)));
+
+  PivotConfig m_turretconfig = new PivotConfig(m_turretMotor)
+      .withStartingPosition(Degrees.of(0)) // Starting position of the Pivot
+      .withWrapping(Degrees.of(0), Degrees.of(360)) // Wrapping enabled bc the pivot can spin infinitely
+      .withHardLimit(Degrees.of(TURRET_MIN_DEG), Degrees.of(TURRET_MAX_DEG)) // Hard limit bc wiring prevents infinite spinning
+      .withTelemetry("Turret", TelemetryVerbosity.HIGH) // Telemetry
+      .withMOI(Meters.of(0.25), Pounds.of(4)) // MOI Calculation
+      .withMechanismPositionConfig(robotToMechanism);
+
+  Pivot m_turret = new Pivot(m_turretconfig);
+
+  EasyCRTConfig m_ecrtConfig = new EasyCRTConfig(m_turretEncoder.getAbsolutePosition().asSupplier(),
+                                                 m_turretEncoder2.getAbsolutePosition().asSupplier())
+        .withCommonDriveGear(
+          9, 
+          50, 
+          33, 
+          34)
+        .withCrtGearRecommendationInputs(93, 1.0)
+        .withAbsoluteEncoderOffsets(
+          Rotations.of(kTurretEncoderOffset),
+          Rotations.of(kTurretEncoder2Offset)
+        )
+        .withAbsoluteEncoderInversions(
+          false,
+          false
+        )
+        .withMechanismRange(Rotations.of(-1.25), Rotations.of(1.25))
+        .withMatchTolerance(Rotations.of(0.02))
+        .withCrtGearRecommendationConstraints(
+          1.2, 
+          15, 
+          60, 
+          40);
+
+  EasyCRT m_ecrt = new EasyCRT(m_ecrtConfig);
+  
   private boolean m_isTeleop = false;
   private double turretTargetDeg = 0.0;
 
   public TurretSubsystem() {
-    initTurretConfigs();
-
-    // telemetry
-    m_turretMotor.setupTelemetry();
-
-    if (RobotBase.isSimulation()) initSimulation();
-  }
-
-  private void initTurretConfigs() {
     CANcoderConfiguration configs = new CANcoderConfiguration();
     configs.MagnetSensor.withAbsoluteSensorDiscontinuityPoint(Units.Rotations.of(0.5));
-    configs.MagnetSensor.SensorDirection = kTurretEncoderDirection;
-    configs.MagnetSensor.withMagnetOffset(Units.Rotations.of(kTurretEncoderOffset));
+    configs.MagnetSensor.SensorDirection = SensorDirectionValue.CounterClockwise_Positive;
+  //  configs.MagnetSensor.withMagnetOffset(Units.Rotations.of(kTurretEncoderOffset));
 
     StatusCode s = m_turretEncoder.getConfigurator().apply(configs);
     if (!s.isOK()) System.out.println("Could not apply turret encoder configs, error code: " + s);
-    
-    // initialize to current absolute position
-    m_turretEncoder.setPosition(m_turretEncoder.getAbsolutePosition().getValueAsDouble());
-  }
 
-  private void initSimulation() {
-    PhysicsSim.getInstance().addTalonFX(m_turretTalon, m_turretEncoder, kTurretGearRatio, 0.001);
+//    configs.MagnetSensor.withMagnetOffset(Units.Rotations.of(kTurretEncoder2Offset));
+    s = m_turretEncoder2.getConfigurator().apply(configs);
+    if (!s.isOK()) System.out.println("Could not apply turret encoder configs, error code: " + s);
+
+    // initialize to current absolute position
+    m_turretEncoder.setPosition(m_turretEncoder.getAbsolutePosition().getValue());
+    m_turretEncoder2.setPosition(m_turretEncoder2.getAbsolutePosition().getValue());
   }
 
   @Override
   public void periodic() {
     updateSmartDashboard();
+    m_turret.updateTelemetry();
   }
 
+  @Override
+  public void simulationPeriodic() {
+    m_turret.simIterate();
+  }
+
+  public Command setAngle(Angle angle) {
+          return m_turret.setAngle(angle);
+  }
+
+  public void setAngleDirect(Angle angle) {
+        m_turretMotor.setPosition(angle);
+  }
+
+  public Command setAngle(Supplier<Angle> angleSupplier) {
+          return m_turret.setAngle(angleSupplier);
+  }
+
+  public Angle getAngle() {
+          return m_turret.getAngle();
+  }
+
+  public Command sysId() {
+          return m_turret.sysId(
+                          Volts.of(4.0), // maximumVoltage
+                          Volts.per(Second).of(0.5), // step
+                          Seconds.of(8.0) // duration
+          );
+  }
+
+  public Command setDutyCycle(Supplier<Double> dutyCycleSupplier) {
+          return m_turret.set(dutyCycleSupplier);
+  }
+
+  public Command setDutyCycle(double dutyCycle) {
+          return m_turret.set(dutyCycle);
+  }
+
+  
   // -- Turret control -----------------------------------------------------
   /**
    * Sets the turret angle in degrees (clamped to configured limits).
@@ -161,6 +257,7 @@ public class TurretSubsystem extends SubsystemBase {
       m_turretMotor.setDutyCycle(0.0);
     }
   }
+
   // -- SmartDashboard ----------------------------------------------------
   private void updateSmartDashboard() {
     SmartDashboard.putNumber("Shooter/TurretAngleDeg", this.getTurretAngleDegrees());
