@@ -3,10 +3,10 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.STICK_DEADBAND;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.CANBus;
-import com.ctre.phoenix6.signals.SensorDirectionValue;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -30,7 +30,6 @@ import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.units.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -71,13 +70,6 @@ public class TurretSubsystem extends SubsystemBase {
   public static final double TURRET_KD = 0.0;
   public static final AngularVelocity TURRET_kMaxV = DegreesPerSecond.of(180);
   public static final AngularAcceleration TURRET_kMaxA = DegreesPerSecondPerSecond.of(90);
-
-  // Motion Magic parameters
-  public static final double MMagicCruiseVelocity = 1;
-  public static final double MMagicAcceleration = 2;
-  public static final double MMagicJerk = 8000;
-  public static final double MMagicExpo_kV = 0.12; // kV is around 0.12 V/rps
-  public static final double MMagicExpo_kA = 0.1; // Use a slower kA of 0.1 V/(rps/s)
 
   public static final double kTurretTeleopSpeed = 0;
 
@@ -151,16 +143,14 @@ public class TurretSubsystem extends SubsystemBase {
           60, 
           40);
 
-  EasyCRT m_ecrt = new EasyCRT(m_ecrtConfig);
-  
   private boolean m_isTeleop = false;
   private double turretTargetDeg = 0.0;
 
   public TurretSubsystem() {
     CANcoderConfiguration configs = new CANcoderConfiguration();
-    configs.MagnetSensor.withAbsoluteSensorDiscontinuityPoint(Units.Rotations.of(0.5));
-    configs.MagnetSensor.SensorDirection = SensorDirectionValue.CounterClockwise_Positive;
-  //  configs.MagnetSensor.withMagnetOffset(Units.Rotations.of(kTurretEncoderOffset));
+    // configs.MagnetSensor.withAbsoluteSensorDiscontinuityPoint(Units.Rotations.of(0.5));
+    // configs.MagnetSensor.SensorDirection = SensorDirectionValue.CounterClockwise_Positive;
+    //  configs.MagnetSensor.withMagnetOffset(Units.Rotations.of(kTurretEncoderOffset));
 
     StatusCode s = m_turretEncoder.getConfigurator().apply(configs);
     if (!s.isOK()) System.out.println("Could not apply turret encoder configs, error code: " + s);
@@ -172,6 +162,22 @@ public class TurretSubsystem extends SubsystemBase {
     // initialize to current absolute position
     m_turretEncoder.setPosition(m_turretEncoder.getAbsolutePosition().getValue());
     m_turretEncoder2.setPosition(m_turretEncoder2.getAbsolutePosition().getValue());
+
+    seedTurretPosition();
+  }
+
+  private void seedTurretPosition() {
+    EasyCRT m_ecrt = new EasyCRT(m_ecrtConfig);
+    Optional<Angle> angle = m_ecrt.getAngleOptional();
+    if (angle.isPresent()) {
+      m_turretMotor.setEncoderPosition(angle.get());
+
+      SmartDashboard.putString("Turret/CRT/SolverStatus", m_ecrt.getLastStatus());
+      SmartDashboard.putNumber("Turret/CRT/SolverErrorRot", m_ecrt.getLastErrorRotations());
+      SmartDashboard.putNumber("Turret/CRT/SolverIterations", m_ecrt.getLastIterations());
+      SmartDashboard.putNumber("Turret/CRT/SeededTurretDeg", angle.get().in(Degrees));
+    }
+    SmartDashboard.putBoolean("Turret/CRT/SolutionFound", angle.isPresent());
   }
 
   @Override
@@ -186,35 +192,35 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   public Command setAngle(Angle angle) {
-          return m_turret.setAngle(angle);
+    return m_turret.setAngle(angle);
   }
 
   public void setAngleDirect(Angle angle) {
-        m_turretMotor.setPosition(angle);
+    m_turretMotor.setPosition(angle);
   }
 
   public Command setAngle(Supplier<Angle> angleSupplier) {
-          return m_turret.setAngle(angleSupplier);
+    return m_turret.setAngle(angleSupplier);
   }
 
   public Angle getAngle() {
-          return m_turret.getAngle();
+    return m_turret.getAngle();
   }
 
   public Command sysId() {
-          return m_turret.sysId(
-                          Volts.of(4.0), // maximumVoltage
-                          Volts.per(Second).of(0.5), // step
-                          Seconds.of(8.0) // duration
-          );
+    return m_turret.sysId(
+                    Volts.of(4.0), // maximumVoltage
+                    Volts.per(Second).of(0.5), // step
+                    Seconds.of(8.0) // duration
+    );
   }
 
   public Command setDutyCycle(Supplier<Double> dutyCycleSupplier) {
-          return m_turret.set(dutyCycleSupplier);
+    return m_turret.set(dutyCycleSupplier);
   }
 
   public Command setDutyCycle(double dutyCycle) {
-          return m_turret.set(dutyCycle);
+    return m_turret.set(dutyCycle);
   }
 
   
@@ -277,4 +283,10 @@ public class TurretSubsystem extends SubsystemBase {
         .until(() -> MathUtil.isNear(degrees, this.getTurretAngleDegrees(), 2.0))
         .withTimeout(5.0);
   }
+
+  public Command seedTurretPositionCommand() {
+    return run(() -> seedTurretPosition())
+        .withName("SeedTurretPositionCommand");
+  }
+
 }
