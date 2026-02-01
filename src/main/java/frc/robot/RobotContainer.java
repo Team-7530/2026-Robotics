@@ -1,6 +1,6 @@
 package frc.robot;
 
-import static frc.robot.Constants.*;
+// import static frc.robot.Constants.*;
 
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
