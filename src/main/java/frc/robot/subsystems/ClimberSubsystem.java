@@ -27,11 +27,12 @@ import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 import frc.robot.sim.PhysicsSim;
 
 public class ClimberSubsystem extends SubsystemBase {
 
-  public static final CANBus CANBUS = new CANBus("CANFD");
+  public static final CANBus kCANBus = Constants.CANBUS_FD;
   public static final int CLIMBMOTOR_ID = 41;
   public static final int CLIMBMOTORFOLLOWER_ID = 42;
   public static final int CLIMBENCODER_ID = 43;
@@ -90,11 +91,11 @@ public class ClimberSubsystem extends SubsystemBase {
   public static final double kClimbTeleopFactor = 10.0;
     
   private final TalonFX m_ClimbMotor =
-      new TalonFX(CLIMBMOTOR_ID, CANBUS);
+      new TalonFX(CLIMBMOTOR_ID, kCANBus);
   private final TalonFX m_ClimbMotorFollower =
-      new TalonFX(CLIMBMOTORFOLLOWER_ID, CANBUS);
+      new TalonFX(CLIMBMOTORFOLLOWER_ID, kCANBus);
   private final CANcoder m_ClimbEncoder =
-      new CANcoder(CLIMBENCODER_ID, CANBUS);
+      new CANcoder(CLIMBENCODER_ID, kCANBus);
   private final Servo m_ClimberClampServo = new Servo(CLAMPSERVO_ID);
   private final Servo m_ClimberClampServoFollower =
       new Servo(CLAMPSERVOFOLLOWER_ID);

@@ -1,7 +1,7 @@
 package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
-import static frc.robot.Constants.STICK_DEADBAND;
+import static frc.robot.Constants.*;
 
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -10,7 +10,9 @@ import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.sim.CANcoderSimState;
 import com.ctre.phoenix6.StatusCode;
+import com.ctre.phoenix6.Utils;
 
 // YAMS pivot-style controller
 import yams.motorcontrollers.SmartMotorController;
@@ -39,7 +41,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class TurretSubsystem extends SubsystemBase {
 
-  public static final CANBus CANBUS = new CANBus("CANFD");
+  public static final CANBus kCANBus = CANBUS_FD;
 
   // Placeholder CAN IDs - update to match your wiring
   public static final int TURRET_MASTER_ID = 70;
@@ -69,10 +71,12 @@ public class TurretSubsystem extends SubsystemBase {
   public static final double kTurretTeleopSpeed = 0;
 
   // TalonFX hardware + YAMS controller
-  private final TalonFX m_turretMotor = new TalonFX(TURRET_MASTER_ID, CANBUS);
-  private final CANcoder m_turretEncoder = new CANcoder(TURRET_ENCODER_ID, CANBUS);
-  private final CANcoder m_turretEncoder2 = new CANcoder(TURRET_ENCODER2_ID, CANBUS);
+  private final TalonFX m_turretMotor = new TalonFX(TURRET_MASTER_ID, kCANBus);
+  private final CANcoder m_turretEncoder = new CANcoder(TURRET_ENCODER_ID, kCANBus);
+  private final CANcoder m_turretEncoder2 = new CANcoder(TURRET_ENCODER2_ID, kCANBus);
 
+  private final CANcoderSimState simState = m_turretEncoder.getSimState();
+  private final CANcoderSimState simState2 = m_turretEncoder2.getSimState();
 
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
       .withControlMode(ControlMode.CLOSED_LOOP)
@@ -93,9 +97,9 @@ public class TurretSubsystem extends SubsystemBase {
       // Power Optimization
       .withStatorCurrentLimit(Amps.of(40))
       .withClosedLoopRampRate(Seconds.of(0.25))
-      .withOpenLoopRampRate(Seconds.of(0.25))
+      .withOpenLoopRampRate(Seconds.of(0.25));
       // External encoders
-      .withExternalEncoder(m_turretEncoder);
+      // .withExternalEncoder(m_turretEncoder);
 
   private final SmartMotorController m_turretSMC = new TalonFXWrapper(m_turretMotor, DCMotor.getKrakenX44(1), smc_config);
 
@@ -106,7 +110,7 @@ public class TurretSubsystem extends SubsystemBase {
 
   PivotConfig m_turretconfig = new PivotConfig(m_turretSMC)
       .withStartingPosition(Degrees.of(0)) // Starting position of the Pivot
-      .withWrapping(Degrees.of(0), Degrees.of(360)) // Wrapping enabled bc the pivot can spin infinitely
+      .withWrapping(Degrees.of(-180), Degrees.of(180)) // Wrapping enabled bc the pivot can spin infinitely
       .withHardLimit(Degrees.of(TURRET_MIN_DEG), Degrees.of(TURRET_MAX_DEG)) // Hard limit bc wiring prevents infinite spinning
       .withTelemetry("Turret", TelemetryVerbosity.HIGH) // Telemetry
       .withMOI(Meters.of(0.25), Pounds.of(4)) // MOI Calculation
@@ -154,9 +158,20 @@ public class TurretSubsystem extends SubsystemBase {
     s = m_turretEncoder2.getConfigurator().apply(configs);
     if (!s.isOK()) System.out.println("Could not apply turret encoder configs, error code: " + s);
 
+
+    if (Utils.isSimulation()) {
+      simState.setSupplyVoltage(12.0); 
+      simState2.setSupplyVoltage(12.0); 
+
+      simState.setRawPosition(0.5); 
+      simState2.setRawPosition(0.5); 
+
+      m_turretEncoder.getAbsolutePosition().waitForUpdate(0.1); 
+      m_turretEncoder2.getAbsolutePosition().waitForUpdate(0.1); 
+    }
     // initialize to current absolute position
-    m_turretEncoder.setPosition(m_turretEncoder.getAbsolutePosition().getValue());
-    m_turretEncoder2.setPosition(m_turretEncoder2.getAbsolutePosition().getValue());
+    m_turretEncoder.setPosition(m_turretEncoder.getAbsolutePosition().refresh().getValue());
+    m_turretEncoder2.setPosition(m_turretEncoder2.getAbsolutePosition().refresh().getValue());
 
     seedTurretPosition();
   }
@@ -183,6 +198,12 @@ public class TurretSubsystem extends SubsystemBase {
 
   @Override
   public void simulationPeriodic() {
+    simState.setSupplyVoltage(12.0); 
+    simState2.setSupplyVoltage(12.0); 
+
+    simState.setRawPosition(0.5); 
+    simState2.setRawPosition(0.5); 
+
     m_turret.simIterate();
   }
 
@@ -232,7 +253,7 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   public double getTurretAngleDegrees() {
-    double rotations = m_turretEncoder.getPosition().getValueAsDouble();
+    double rotations = m_turret.getAngle().in(Rotations);
     return rotations / kTurretGearRatio * 360.0;
   }
 

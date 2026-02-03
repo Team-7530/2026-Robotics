@@ -2,6 +2,7 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
 
+import com.ctre.phoenix6.CANBus;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import frc.robot.generated.TunerConstants;
 
@@ -10,6 +11,8 @@ public final class Constants {
   public static final double STICK_DEADBAND = 0.02;
   public static final double TRIGGER_SPEEDFACTOR = 0.5;
   public static final double POSITION_TOLERANCE = 0.05;
+  public static final CANBus CANBUS_FD = new CANBus(""); //new CANBus("CANFD");
+  public static final CANBus CANBUS_RIO = new CANBus("");
 
   public static final class DriveTrainConstants {
     // Maximum Speed - Meters per Second

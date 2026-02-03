@@ -1,7 +1,7 @@
 package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
-import static frc.robot.Constants.STICK_DEADBAND;
+import static frc.robot.Constants.*;
 
 import java.util.function.Supplier;
 
@@ -17,6 +17,7 @@ import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
 import yams.motorcontrollers.remote.TalonFXWrapper;
 import yams.mechanisms.config.FlyWheelConfig;
 import yams.mechanisms.velocity.FlyWheel;
+
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.MathUtil;
@@ -32,7 +33,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class FlywheelSubsystem extends SubsystemBase {
 
-  public static final CANBus CANBUS = new CANBus("CANFD");
+  public static final CANBus kCANBus = CANBUS_FD;
 
   // CAN IDs
   public static final int FLYWHEEL_MASTER_ID = 60;
@@ -59,8 +60,8 @@ public class FlywheelSubsystem extends SubsystemBase {
   private final Mass flywheelMass = Pounds.of(1);
 
   // TalonFX hardware instances
-  private final TalonFX m_flywheelMasterMotor = new TalonFX(FLYWHEEL_MASTER_ID, CANBUS);
-  private final TalonFX m_flywheelFollowerMotor = new TalonFX(FLYWHEEL_FOLLOWER_ID, CANBUS);
+  private final TalonFX m_flywheelMasterMotor = new TalonFX(FLYWHEEL_MASTER_ID, kCANBus);
+  private final TalonFX m_flywheelFollowerMotor = new TalonFX(FLYWHEEL_FOLLOWER_ID, kCANBus);
 
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
       .withControlMode(ControlMode.CLOSED_LOOP)

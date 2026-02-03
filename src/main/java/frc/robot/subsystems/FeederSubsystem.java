@@ -1,7 +1,7 @@
 package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
-import static frc.robot.Constants.STICK_DEADBAND;
+import static frc.robot.Constants.*;
 
 import java.util.function.Supplier;
 
@@ -14,6 +14,7 @@ import yams.mechanisms.config.FlyWheelConfig;
 import yams.mechanisms.velocity.FlyWheel;
 import yams.gearing.GearBox;
 import yams.gearing.MechanismGearing;
+
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.hardware.TalonFX;
 
@@ -33,7 +34,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class FeederSubsystem extends SubsystemBase {
 
-  public static final CANBus CANBUS = new CANBus("CANFD");
+  public static final CANBus kCANBus = CANBUS_FD;
 
   // CAN IDs
   public static final int FEEDERMOTOR_ID = 50;
@@ -57,7 +58,7 @@ public class FeederSubsystem extends SubsystemBase {
   public static final AngularVelocity feederUnstuckVelocity = RPM.of(-2000);
     
   // TalonFX hardware instance (kept for wrapper)
-  private final TalonFX m_feederMotor = new TalonFX(FEEDERMOTOR_ID, CANBUS);
+  private final TalonFX m_feederMotor = new TalonFX(FEEDERMOTOR_ID, kCANBus);
 
   // YAMS controller and mechanism (initialized at declaration to match FlywheelSubsystem style)
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)

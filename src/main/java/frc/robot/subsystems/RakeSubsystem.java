@@ -1,13 +1,14 @@
 package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
-import static frc.robot.Constants.STICK_DEADBAND;
+import static frc.robot.Constants.*;
 
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
+
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ArmFeedforward;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -32,7 +33,7 @@ import yams.motorcontrollers.remote.TalonFXWrapper;
 
 public class RakeSubsystem extends SubsystemBase {
 
-  public static final CANBus CANBUS = new CANBus("CANFD");
+  public static final CANBus kCANBus = CANBUS_FD;
 
   public static final int RAKEMOTOR_ID = 30;
   public static final int RAKEENCODER_ID = 31;
@@ -80,8 +81,8 @@ public class RakeSubsystem extends SubsystemBase {
   public static final double collectorUnstuckVelocity = 3.0;
 
   
-  private final TalonFX m_rakeMotor = new TalonFX(RAKEMOTOR_ID, CANBUS);
-  private final CANcoder m_rakeEncoder = new CANcoder(RAKEENCODER_ID, CANBUS);
+  private final TalonFX m_rakeMotor = new TalonFX(RAKEMOTOR_ID, kCANBus);
+  private final CANcoder m_rakeEncoder = new CANcoder(RAKEENCODER_ID, kCANBus);
 
   // YAMS controller and mechanism (initialized at declaration to match FlywheelSubsystem style)
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
