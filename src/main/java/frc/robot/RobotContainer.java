@@ -48,15 +48,12 @@ public class RobotContainer {
   public final ShooterSubsystem shooter = new ShooterSubsystem();
   public final RakeSubsystem rake = new RakeSubsystem();
   public final CollectorSubsystem collector = new CollectorSubsystem();
-  public final ClimberSubsystem climber = new ClimberSubsystem();
   public final TurretSubsystem turret = new TurretSubsystem();
   public final FeederSubsystem feeder = new FeederSubsystem();
 
   /* Path follower */
   private SendableChooser<Command> autoChooser;
   private Command autonomousCommand;
-
-  // private Mechanisms mechanism = new Mechanisms();
 
   public static RobotContainer GetInstance() {
     return instance;
@@ -217,15 +214,11 @@ public class RobotContainer {
     // SmartDashboard.putData("Intake", intake.intakeCommand());
     // SmartDashboard.putData("Outtake", intake.outtakeL2Command());
     // SmartDashboard.putData("OuttakeSpin", intake.outtakeL1Command());
-    SmartDashboard.putData("ClimbToFull", climber.climbToFullPositionCommand());
+    // SmartDashboard.putData("ClimbToFull", climber.climbToFullPositionCommand());
     SmartDashboard.putData("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
   }
 
-  public void robotPeriodic() {
-    // mechanism.update(
-    //     shooter.getTurretAngleDegrees(),
-    //     rake.getRakePosition());
-  }
+  public void robotPeriodic() {}
 
   public void simulationInit() {}
 
