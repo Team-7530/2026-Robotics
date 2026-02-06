@@ -3,16 +3,10 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.*;
 
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.CANBus;
-import com.ctre.phoenix6.configs.CANcoderConfiguration;
-import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.sim.CANcoderSimState;
-import com.ctre.phoenix6.StatusCode;
-import com.ctre.phoenix6.Utils;
 
 // YAMS pivot-style controller
 import yams.motorcontrollers.SmartMotorController;
@@ -21,8 +15,6 @@ import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
 import yams.motorcontrollers.remote.TalonFXWrapper;
-import yams.units.EasyCRT;
-import yams.units.EasyCRTConfig;
 import yams.gearing.GearBox;
 import yams.gearing.MechanismGearing;
 import yams.mechanisms.config.MechanismPositionConfig;
@@ -35,6 +27,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.wpilibj.AnalogPotentiometer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -45,15 +38,13 @@ public class TurretSubsystem extends SubsystemBase {
 
   // Placeholder CAN IDs - update to match your wiring
   public static final int TURRET_MASTER_ID = 70;
-  public static final int TURRET_ENCODER_ID = 71;
-  public static final int TURRET_ENCODER2_ID = 72;
+  public static final int TURRET_ANALOG_ID = 1;
 
   // Turret limits in degrees (180-degree travel centered on 0)
   public static final double TURRET_MIN_DEG = -90.0;
   public static final double TURRET_MAX_DEG = 90.0;
 
-  public static final double kTurretEncoderOffset = 0.0;
-  public static final double kTurretEncoder2Offset = 0.0;
+  public static final double kTurretOffset = 0.0;
 
   public static final double kTurretChainRatio = 1.0 / 1.0;
   public static final double kTurretGearboxRatio = 1.0; // 1:1
@@ -72,11 +63,7 @@ public class TurretSubsystem extends SubsystemBase {
 
   // TalonFX hardware + YAMS controller
   private final TalonFX m_turretMotor = new TalonFX(TURRET_MASTER_ID, kCANBus);
-  private final CANcoder m_turretEncoder = new CANcoder(TURRET_ENCODER_ID, kCANBus);
-  private final CANcoder m_turretEncoder2 = new CANcoder(TURRET_ENCODER2_ID, kCANBus);
-
-  private final CANcoderSimState simState = m_turretEncoder.getSimState();
-  private final CANcoderSimState simState2 = m_turretEncoder2.getSimState();
+  private final AnalogPotentiometer m_turretPotentiometer = new AnalogPotentiometer(TURRET_ANALOG_ID, 360.0);
 
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
       .withControlMode(ControlMode.CLOSED_LOOP)
@@ -98,8 +85,6 @@ public class TurretSubsystem extends SubsystemBase {
       .withStatorCurrentLimit(Amps.of(40))
       .withClosedLoopRampRate(Seconds.of(0.25))
       .withOpenLoopRampRate(Seconds.of(0.25));
-      // External encoders
-      // .withExternalEncoder(m_turretEncoder);
 
   private final SmartMotorController m_turretSMC = new TalonFXWrapper(m_turretMotor, DCMotor.getKrakenX44(1), smc_config);
 
@@ -118,76 +103,19 @@ public class TurretSubsystem extends SubsystemBase {
 
   Pivot m_turret = new Pivot(m_turretconfig);
 
-  EasyCRTConfig m_ecrtConfig = new EasyCRTConfig(m_turretEncoder.getAbsolutePosition().asSupplier(),
-                                                 m_turretEncoder2.getAbsolutePosition().asSupplier())
-        .withCommonDriveGear(
-          9, 
-          50, 
-          33, 
-          34)
-        .withCrtGearRecommendationInputs(93, 1.0)
-        .withAbsoluteEncoderOffsets(
-          Rotations.of(kTurretEncoderOffset),
-          Rotations.of(kTurretEncoder2Offset)
-        )
-        .withAbsoluteEncoderInversions(
-          false,
-          false
-        )
-        .withMechanismRange(Rotations.of(-1.25), Rotations.of(1.25))
-        .withMatchTolerance(Rotations.of(0.02))
-        .withCrtGearRecommendationConstraints(
-          1.2, 
-          15, 
-          60, 
-          40);
-
   private boolean m_isTeleop = false;
   private double turretTargetDeg = 0.0;
 
   public TurretSubsystem() {
-    CANcoderConfiguration configs = new CANcoderConfiguration();
-    // configs.MagnetSensor.withAbsoluteSensorDiscontinuityPoint(Units.Rotations.of(0.5));
-    // configs.MagnetSensor.SensorDirection = SensorDirectionValue.CounterClockwise_Positive;
-    //  configs.MagnetSensor.withMagnetOffset(Units.Rotations.of(kTurretEncoderOffset));
-
-    StatusCode s = m_turretEncoder.getConfigurator().apply(configs);
-    if (!s.isOK()) System.out.println("Could not apply turret encoder configs, error code: " + s);
-
-//    configs.MagnetSensor.withMagnetOffset(Units.Rotations.of(kTurretEncoder2Offset));
-    s = m_turretEncoder2.getConfigurator().apply(configs);
-    if (!s.isOK()) System.out.println("Could not apply turret encoder configs, error code: " + s);
-
-
-    if (Utils.isSimulation()) {
-      simState.setSupplyVoltage(12.0); 
-      simState2.setSupplyVoltage(12.0); 
-
-      simState.setRawPosition(0.5); 
-      simState2.setRawPosition(0.5); 
-
-      m_turretEncoder.getAbsolutePosition().waitForUpdate(0.1); 
-      m_turretEncoder2.getAbsolutePosition().waitForUpdate(0.1); 
-    }
-    // initialize to current absolute position
-    m_turretEncoder.setPosition(m_turretEncoder.getAbsolutePosition().refresh().getValue());
-    m_turretEncoder2.setPosition(m_turretEncoder2.getAbsolutePosition().refresh().getValue());
 
     seedTurretPosition();
   }
 
   private void seedTurretPosition() {
-    EasyCRT m_ecrt = new EasyCRT(m_ecrtConfig);
-    Optional<Angle> angle = m_ecrt.getAngleOptional();
-    if (angle.isPresent()) {
-      m_turretSMC.setEncoderPosition(angle.get());
+    Angle potAngle = Degrees.of(m_turretPotentiometer.get() + kTurretOffset);
+    m_turretSMC.setEncoderPosition(potAngle);
 
-      SmartDashboard.putString("Turret/CRT/SolverStatus", m_ecrt.getLastStatus().toString());
-      SmartDashboard.putNumber("Turret/CRT/SolverErrorRot", m_ecrt.getLastErrorRotations());
-      SmartDashboard.putNumber("Turret/CRT/SolverIterations", m_ecrt.getLastIterations());
-      SmartDashboard.putNumber("Turret/CRT/SeededTurretDeg", angle.get().in(Degrees));
-    }
-    SmartDashboard.putBoolean("Turret/CRT/SolutionFound", angle.isPresent());
+    SmartDashboard.putNumber("Turret/SeededTurretDeg", potAngle.in(Degrees));
   }
 
   @Override
@@ -198,12 +126,6 @@ public class TurretSubsystem extends SubsystemBase {
 
   @Override
   public void simulationPeriodic() {
-    simState.setSupplyVoltage(12.0); 
-    simState2.setSupplyVoltage(12.0); 
-
-    simState.setRawPosition(0.5); 
-    simState2.setRawPosition(0.5); 
-
     m_turret.simIterate();
   }
 
@@ -282,11 +204,11 @@ public class TurretSubsystem extends SubsystemBase {
 
   // -- SmartDashboard ----------------------------------------------------
   private void updateSmartDashboard() {
-    SmartDashboard.putNumber("Shooter/TurretAngleDeg", this.getTurretAngleDegrees());
-    SmartDashboard.putNumber("Shooter/TurretTargetDeg", turretTargetDeg);
+    SmartDashboard.putNumber("Turret/TurretAngleDeg", this.getTurretAngleDegrees());
+    SmartDashboard.putNumber("Turret/TurretTargetDeg", turretTargetDeg);
     // additional telemetry from YAMS controller
     try {
-      SmartDashboard.putNumber("Shooter/TurretRotorPos", m_turretSMC.getRotorPosition().in(Rotations));
+      SmartDashboard.putNumber("Turret/TurretRotorPos", m_turretSMC.getRotorPosition().in(Rotations));
     } catch (Exception e) {
       // ignore
     }
