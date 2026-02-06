@@ -182,7 +182,7 @@ public class TurretSubsystem extends SubsystemBase {
     if (angle.isPresent()) {
       m_turretSMC.setEncoderPosition(angle.get());
 
-      SmartDashboard.putString("Turret/CRT/SolverStatus", m_ecrt.getLastStatus());
+      SmartDashboard.putString("Turret/CRT/SolverStatus", m_ecrt.getLastStatus().toString());
       SmartDashboard.putNumber("Turret/CRT/SolverErrorRot", m_ecrt.getLastErrorRotations());
       SmartDashboard.putNumber("Turret/CRT/SolverIterations", m_ecrt.getLastIterations());
       SmartDashboard.putNumber("Turret/CRT/SeededTurretDeg", angle.get().in(Degrees));
