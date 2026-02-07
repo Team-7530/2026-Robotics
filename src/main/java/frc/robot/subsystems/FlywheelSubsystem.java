@@ -77,7 +77,7 @@ public class FlywheelSubsystem extends SubsystemBase {
       // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
       .withGearing(new MechanismGearing(GearBox.fromReductionStages(kFlywheelChainRatio, kFlywheelGearboxRatio)))
       // Motor properties to prevent over currenting.
-      .withMotorInverted(false)
+      .withMotorInverted(true)
       .withIdleMode(MotorMode.COAST)
       // Power Optimization
       .withStatorCurrentLimit(Amps.of(40))
