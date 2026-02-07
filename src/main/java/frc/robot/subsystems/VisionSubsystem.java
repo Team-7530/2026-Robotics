@@ -29,8 +29,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.DriverStation;
-
-import frc.robot.Robot;
+import edu.wpi.first.wpilibj.RobotBase;
 
 import limelight.Limelight;
 import limelight.networktables.AngularVelocity3d;
@@ -150,19 +149,17 @@ public class VisionSubsystem extends SubsystemBase {
     poseEstimators.add(limelight1.createPoseEstimator(EstimationMode.MEGATAG2));
     poseEstimators.add(limelight2.createPoseEstimator(EstimationMode.MEGATAG2));
 
-    if (Robot.isReal()) {
+    if (RobotBase.isReal()) {
       cam0 = CameraServer.startAutomaticCapture();
       cam0.setResolution(240, 160);
       cam0.setFPS(15);
     }
 
-    // ----- Simulation
-    if (Robot.isSimulation()) {
+    if (RobotBase.isSimulation()) {
       // Provide a Field2d for visualizing limelight estimations and tags in simulation.
       simDebugField = new Field2d();
       SmartDashboard.putData("Vision/SimField", simDebugField);
     }
-
   }
 
   /**
@@ -435,7 +432,7 @@ public class VisionSubsystem extends SubsystemBase {
 
   /** Reset pose history of the robot in the vision system simulation. */
   public void resetSimPose(Pose2d pose) {
-    if (Robot.isSimulation() && simDebugField != null) simDebugField.setRobotPose(pose);
+    if (RobotBase.isSimulation() && simDebugField != null) simDebugField.setRobotPose(pose);
   }
 
   /** A Field2d for visualizing our robot and objects on the field. */

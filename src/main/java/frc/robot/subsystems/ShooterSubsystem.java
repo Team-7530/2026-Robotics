@@ -16,9 +16,9 @@ public class ShooterSubsystem extends SubsystemBase {
 
     // Holds and manages turret, hood and flywheel
 
-  private final TurretSubsystem turret = new TurretSubsystem();
-  private final FlywheelSubsystem flywheel = new FlywheelSubsystem();
-  private final FeederSubsystem feeder = new FeederSubsystem();
+  public final TurretSubsystem turret = new TurretSubsystem();
+  public final FlywheelSubsystem flywheel = new FlywheelSubsystem();
+  public final FeederSubsystem feeder = new FeederSubsystem();
 
   private boolean m_isTeleop = false;
       
