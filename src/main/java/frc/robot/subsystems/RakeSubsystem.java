@@ -60,7 +60,7 @@ public class RakeSubsystem extends SubsystemBase {
   public static final double kRakeTeleopSpeed = 0.1;
   public static final double kRakeTeleopFactor = 0.05;
 
-  public static final int COLLECTORMOTOR_ID = 65;
+  public static final int COLLECTORMOTOR_ID = 31;
   public static final InvertedValue kCollectorInverted = InvertedValue.CounterClockwise_Positive;
   public static final NeutralModeValue kCollectorNeutralMode = NeutralModeValue.Coast;
   public static final double collector_peakForwardVoltage = 10.0;

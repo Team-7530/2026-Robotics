@@ -37,7 +37,7 @@ public class TurretSubsystem extends SubsystemBase {
   public static final CANBus kCANBus = CANBUS_FD;
 
   // Placeholder CAN IDs - update to match your wiring
-  public static final int TURRET_MASTER_ID = 70;
+  public static final int TURRET_MASTER_ID = 62;
   public static final int TURRET_ANALOG_ID = 1;
 
   // Turret limits in degrees (180-degree travel centered on 0)
