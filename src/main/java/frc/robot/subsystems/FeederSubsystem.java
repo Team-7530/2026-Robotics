@@ -34,13 +34,13 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class FeederSubsystem extends SubsystemBase {
 
-  public static final CANBus kCANBus = CANBUS_FD;
+  public static final CANBus kCANBus = CANBUS_RIO;
 
   // CAN IDs
   public static final int FEEDERMOTOR_ID = 50;
 
-  public static final double kFeederChainRatio = 24.0 / 10.0; // 24:10
-  public static final double kFeederGearboxRatio = 1.0; // 1:1
+  public static final double kFeederChainRatio = 40.0 / 32.0; // 40:32
+  public static final double kFeederGearboxRatio = 4.0; // 4:1
   public static final double kFeederGearRatio = kFeederChainRatio * kFeederGearboxRatio;
 
   // Torque-based velocity does not require a feed forward, as torque will accelerate the rotor up to the desired velocity by itself

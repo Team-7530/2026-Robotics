@@ -39,8 +39,8 @@ public class CollectorSubsystem extends SubsystemBase {
   // CAN IDs
   public static final int COLLECTORMOTOR_ID = 40;
 
-  public static final double kCollectorChainRatio = 24.0 / 10.0; // 24:10
-  public static final double kCollectorGearboxRatio = 1.0; // 1:1
+  public static final double kCollectorChainRatio = 1.0; // 1:1
+  public static final double kCollectorGearboxRatio = 16.0; // 16:1
   public static final double kCollectorGearRatio = kCollectorChainRatio * kCollectorGearboxRatio;
 
   // Torque-based velocity does not require a feed forward, as torque will accelerate the rotor up to the desired velocity by itself
@@ -75,7 +75,7 @@ public class CollectorSubsystem extends SubsystemBase {
       // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
       .withGearing(new MechanismGearing(GearBox.fromReductionStages(kCollectorChainRatio, kCollectorGearboxRatio)))
       // Motor properties to prevent over currenting.
-      .withMotorInverted(false)
+      .withMotorInverted(true)
       .withIdleMode(MotorMode.COAST)
       // Power Optimization
       .withStatorCurrentLimit(Amps.of(40))

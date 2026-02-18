@@ -35,69 +35,69 @@ public class RakeSubsystem extends SubsystemBase {
 
   public static final CANBus kCANBus = CANBUS_FD;
 
-  public static final int RAKEMOTOR_ID = 30;
-  public static final int RAKEENCODER_ID = 31;
+  public static final int RAKEARMMOTOR_ID = 30;
+  public static final int RAKEARMENCODER_ID = 31;
 
-  public static final double kRakeEncoderOffset = -0.171; // add 0.25 offset, sub it later
+  public static final double kRakeArmEncoderOffset = 0.0; // add 0.25 offset, sub it later
 
-  public static final double kRakeChainRatio = 1.0; // 1:1
-  public static final double kRakeGearboxRatio = 45.0; // 1:45
-  public static final double kRakeGearRatio = kRakeChainRatio * kRakeGearboxRatio;
+  public static final double kRakeArmChainRatio = 60.0 / 8.0; // 8:60 ratio
+  public static final double kRakeArmGearboxRatio = 45.0; // 45:1
+  public static final double kRakeArmGearRatio = kRakeArmChainRatio * kRakeArmGearboxRatio;
 
-  public static final double RAKE_KG = 0.0;
-  public static final double RAKE_KS = 0.0;
-  public static final double RAKE_KV = 0.0;
-  public static final double RAKE_KA = 0.0;
-  public static final double RAKE_KP = 35.0; // 70
-  public static final double RAKE_KI = 0.0;
-  public static final double RAKE_KD = 0.0;
-  public static final AngularVelocity RAKE_kMaxV = RPM.of(5000);
-  public static final AngularAcceleration RAKE_kMaxA = RotationsPerSecondPerSecond.of(2500);
+  public static final double RAKEARM_KG = 0.0;
+  public static final double RAKEARM_KS = 0.0;
+  public static final double RAKEARM_KV = 0.0;
+  public static final double RAKEARM_KA = 0.0;
+  public static final double RAKEARM_KP = 35.0; // 70
+  public static final double RAKEARM_KI = 0.0;
+  public static final double RAKEARM_KD = 0.0;
+  public static final AngularVelocity RAKEARM_kMaxV = RPM.of(5000);
+  public static final AngularAcceleration RAKEARM_kMaxA = RotationsPerSecondPerSecond.of(2500);
 
-  public static final Angle kRakePositionMax = Degrees.of(45.0);
-  public static final Angle kRakePositionMin = Degrees.of(0.0);
+  public static final Angle kRakeArmPositionMax = Degrees.of(-90.0);
+  public static final Angle kRakeArmPositionMin = Degrees.of(0.0);
 
-  public static final double kRakeTeleopSpeed = 0.1;
-  public static final double kRakeTeleopFactor = 0.05;
+  public static final double kRakeArmTeleopSpeed = 0.1;
+  public static final double kRakeArmTeleopFactor = 0.05;
 
-  public static final int COLLECTORMOTOR_ID = 31;
-  public static final InvertedValue kCollectorInverted = InvertedValue.CounterClockwise_Positive;
-  public static final NeutralModeValue kCollectorNeutralMode = NeutralModeValue.Coast;
-  public static final double collector_peakForwardVoltage = 10.0;
-  public static final double collector_peakReverseVoltage = -10.0;
+  public static final int RAKEINTAKEMOTOR_ID = 31;
+  public static final InvertedValue kRakeIntakeInverted = InvertedValue.Clockwise_Positive;
+  public static final NeutralModeValue kRakeIntakeNeutralMode = NeutralModeValue.Coast;
+  public static final double rakeIntake_peakForwardVoltage = 10.0;
+  public static final double rakeIntake_peakReverseVoltage = -10.0;
   public static final double peakForwardTorqueCurrent = 40.0;
   public static final double peakReverseTorqueCurrent = -40.0;
 
-  public static final double kCollectorChainRatio = 24.0 / 10.0;
-  public static final double kCollectorGearboxRatio = 1.0;
-  public static final double kCollectorGearRatio = kCollectorChainRatio * kCollectorGearboxRatio;
+  public static final double kRakeIntakeChainRatio = 1.0;
+  public static final double kRakeIntakeGearboxRatio = 3.0;
+  public static final double kRakeIntakeGearRatio = kRakeIntakeChainRatio * kRakeIntakeGearboxRatio;
 
-  public static final double collectorMotorTorqueKS = 0.0;
-  public static final double collectorMotorTorqueKP = 8.0;
-  public static final double collectorMotorTorqueKI = 0.2;
-  public static final double collectorMotorTorqueKD = 0.001;
+  public static final double rakeIntakeMotorTorqueKS = 0.0;
+  public static final double rakeIntakeMotorTorqueKP = 8.0;
+  public static final double rakeIntakeMotorTorqueKI = 0.2;
+  public static final double rakeIntakeMotorTorqueKD = 0.001;
 
-  public static final double collectorVelocity = -3.0;
-  public static final double collectorUnstuckVelocity = 3.0;
+  public static final double rakeIntakeVelocity = -3.0;
+  public static final double rakeIntakeUnstuckVelocity = 3.0;
 
   
-  private final TalonFX m_rakeMotor = new TalonFX(RAKEMOTOR_ID, kCANBus);
-  private final CANcoder m_rakeEncoder = new CANcoder(RAKEENCODER_ID, kCANBus);
+  private final TalonFX m_rakeArmMotor = new TalonFX(RAKEARMMOTOR_ID, kCANBus);
+  private final CANcoder m_rakeArmEncoder = new CANcoder(RAKEARMENCODER_ID, kCANBus);
 
   // YAMS controller and mechanism (initialized at declaration to match FlywheelSubsystem style)
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
       .withControlMode(ControlMode.CLOSED_LOOP)
       // PID Constants
-      .withClosedLoopController(RAKE_KP, RAKE_KI, RAKE_KD, RAKE_kMaxV, RAKE_kMaxA)
-      .withSimClosedLoopController(RAKE_KP, RAKE_KI, RAKE_KD, RAKE_kMaxV, RAKE_kMaxA)
+      .withClosedLoopController(RAKEARM_KP, RAKEARM_KI, RAKEARM_KD, RAKEARM_kMaxV, RAKEARM_kMaxA)
+      .withSimClosedLoopController(RAKEARM_KP, RAKEARM_KI, RAKEARM_KD, RAKEARM_kMaxV, RAKEARM_kMaxA)
       // Feedforward Constants
-      .withFeedforward(new ArmFeedforward(RAKE_KS, 0, 0))
-      .withSimFeedforward(new ArmFeedforward(RAKE_KS, 0, 0))
+      .withFeedforward(new ArmFeedforward(RAKEARM_KS, 0, 0))
+      .withSimFeedforward(new ArmFeedforward(RAKEARM_KS, 0, 0))
       // Telemetry name and verbosity level
       .withTelemetry("RakeMotor", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
       // Gearing from the motor rotor to final shaft.
       // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
-      .withGearing(new MechanismGearing(GearBox.fromReductionStages(kRakeChainRatio, kRakeGearboxRatio)))
+      .withGearing(new MechanismGearing(GearBox.fromReductionStages(kRakeArmChainRatio, kRakeArmGearboxRatio)))
       // Motor properties to prevent over currenting.
       .withMotorInverted(false)
       .withIdleMode(MotorMode.COAST)
@@ -106,18 +106,18 @@ public class RakeSubsystem extends SubsystemBase {
       .withClosedLoopRampRate(Seconds.of(0.25))
       .withOpenLoopRampRate(Seconds.of(0.25))
       // External Encoder
-      .withExternalEncoder(m_rakeEncoder)
+      .withExternalEncoder(m_rakeArmEncoder)
       .withExternalEncoderGearing(1.0)
       .withUseExternalFeedbackEncoder(true);
 
-  private final SmartMotorController m_rakeSMC = new TalonFXWrapper(m_rakeMotor, DCMotor.getKrakenX60Foc(1), smc_config);
+  private final SmartMotorController m_rakeArmSMC = new TalonFXWrapper(m_rakeArmMotor, DCMotor.getKrakenX60Foc(1), smc_config);
 
   private final MechanismPositionConfig robotToMechanism = new MechanismPositionConfig()
       .withMaxRobotHeight(Inches.of(23.0))
       .withMaxRobotLength(Inches.of(34.0))
       .withRelativePosition(new Translation3d(Inches.of(-10), Inches.of(-2), Inches.of(1)));
 
-  private final ArmConfig m_rakeConfig = new ArmConfig(m_rakeSMC)
+  private final ArmConfig m_rakeArmConfig = new ArmConfig(m_rakeArmSMC)
       // Length of the arm.
       .withLength(Meters.of(0.135))
       // Angle limits
@@ -130,7 +130,7 @@ public class RakeSubsystem extends SubsystemBase {
       .withTelemetry("RakeArm", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
       .withMechanismPositionConfig(robotToMechanism);
 
-  private final Arm m_rake = new Arm(m_rakeConfig);
+  private final Arm m_rakeArm = new Arm(m_rakeArmConfig);
 
   private boolean m_isTeleop = false;
 
@@ -141,12 +141,12 @@ public class RakeSubsystem extends SubsystemBase {
   @Override
   public void periodic() {
     updateSmartDashboard();
-    m_rake.updateTelemetry();
+    m_rakeArm.updateTelemetry();
   }
 
   @Override
   public void simulationPeriodic() {
-    m_rake.simIterate();
+    m_rakeArm.simIterate();
   }
 
   /**
@@ -155,12 +155,12 @@ public class RakeSubsystem extends SubsystemBase {
    * @param angle angle in degrees
    */
   public Command setRakeAngle(Angle angle) {
-    return m_rake.setAngle(angle);
+    return m_rakeArm.setAngle(angle);
   }
 
   /** Returns the rake angle */
   public Angle getRakePosition() {
-    return m_rake.getAngle();
+    return m_rakeArm.getAngle();
   }
 
   /**
@@ -169,12 +169,12 @@ public class RakeSubsystem extends SubsystemBase {
    * @param wspeed double, target speed
    */
   public Command setRakeSpeed(double wspeed) {
-    return m_rake.set(wspeed);
+    return m_rakeArm.set(wspeed);
   }
 
   /** Stops motor and activates brakes */
   public Command stopRake() {
-    return m_rake.set(0.0);
+    return m_rakeArm.set(0.0);
   }
 
   /**
@@ -189,7 +189,7 @@ public class RakeSubsystem extends SubsystemBase {
 
     if ((rspeed != 0.0) || (cspeed != 0.0)) {
       m_isTeleop = true;
-      this.setRakeSpeed(rspeed * kRakeTeleopSpeed);
+      this.setRakeSpeed(rspeed * kRakeArmTeleopSpeed);
     } else if (m_isTeleop) {
       m_isTeleop = false;
       this.stopRake();

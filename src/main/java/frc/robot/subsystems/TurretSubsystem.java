@@ -46,8 +46,8 @@ public class TurretSubsystem extends SubsystemBase {
 
   public static final double kTurretOffset = 0.0;
 
-  public static final double kTurretChainRatio = 1.0 / 1.0;
-  public static final double kTurretGearboxRatio = 1.0; // 1:1
+  public static final double kTurretChainRatio = 200.0 / 20.0; // 20:200 ratio (20 teeth on motor sprocket, 200 teeth on turret sprocket)
+  public static final double kTurretGearboxRatio = 20.0; // 20:1
   public static final double kTurretGearRatio = kTurretChainRatio * kTurretGearboxRatio;
 
   public static final double TURRET_KS = 0.0;
@@ -63,7 +63,7 @@ public class TurretSubsystem extends SubsystemBase {
 
   // TalonFX hardware + YAMS controller
   private final TalonFX m_turretMotor = new TalonFX(TURRET_MASTER_ID, kCANBus);
-  private final AnalogPotentiometer m_turretPotentiometer = new AnalogPotentiometer(TURRET_ANALOG_ID, 360.0);
+  // private final AnalogPotentiometer m_turretPotentiometer = new AnalogPotentiometer(TURRET_ANALOG_ID, 360.0);
 
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
       .withControlMode(ControlMode.CLOSED_LOOP)
@@ -112,7 +112,7 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   private void seedTurretPosition() {
-    Angle potAngle = Degrees.of(m_turretPotentiometer.get() + kTurretOffset);
+    Angle potAngle = Degrees.of(0);// Degrees.of(m_turretPotentiometer.get() + kTurretOffset);
     m_turretSMC.setEncoderPosition(potAngle);
 
     SmartDashboard.putNumber("Turret/SeededTurretDeg", potAngle.in(Degrees));

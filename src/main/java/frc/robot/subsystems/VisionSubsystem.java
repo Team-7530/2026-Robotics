@@ -150,9 +150,9 @@ public class VisionSubsystem extends SubsystemBase {
     poseEstimators.add(limelight2.createPoseEstimator(EstimationMode.MEGATAG2));
 
     if (RobotBase.isReal()) {
-      cam0 = CameraServer.startAutomaticCapture();
-      cam0.setResolution(240, 160);
-      cam0.setFPS(15);
+      // cam0 = CameraServer.startAutomaticCapture();
+      // cam0.setResolution(240, 160);
+      // cam0.setFPS(15);
     }
 
     if (RobotBase.isSimulation()) {

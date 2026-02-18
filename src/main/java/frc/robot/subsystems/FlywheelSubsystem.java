@@ -43,7 +43,7 @@ public class FlywheelSubsystem extends SubsystemBase {
   public static final double FLYWHEEL_MAX_RPM = 6000.0; // adjust to your flywheel
   public static final double FLYWHEEL_DEFAULT_RPM = 3000.0;
 
-  public static final double kFlywheelChainRatio = 1.0 / 1.0;
+  public static final double kFlywheelChainRatio = 24.0 / 24.0; // 24:24 ratio
   public static final double kFlywheelGearboxRatio = 1.0; // 1:1
   public static final double kFlywheelGearRatio = kFlywheelChainRatio * kFlywheelGearboxRatio;
 

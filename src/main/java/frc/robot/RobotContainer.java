@@ -152,8 +152,8 @@ public class RobotContainer {
     oi.getRightTrigger().onTrue(shooter.shooterToVelocityCommand(2000)).onFalse(shooter.shooterToPercentCommand(0.0));
     oi.getLeftTrigger().onTrue(collector.collectorStartCommand());
     
-    oi.getPOVUp().onTrue(rake.setRakeAngle(RakeSubsystem.kRakePositionMax));
-    oi.getPOVDown().onTrue(rake.setRakeAngle(RakeSubsystem.kRakePositionMin));
+    oi.getPOVUp().onTrue(rake.setRakeAngle(RakeSubsystem.kRakeArmPositionMax));
+    oi.getPOVDown().onTrue(rake.setRakeAngle(RakeSubsystem.kRakeArmPositionMin));
     oi.getPOVLeft().onTrue(turret.turretToAngleCommand(20));
     oi.getPOVRight().onTrue(turret.turretToAngleCommand(-20));
 
@@ -203,8 +203,8 @@ public class RobotContainer {
     // NamedCommands.registerCommand("OuttakeSpin", intake.outtakeL1Command());
     NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
     NamedCommands.registerCommand("collectorCommand", collector.collectorStartCommand());
-    NamedCommands.registerCommand("rakeDeploy", rake.setRakeAngle(RakeSubsystem.kRakePositionMin));
-    NamedCommands.registerCommand("rakeRetract", rake.setRakeAngle(RakeSubsystem.kRakePositionMax));
+    NamedCommands.registerCommand("rakeDeploy", rake.setRakeAngle(RakeSubsystem.kRakeArmPositionMin));
+    NamedCommands.registerCommand("rakeRetract", rake.setRakeAngle(RakeSubsystem.kRakeArmPositionMax));
   }
 
   private void configureTelemetry() {
