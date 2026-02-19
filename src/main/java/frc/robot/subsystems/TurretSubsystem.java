@@ -38,7 +38,7 @@ public class TurretSubsystem extends SubsystemBase {
 
   // Placeholder CAN IDs - update to match your wiring
   public static final int TURRET_MASTER_ID = 62;
-  public static final int TURRET_ANALOG_ID = 1;
+  public static final int TURRET_ANALOG_ID = 0;
 
   // Turret limits in degrees (180-degree travel centered on 0)
   public static final double TURRET_MIN_DEG = -90.0;
@@ -63,7 +63,7 @@ public class TurretSubsystem extends SubsystemBase {
 
   // TalonFX hardware + YAMS controller
   private final TalonFX m_turretMotor = new TalonFX(TURRET_MASTER_ID, kCANBus);
-  // private final AnalogPotentiometer m_turretPotentiometer = new AnalogPotentiometer(TURRET_ANALOG_ID, 360.0);
+  private final AnalogPotentiometer m_turretPotentiometer = new AnalogPotentiometer(TURRET_ANALOG_ID, 360.0, -180.0);
 
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
       .withControlMode(ControlMode.CLOSED_LOOP)
@@ -112,7 +112,8 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   private void seedTurretPosition() {
-    Angle potAngle = Degrees.of(0);// Degrees.of(m_turretPotentiometer.get() + kTurretOffset);
+    // Angle potAngle = Degrees.of(0);
+    Angle potAngle = Degrees.of(m_turretPotentiometer.get() + kTurretOffset);
     m_turretSMC.setEncoderPosition(potAngle);
 
     SmartDashboard.putNumber("Turret/SeededTurretDeg", potAngle.in(Degrees));

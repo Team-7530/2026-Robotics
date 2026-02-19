@@ -3,6 +3,7 @@ package frc.robot.operator_interface;
 import static frc.robot.Constants.*;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
@@ -129,11 +130,11 @@ public class SingleJoystickOI implements OperatorInterface {
       updateDriveScale = (povVal != -1);
     } else if (povVal == 0) {
       driveScaleFactor = MathUtil.clamp(driveScaleFactor + 0.05, 0.1, 1.0);
-      System.out.println("Setting driveScaleFactor to " + driveScaleFactor);
+      DriverStation.reportWarning("Setting driveScaleFactor to " + driveScaleFactor, false);
       updateDriveScale = true;
     } else if (povVal == 180) {
       driveScaleFactor = MathUtil.clamp(driveScaleFactor - 0.05, 0.1, 1.0);
-      System.out.println("Setting driveScaleFactor to " + driveScaleFactor);
+      DriverStation.reportWarning("Setting driveScaleFactor to " + driveScaleFactor, false);
       updateDriveScale = true;
     }
     return driveScaleFactor;

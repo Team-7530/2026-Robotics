@@ -57,20 +57,20 @@ public class OISelector {
     }
     if (joyList.size() > 1) {
       if (xboxList.size() > 0) {
-        System.out.println(dualJoystickXBoxOperatorInterfaces);
+        DriverStation.reportWarning(dualJoystickXBoxOperatorInterfaces, false);
         return new DualJoystickXboxOI(joyList.get(0), joyList.get(1), xboxList.get(0));
       } else {
-        System.out.println(dualJoystickOperatorInterfaces);
+        DriverStation.reportWarning(dualJoystickOperatorInterfaces, false);
         return new DualJoysticksOI(joyList.get(0), joyList.get(1));
       }
     } else if (joyList.size() > 0) {
-      System.out.println(singleJoystickOperatorInterfaces);
+      DriverStation.reportWarning(singleJoystickOperatorInterfaces, false);
       return new SingleHandheldOI(joyList.get(0));
     } else if (xboxList.size() > 1) {
-      System.out.println(dualXBoxOperatorInterfaces);
+      DriverStation.reportWarning(dualXBoxOperatorInterfaces, false);
       return new DualHandheldOI(xboxList.get(0), xboxList.get(1));
     } else if (xboxList.size() > 0) {
-      System.out.println(singleXBoxOperatorInterfaces);
+      DriverStation.reportWarning(singleXBoxOperatorInterfaces, false);
       return new SingleHandheldOI(xboxList.get(0));
     } else {
       DriverStation.reportWarning(noOperatorInterfaceWarning, false);
