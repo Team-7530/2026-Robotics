@@ -9,6 +9,7 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ArmFeedforward;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -16,7 +17,7 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+// import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -38,7 +39,7 @@ public class RakeSubsystem extends SubsystemBase {
   public static final int RAKEARMMOTOR_ID = 30;
   public static final int RAKEARMENCODER_ID = 31;
 
-  public static final double kRakeArmEncoderOffset = 0.0; // add 0.25 offset, sub it later
+  // public static final double kRakeArmEncoderOffset = 0.0; // add 0.25 offset, sub it later
 
   public static final double kRakeArmChainRatio = 60.0 / 8.0; // 8:60 ratio
   public static final double kRakeArmGearboxRatio = 45.0; // 45:1
@@ -140,7 +141,7 @@ public class RakeSubsystem extends SubsystemBase {
     
   @Override
   public void periodic() {
-    updateSmartDashboard();
+    // updateSmartDashboard();
     m_rakeArm.updateTelemetry();
   }
 
@@ -159,6 +160,7 @@ public class RakeSubsystem extends SubsystemBase {
   }
 
   /** Returns the rake angle */
+  @Logged
   public Angle getRakePosition() {
     return m_rakeArm.getAngle();
   }
@@ -197,8 +199,8 @@ public class RakeSubsystem extends SubsystemBase {
   }
 
   /** Upddates the Smart Dashboard */
-  private void updateSmartDashboard() {
-    SmartDashboard.putNumber("Rake Postion", this.getRakePosition().in(Degrees));
-  }
+  // private void updateSmartDashboard() {
+  //   SmartDashboard.putNumber("Rake Postion", this.getRakePosition().in(Degrees));
+  // }
 
 }

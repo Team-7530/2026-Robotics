@@ -18,6 +18,7 @@ import yams.gearing.MechanismGearing;
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.hardware.TalonFX;
 
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -26,7 +27,7 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+// import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -51,8 +52,8 @@ public class CollectorSubsystem extends SubsystemBase {
   public static final AngularVelocity COLLECTOR_kMaxV = RPM.of(5000);
   public static final AngularAcceleration COLLECTOR_kMaxA = RotationsPerSecondPerSecond.of(2500);
 
-  private final Distance flywheelDiameter = Inches.of(4);
-  private final Mass flywheelMass = Pounds.of(1);
+  private static final Distance flywheelDiameter = Inches.of(4);
+  private static final Mass flywheelMass = Pounds.of(1);
 
   public static final AngularVelocity collectorVelocity = RPM.of(3000);
   public static final AngularVelocity collectorUnstuckVelocity = RPM.of(-2000);
@@ -104,7 +105,7 @@ public class CollectorSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    updateSmartDashboard();
+    // updateSmartDashboard();
     m_collector.updateTelemetry();
   }
 
@@ -114,6 +115,7 @@ public class CollectorSubsystem extends SubsystemBase {
   }
 
   // YAMS Flywheel API wrappers
+  @Logged
   public AngularVelocity getVelocity() {
     return m_collector.getSpeed();
   }
@@ -177,13 +179,13 @@ public class CollectorSubsystem extends SubsystemBase {
     }
   }
   // -- SmartDashboard ----------------------------------------------------
-  private void updateSmartDashboard() {
-    try {
-      SmartDashboard.putNumber("CollectorIntake RPS", getVelocity().in(RotationsPerSecond));
-    } catch (Exception e) {
-      SmartDashboard.putNumber("CollectorIntake RPS", 0.0);
-    }
-  }
+  // private void updateSmartDashboard() {
+  //   try {
+  //     SmartDashboard.putNumber("CollectorIntake RPS", getVelocity().in(RotationsPerSecond));
+  //   } catch (Exception e) {
+  //     SmartDashboard.putNumber("CollectorIntake RPS", 0.0);
+  //   }
+  // }
 
 }
 

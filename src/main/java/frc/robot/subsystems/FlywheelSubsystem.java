@@ -20,6 +20,7 @@ import yams.mechanisms.velocity.FlyWheel;
 
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.Pair;
 import edu.wpi.first.units.measure.Distance;
@@ -27,7 +28,7 @@ import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+// import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -109,7 +110,7 @@ public class FlywheelSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    updateSmartDashboard();
+    // updateSmartDashboard();
     m_flywheel.updateTelemetry();
   }
 
@@ -119,6 +120,7 @@ public class FlywheelSubsystem extends SubsystemBase {
   }
 
   // YAMS Flywheel API wrappers
+  @Logged
   public AngularVelocity getVelocity() {
     return m_flywheel.getSpeed();
   }
@@ -169,8 +171,8 @@ public class FlywheelSubsystem extends SubsystemBase {
     }
   }
   // -- SmartDashboard ----------------------------------------------------
-  private void updateSmartDashboard() {
-    // Display flywheel speed in RPM
-    SmartDashboard.putNumber("Shooter/FlywheelRPM", this.getVelocity().in(RPM));
-  }
+  // private void updateSmartDashboard() {
+  //   // Display flywheel speed in RPM
+  //   SmartDashboard.putNumber("Shooter/FlywheelRPM", this.getVelocity().in(RPM));
+  // }
 }

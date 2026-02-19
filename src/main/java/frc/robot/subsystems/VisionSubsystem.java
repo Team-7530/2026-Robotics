@@ -62,10 +62,11 @@ public class VisionSubsystem extends SubsystemBase {
           // Pair.of("OV9281", new Transform3d(new Translation3d(0.28, 0, 0.15), new Rotation3d(0, 0, 0))),
         Pair.of(
           LIMELIGHTNAME,
-          new Transform3d(new Translation3d(0.28, 0, 0.16), new Rotation3d(0, 0, 0))),
-        Pair.of(
-          LIMELIGHTNAME_2,
-          new Transform3d(new Translation3d(0.28, 0.10, 0.16), new Rotation3d(0, 0, 0))));
+          new Transform3d(new Translation3d(0.28, 0, 0.16), new Rotation3d(0, 0, 0)))
+        // Pair.of(
+        //   LIMELIGHTNAME_2,
+        //   new Transform3d(new Translation3d(0.28, 0.10, 0.16), new Rotation3d(0, 0, 0)))
+      );
 
     // The standard deviations of our vision estimated poses, which affect correction rate
     // (Fake values. Experiment and determine estimation noise on an actual robot.)

@@ -196,9 +196,9 @@ public class RobotContainer {
   }
 
   private void configureAutoPaths() {
-    // NamedCommands.registerCommand("Intake", intake.intakeCommand());
-    // NamedCommands.registerCommand("Outtake", intake.outtakeL2Command());
-    // NamedCommands.registerCommand("OuttakeSpin", intake.outtakeL1Command());
+    NamedCommands.registerCommand("aimRange", shooter.turretToAngleCommand(0));
+    NamedCommands.registerCommand("shoot", shooter.shootCommand());
+    NamedCommands.registerCommand("climb", Commands.runOnce(() -> System.out.println("Climb command executed")));
     NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
     NamedCommands.registerCommand("collectorCommand", collector.collectorStartCommand());
     NamedCommands.registerCommand("rakeDeploy", rake.setRakeAngle(RakeSubsystem.kRakeArmPositionMin));
