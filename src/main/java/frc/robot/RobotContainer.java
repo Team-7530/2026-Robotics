@@ -192,7 +192,7 @@ public class RobotContainer {
     drivetrain.setDefaultCommand(new SwerveTeleopCommand(drivetrain, oi));
 
     shooter.setDefaultCommand(Commands.run(() -> shooter.teleop(oi.getRightThumbstickX(), -oi.getRightThumbstickY()), shooter));
-    rake.setDefaultCommand(Commands.run(() -> rake.teleop(oi.getRightThumbstickY(), -oi.getRightThumbstickX()), rake));
+    rake.setDefaultCommand(Commands.run(() -> rake.teleop(oi.getLeftThumbstickY(), -oi.getLeftThumbstickX()), rake));
 
     // climber.setDefaultCommand(
     //     Commands.run(() -> climber.teleopClimb(-oi.getRightThumbstickY()), climber));
