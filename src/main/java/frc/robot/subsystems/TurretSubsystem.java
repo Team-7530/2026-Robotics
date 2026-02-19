@@ -23,6 +23,7 @@ import yams.mechanisms.positional.Pivot;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularAcceleration;
@@ -63,6 +64,7 @@ public class TurretSubsystem extends SubsystemBase {
 
   // TalonFX hardware + YAMS controller
   private final TalonFX m_turretMotor = new TalonFX(TURRET_MASTER_ID, kCANBus);
+  @Logged
   private final AnalogPotentiometer m_turretPotentiometer = new AnalogPotentiometer(TURRET_ANALOG_ID, 360.0, -180.0);
 
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
@@ -103,7 +105,9 @@ public class TurretSubsystem extends SubsystemBase {
 
   Pivot m_turret = new Pivot(m_turretconfig);
 
+  @Logged
   private boolean m_isTeleop = false;
+  @Logged
   private double turretTargetDeg = 0.0;
 
   public TurretSubsystem() {
@@ -121,7 +125,7 @@ public class TurretSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    updateSmartDashboard();
+    // updateSmartDashboard();
     m_turret.updateTelemetry();
   }
 
@@ -175,6 +179,7 @@ public class TurretSubsystem extends SubsystemBase {
     m_turretSMC.setPosition(Rotations.of(rotations));
   }
 
+  @Logged
   public double getTurretAngleDegrees() {
     double rotations = m_turret.getAngle().in(Rotations);
     return rotations / kTurretGearRatio * 360.0;
@@ -203,17 +208,17 @@ public class TurretSubsystem extends SubsystemBase {
     }
   }
 
-  // -- SmartDashboard ----------------------------------------------------
-  private void updateSmartDashboard() {
-    SmartDashboard.putNumber("Turret/TurretAngleDeg", this.getTurretAngleDegrees());
-    SmartDashboard.putNumber("Turret/TurretTargetDeg", turretTargetDeg);
-    // additional telemetry from YAMS controller
-    try {
-      SmartDashboard.putNumber("Turret/TurretRotorPos", m_turretSMC.getRotorPosition().in(Rotations));
-    } catch (Exception e) {
-      // ignore
-    }
-  }
+  // // -- SmartDashboard ----------------------------------------------------
+  // private void updateSmartDashboard() {
+  //   SmartDashboard.putNumber("Turret/TurretAngleDeg", this.getTurretAngleDegrees());
+  //   SmartDashboard.putNumber("Turret/TurretTargetDeg", turretTargetDeg);
+  //   // additional telemetry from YAMS controller
+  //   try {
+  //     SmartDashboard.putNumber("Turret/TurretRotorPos", m_turretSMC.getRotorPosition().in(Rotations));
+  //   } catch (Exception e) {
+  //     // ignore
+  //   }
+  // }
 
   // -- Commands -----------------------------------------------------------
   public Command turretToAngleCommand(double degrees) {

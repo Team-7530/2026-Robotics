@@ -48,8 +48,6 @@ public class RobotContainer {
   public final ShooterSubsystem shooter = new ShooterSubsystem();
   public final RakeSubsystem rake = new RakeSubsystem();
   public final CollectorSubsystem collector = new CollectorSubsystem();
-  public final TurretSubsystem turret = new TurretSubsystem();
-  public final FeederSubsystem feeder = new FeederSubsystem();
 
   /* Path follower */
   private SendableChooser<Command> autoChooser;
@@ -143,21 +141,21 @@ public class RobotContainer {
 
     //Testing Controls
     oi.getAButton().onTrue(shooter.shootCommand());
-    oi.getBButton().onTrue(shooter.feederUnstuckCommand());
+    // oi.getBButton().onTrue(shooter.feederUnstuckCommand());
     oi.getXButton().onTrue(collector.collectorUnstuckCommand());
 
-    oi.getLeftBumper().onTrue(feeder.feederStopCommand());
-    oi.getRightBumper().onTrue(feeder.feederStartCommand());
+    oi.getLeftBumper().onTrue(shooter.stopShootCommand());
+    oi.getRightBumper().onTrue(shooter.feederUnstuckCommand());
 
     oi.getRightTrigger().onTrue(shooter.shooterToVelocityCommand(2000)).onFalse(shooter.shooterToPercentCommand(0.0));
     oi.getLeftTrigger().onTrue(collector.collectorStartCommand());
     
     oi.getPOVUp().onTrue(rake.setRakeAngle(RakeSubsystem.kRakeArmPositionMax));
     oi.getPOVDown().onTrue(rake.setRakeAngle(RakeSubsystem.kRakeArmPositionMin));
-    oi.getPOVLeft().onTrue(turret.turretToAngleCommand(20));
-    oi.getPOVRight().onTrue(turret.turretToAngleCommand(-20));
+    oi.getPOVLeft().onTrue(shooter.turretToAngleCommand(20));
+    oi.getPOVRight().onTrue(shooter.turretToAngleCommand(-20));
 
-    oi.getStartButton().onTrue(Commands.runOnce(() -> turret.seedTurretPositionCommand()));
+    oi.getStartButton().onTrue(Commands.runOnce(() -> shooter.turret.seedTurretPositionCommand()));
 
     
     // oi.getRightTrigger().onTrue(new SequentialCommandGroup(this.getCoralPositionCommand(), intake.intakeCommand()));
