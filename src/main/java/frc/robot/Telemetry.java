@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
+import edu.wpi.first.util.sendable.Sendable;
 
 public class Telemetry {
   private final double MaxSpeed;
@@ -27,6 +28,19 @@ public class Telemetry {
     SignalLogger.start();
     // SignalLogger.stop();
     SmartDashboard.putData("Field", field);
+  }
+
+  /* Convenience helpers so subsystems stop calling SmartDashboard directly */
+  public void putData(String key, Sendable sendable) {
+    SmartDashboard.putData(key, sendable);
+  }
+
+  public void putNumber(String key, double value) {
+    SmartDashboard.putNumber(key, value);
+  }
+
+  public void putString(String key, String value) {
+    SmartDashboard.putString(key, value);
   }
 
   /* What to publish over networktables for telemetry */

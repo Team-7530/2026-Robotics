@@ -29,7 +29,8 @@ import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.AnalogPotentiometer;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+// SmartDashboard access replaced by centralized Telemetry
+import frc.robot.Telemetry;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -110,7 +111,10 @@ public class TurretSubsystem extends SubsystemBase {
   @Logged
   private double turretTargetDeg = 0.0;
 
-  public TurretSubsystem() {
+  private final Telemetry telemetry;
+
+  public TurretSubsystem(Telemetry telemetry) {
+    this.telemetry = telemetry;
 
     seedTurretPosition();
   }
@@ -120,13 +124,20 @@ public class TurretSubsystem extends SubsystemBase {
     Angle potAngle = Degrees.of(m_turretPotentiometer.get() + kTurretOffset);
     m_turretSMC.setEncoderPosition(potAngle);
 
-    SmartDashboard.putNumber("Turret/SeededTurretDeg", potAngle.in(Degrees));
+    telemetry.putNumber("Turret/SeededTurretDeg", potAngle.in(Degrees));
   }
 
   @Override
   public void periodic() {
-    // updateSmartDashboard();
     m_turret.updateTelemetry();
+    // publish a few human-friendly telemetry values through the central Telemetry class
+    try {
+      telemetry.putNumber("Turret/TurretAngleDeg", this.getTurretAngleDegrees());
+      telemetry.putNumber("Turret/TurretTargetDeg", turretTargetDeg);
+      telemetry.putNumber("Turret/TurretRotorPos", m_turretSMC.getRotorPosition().in(Rotations));
+    } catch (Exception e) {
+      // ignore transient telemetry failures
+    }
   }
 
   @Override

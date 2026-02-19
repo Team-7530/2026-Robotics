@@ -27,7 +27,8 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
-// import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+// SmartDashboard access replaced by centralized Telemetry
+import frc.robot.Telemetry;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -99,14 +100,20 @@ public class CollectorSubsystem extends SubsystemBase {
   private final FlyWheel m_collector = new FlyWheel(m_collectorConfig);
 
   private boolean m_isTeleop = false;
+  private final Telemetry telemetry;
 
-  public CollectorSubsystem() {
+  public CollectorSubsystem(Telemetry telemetry) {
+    this.telemetry = telemetry;
   }
 
   @Override
   public void periodic() {
-    // updateSmartDashboard();
     m_collector.updateTelemetry();
+    try {
+      telemetry.putNumber("CollectorIntake RPS", getVelocity().in(RotationsPerSecond));
+    } catch (Exception e) {
+      telemetry.putNumber("CollectorIntake RPS", 0.0);
+    }
   }
 
   @Override

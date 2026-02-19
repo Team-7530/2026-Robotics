@@ -11,7 +11,6 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.livewindow.LiveWindow;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -44,10 +43,10 @@ public class RobotContainer {
   /* Subsystems */
   public final PowerDistribution power = new PowerDistribution();
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
-  public final VisionSubsystem vision = new VisionSubsystem();
-  public final ShooterSubsystem shooter = new ShooterSubsystem();
-  public final RakeSubsystem rake = new RakeSubsystem();
-  public final CollectorSubsystem collector = new CollectorSubsystem();
+  public final VisionSubsystem vision = new VisionSubsystem(logger);
+  public final ShooterSubsystem shooter = new ShooterSubsystem(logger);
+  public final RakeSubsystem rake = new RakeSubsystem(logger);
+  public final CollectorSubsystem collector = new CollectorSubsystem(logger);
 
   /* Path follower */
   private SendableChooser<Command> autoChooser;
@@ -55,6 +54,11 @@ public class RobotContainer {
 
   public static RobotContainer GetInstance() {
     return instance;
+  }
+
+  /** Return the shared Telemetry instance used by the robot. */
+  public Telemetry getTelemetry() {
+    return logger;
   }
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
@@ -76,7 +80,7 @@ public class RobotContainer {
    */
   public void updateOI() {
     if (!OISelector.didJoysticksChange()) {
-      SmartDashboard.putNumber("DriveTrain/Drive Scaling", oi.driveScalingValue());
+      logger.putNumber("DriveTrain/Drive Scaling", oi.driveScalingValue());
       return;
     }
 
@@ -208,12 +212,12 @@ public class RobotContainer {
   private void configureTelemetry() {
     drivetrain.registerTelemetry(logger::telemeterize);
 
-    SmartDashboard.putData("AutoChooser", autoChooser);
+  logger.putData("AutoChooser", autoChooser);
     // SmartDashboard.putData("Intake", intake.intakeCommand());
     // SmartDashboard.putData("Outtake", intake.outtakeL2Command());
     // SmartDashboard.putData("OuttakeSpin", intake.outtakeL1Command());
     // SmartDashboard.putData("ClimbToFull", climber.climbToFullPositionCommand());
-    SmartDashboard.putData("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
+  logger.putData("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
   }
 
   public void robotPeriodic() {}

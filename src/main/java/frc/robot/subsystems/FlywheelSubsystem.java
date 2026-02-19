@@ -31,6 +31,7 @@ import edu.wpi.first.units.measure.AngularVelocity;
 // import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Telemetry;
 
 public class FlywheelSubsystem extends SubsystemBase {
 
@@ -104,14 +105,20 @@ public class FlywheelSubsystem extends SubsystemBase {
   private FlyWheel m_flywheel = new FlyWheel(m_flywheelConfig);
 
   private boolean m_isTeleop = false;
+  private final Telemetry telemetry;
 
-  public FlywheelSubsystem() {
+  public FlywheelSubsystem(Telemetry telemetry) {
+    this.telemetry = telemetry;
   }
 
   @Override
   public void periodic() {
-    // updateSmartDashboard();
     m_flywheel.updateTelemetry();
+    try {
+      telemetry.putNumber("Shooter/FlywheelRPM", this.getVelocity().in(RPM));
+    } catch (Exception e) {
+      // ignore telemetry failures
+    }
   }
 
   @Override

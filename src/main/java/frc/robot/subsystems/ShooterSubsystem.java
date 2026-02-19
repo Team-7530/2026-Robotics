@@ -1,6 +1,5 @@
 package frc.robot.subsystems;
 
-import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.*;
 
 import edu.wpi.first.math.MathUtil;
@@ -16,14 +15,16 @@ public class ShooterSubsystem extends SubsystemBase {
 
     // Holds and manages turret, hood and flywheel
 
-  public final TurretSubsystem turret = new TurretSubsystem();
-  public final FlywheelSubsystem flywheel = new FlywheelSubsystem();
+  public final TurretSubsystem turret;
+  public final FlywheelSubsystem flywheel;
   public final FeederSubsystem feeder = new FeederSubsystem();
 
   private boolean m_isTeleop = false;
       
-  public ShooterSubsystem() {
-  
+  public ShooterSubsystem(frc.robot.Telemetry telemetry) {
+    // inject telemetry into nested subsystems so they can publish centrally
+    this.turret = new TurretSubsystem(telemetry);
+    this.flywheel = new FlywheelSubsystem(telemetry);
   }
   
   @Override

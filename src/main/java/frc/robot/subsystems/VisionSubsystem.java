@@ -25,7 +25,7 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.RobotState;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.robot.Telemetry;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -123,7 +123,10 @@ public class VisionSubsystem extends SubsystemBase {
   /* Cameras */
   public UsbCamera cam0;
 
-  public VisionSubsystem() {
+  private final Telemetry telemetry;
+
+  public VisionSubsystem(Telemetry telemetry) {
+    this.telemetry = telemetry;
 
     Limelight limelight1 = new Limelight(LIMELIGHTNAME);
 
@@ -159,7 +162,7 @@ public class VisionSubsystem extends SubsystemBase {
     if (RobotBase.isSimulation()) {
       // Provide a Field2d for visualizing limelight estimations and tags in simulation.
       simDebugField = new Field2d();
-      SmartDashboard.putData("Vision/SimField", simDebugField);
+      telemetry.putData("Vision/SimField", simDebugField);
     }
   }
 
@@ -318,8 +321,8 @@ public class VisionSubsystem extends SubsystemBase {
       }
 
       double progress = switchConfidence / CONFIRM_THRESHOLD;
-      SmartDashboard.putString("Vision/PendingSwitchTo", candidateName);
-      SmartDashboard.putNumber("Vision/SwitchConfidence", progress);
+  telemetry.putString("Vision/PendingSwitchTo", candidateName);
+  telemetry.putNumber("Vision/SwitchConfidence", progress);
 
       if (switchConfidence >= CONFIRM_THRESHOLD) {
         // commit
@@ -327,15 +330,15 @@ public class VisionSubsystem extends SubsystemBase {
         lastSelectedCameraName = candidateName;
         lastSelectedAmbiguity = bestAmb;
         switchConfidence = 0.0;
-        SmartDashboard.putString("Vision/PendingSwitchTo", "");
-        SmartDashboard.putNumber("Vision/SwitchConfidence", 1.0);
+        telemetry.putString("Vision/PendingSwitchTo", "");
+        telemetry.putNumber("Vision/SwitchConfidence", 1.0);
       }
     }
 
     // Update stddevs and return the currently chosen pose estimate
     updateEstimationStdDevs(Optional.of(lastChosenPoseEstimate));
-    SmartDashboard.putString("Vision/SelectedCamera", lastSelectedCameraName == null ? "" : lastSelectedCameraName);
-    SmartDashboard.putNumber("Vision/SelectedAmbiguity", lastSelectedAmbiguity == Double.MAX_VALUE ? -1 : lastSelectedAmbiguity);
+  telemetry.putString("Vision/SelectedCamera", lastSelectedCameraName == null ? "" : lastSelectedCameraName);
+  telemetry.putNumber("Vision/SelectedAmbiguity", lastSelectedAmbiguity == Double.MAX_VALUE ? -1 : lastSelectedAmbiguity);
 
     return Optional.of(lastChosenPoseEstimate);
   }
@@ -366,19 +369,19 @@ public class VisionSubsystem extends SubsystemBase {
   /** Set the pipeline index on a single limelight camera. */
   public void setPipelineForFrontCamera(int pipelineIndex) {
     limelightCameras.get(0).getSettings().withPipelineIndex(pipelineIndex).save();
-    SmartDashboard.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/Pipeline", pipelineIndex);
+    telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/Pipeline", pipelineIndex);
   }
 
   public void setPipelineForBackCamera(int pipelineIndex) {
     limelightCameras.get(1).getSettings().withPipelineIndex(pipelineIndex).save();
-    SmartDashboard.putNumber("Vision/Camera/" + LIMELIGHTNAME_2 + "/Pipeline", pipelineIndex);
+    telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME_2 + "/Pipeline", pipelineIndex);
   }
 
   /** Set the pipeline index for every configured limelight camera. */
   public void setPipelineForAllCameras(int pipelineIndex) {
     for (Limelight camera : limelightCameras) {
       camera.getSettings().withPipelineIndex(pipelineIndex).save();
-      SmartDashboard.putNumber("Vision/Camera/" + camera.limelightName + "/Pipeline", pipelineIndex);
+      telemetry.putNumber("Vision/Camera/" + camera.limelightName + "/Pipeline", pipelineIndex);
     }
   }
 
@@ -390,7 +393,7 @@ public class VisionSubsystem extends SubsystemBase {
   public void setHubPipelineForAlliance(boolean isBlue) {
     int idx = isBlue ? LIMELIGHT_PIPELINE_HUB_BLUE : LIMELIGHT_PIPELINE_HUB_RED;
     setPipelineForAllCameras(idx);
-    SmartDashboard.putString("Vision/ActiveMode", "HubPipeline");
+    telemetry.putString("Vision/ActiveMode", "HubPipeline");
   }
 
   /**
@@ -400,7 +403,7 @@ public class VisionSubsystem extends SubsystemBase {
   public void setTowerPipelineForAlliance(boolean isBlue) {
     int idx = isBlue ? LIMELIGHT_PIPELINE_TOWER_BLUE : LIMELIGHT_PIPELINE_TOWER_RED;
     setPipelineForAllCameras(idx);
-    SmartDashboard.putString("Vision/ActiveMode", "TowerPipeline");
+    telemetry.putString("Vision/ActiveMode", "TowerPipeline");
   }
 
   // ---------- Command-returning helpers for use in Command groups / events

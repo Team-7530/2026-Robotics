@@ -17,7 +17,8 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
-// import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+// SmartDashboard access replaced by centralized Telemetry
+import frc.robot.Telemetry;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -134,15 +135,20 @@ public class RakeSubsystem extends SubsystemBase {
   private final Arm m_rakeArm = new Arm(m_rakeArmConfig);
 
   private boolean m_isTeleop = false;
+  private final Telemetry telemetry;
 
-  public RakeSubsystem() {
-
+  public RakeSubsystem(Telemetry telemetry) {
+    this.telemetry = telemetry;
   }
     
   @Override
   public void periodic() {
-    // updateSmartDashboard();
     m_rakeArm.updateTelemetry();
+    try {
+      telemetry.putNumber("Rake Postion", this.getRakePosition().in(Degrees));
+    } catch (Exception e) {
+      // ignore telemetry failures
+    }
   }
 
   @Override
