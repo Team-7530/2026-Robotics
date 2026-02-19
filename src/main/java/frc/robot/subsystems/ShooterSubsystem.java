@@ -64,15 +64,15 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public Command shooterToVelocityCommand(double velocity) {
-  return run(() -> flywheel.setVelocity(RPM.of(velocity)))
-        .withName("ShooterToVelocityCommand")
-        .withTimeout(5.0);
+  return flywheel.setVelocityRPM(velocity)
+    .withName("ShooterToVelocityCommand")
+    .withTimeout(5.0);
   }
 
   public Command shooterToPercentCommand(double pct) {
-    return run(() -> flywheel.setDutyCycle(pct))
-        .withName("ShooterToPercentCommand")
-        .withTimeout(5.0);
+  return flywheel.setDutyCycle(pct)
+    .withName("ShooterToPercentCommand")
+    .withTimeout(5.0);
   }
 
   public Command shootCommand() {

@@ -151,22 +151,19 @@ public class FeederSubsystem extends SubsystemBase {
 
   /** Sets motors to constants intake speed */
   public Command feederStartCommand() {
-      return setVelocity(feederVelocity);
+    return setVelocity(feederVelocity).withName("FeederStartCommand");
   }
 
   public Command feederStopCommand() {
-      return setVelocity(RPM.of(0.0));
+    return runOnce(this::feederStop).withName("FeederStopCommand");
   }
 
   public Command feederUnstuckCommand() {
-      return setVelocity(feederUnstuckVelocity);
+  return setVelocity(feederUnstuckVelocity)
+    .withName("FeederUnstuckCommand")
+    .withTimeout(5.0)
+    .finallyDo(() -> feederStop());
   }
-
-  /**
-   * Teleop controls
-   *
-   * @param aspeed a double that sets the arm speed during teleop
-   */
   public void teleop(double aspeed) {
     aspeed = MathUtil.applyDeadband(aspeed, STICK_DEADBAND);
 
@@ -177,6 +174,12 @@ public class FeederSubsystem extends SubsystemBase {
       m_isTeleop = false;
       setDutyCycle(0.0);
     }
+  }
+
+  /** Stops the feeder motor immediately (open-loop stop). */
+  public void feederStop() {
+    m_feederSMC.stopClosedLoopController();
+    m_feederSMC.setDutyCycle(0.0);
   }
   // -- SmartDashboard ----------------------------------------------------
   // private void updateSmartDashboard() {

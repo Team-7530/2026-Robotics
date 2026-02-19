@@ -133,6 +133,15 @@ public class FlywheelSubsystem extends SubsystemBase {
     return m_flywheel.setSpeed(speed);
   }
 
+  /**
+   * Convenience: set velocity using RPM (double) as a command.
+   * @param rpm desired speed in RPM
+   * @return a Command that sets the flywheel speed
+   */
+  public Command setVelocityRPM(double rpm) {
+    return setVelocity(RPM.of(rpm));
+  }
+
   public Command setDutyCycle(double dutyCycle) {
     return m_flywheel.set(dutyCycle);
   }
