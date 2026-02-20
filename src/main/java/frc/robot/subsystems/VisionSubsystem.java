@@ -137,21 +137,19 @@ public class VisionSubsystem extends SubsystemBase {
                                     Inches.of(6.3).in(Meters),
                                     Rotation3d.kZero))
       .save();
-
-    Limelight limelight2 = new Limelight(LIMELIGHTNAME_2);
-    limelight2.getSettings()
-      .withLimelightLEDMode(LEDMode.PipelineControl)
-      .withCameraOffset(new Pose3d(Inches.of(11).in(Meters),
-                                    Inches.of(0).in(Meters),
-                                    Inches.of(6.3).in(Meters),
-                                    new Rotation3d(0, 0, Degrees.of(180.0).in(Radian))))
-      .save();
-
     limelightCameras.add(limelight1);
-    limelightCameras.add(limelight2);
-
     poseEstimators.add(limelight1.createPoseEstimator(EstimationMode.MEGATAG2));
-    poseEstimators.add(limelight2.createPoseEstimator(EstimationMode.MEGATAG2));
+
+    // Limelight limelight2 = new Limelight(LIMELIGHTNAME_2);
+    // limelight2.getSettings()
+    //   .withLimelightLEDMode(LEDMode.PipelineControl)
+    //   .withCameraOffset(new Pose3d(Inches.of(11).in(Meters),
+    //                                 Inches.of(0).in(Meters),
+    //                                 Inches.of(6.3).in(Meters),
+    //                                 new Rotation3d(0, 0, Degrees.of(180.0).in(Radian))))
+    //   .save();
+    // limelightCameras.add(limelight2);
+    // poseEstimators.add(limelight2.createPoseEstimator(EstimationMode.MEGATAG2));
 
     if (RobotBase.isReal()) {
       // cam0 = CameraServer.startAutomaticCapture();

@@ -17,7 +17,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
   public final TurretSubsystem turret;
   public final FlywheelSubsystem flywheel;
-  public final FeederSubsystem feeder = new FeederSubsystem();
+  public final FeederSubsystem feeder;
 
   private boolean m_isTeleop = false;
       
@@ -25,11 +25,12 @@ public class ShooterSubsystem extends SubsystemBase {
     // inject telemetry into nested subsystems so they can publish centrally
     this.turret = new TurretSubsystem(telemetry);
     this.flywheel = new FlywheelSubsystem(telemetry);
+    this.feeder = new FeederSubsystem(telemetry);
   }
   
   @Override
   public void periodic() {
-    updateSmartDashboard();
+    updateTelemetry();
   }
 
   /**
@@ -46,34 +47,32 @@ public class ShooterSubsystem extends SubsystemBase {
       m_isTeleop = true;
       turret.teleop(tspeed);
       flywheel.teleop(fspeed);
+      // feeder.teleop(feedSpeed);
     } else if (m_isTeleop) {
       m_isTeleop = false;
       turret.teleop(0.0);
       flywheel.teleop(0.0);
+      // feeder.teleop(0.0);
     }
   }
-  // -- SmartDashboard ----------------------------------------------------
-  private void updateSmartDashboard() {
+
+  private void updateTelemetry() {
   }
 
   // -- Commands -----------------------------------------------------------
   public Command turretToAngleCommand(double degrees) {
-    return run(() -> turret.setTurretAngleDegrees(degrees))
-        .withName("TurretToAngleCommand")
-        .until(() -> MathUtil.isNear(degrees, turret.getTurretAngleDegrees(), 2.0))
-        .withTimeout(5.0);
+    return turret.setTurretAngleDegrees(degrees)
+        .withName("TurretToAngleCommand");
   }
 
   public Command shooterToVelocityCommand(double velocity) {
-  return flywheel.setVelocityRPM(velocity)
-    .withName("ShooterToVelocityCommand")
-    .withTimeout(5.0);
+  return flywheel.flywheelStartCommand(velocity)
+    .withName("ShooterToVelocityCommand");
   }
 
   public Command shooterToPercentCommand(double pct) {
   return flywheel.setDutyCycle(pct)
-    .withName("ShooterToPercentCommand")
-    .withTimeout(5.0);
+    .withName("ShooterToPercentCommand");
   }
 
   public Command shootCommand() {
@@ -87,4 +86,5 @@ public class ShooterSubsystem extends SubsystemBase {
   public Command feederUnstuckCommand() {
     return feeder.feederUnstuckCommand();
   }
+
 }

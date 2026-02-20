@@ -3,6 +3,7 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.*;
 
+import frc.robot.Telemetry;
 import java.util.function.Supplier;
 
 import yams.motorcontrollers.SmartMotorController;
@@ -27,12 +28,10 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
-// import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-//Subsystem for rollers inside of hopper
-
+//Subsystem for feeder flywheel to the shooter flywheel
 public class FeederSubsystem extends SubsystemBase {
 
   public static final CANBus kCANBus = CANBUS_RIO;
@@ -42,7 +41,6 @@ public class FeederSubsystem extends SubsystemBase {
 
   public static final double kFeederChainRatio = 40.0 / 32.0; // 40:32
   public static final double kFeederGearboxRatio = 4.0; // 4:1
-  public static final double kFeederGearRatio = kFeederChainRatio * kFeederGearboxRatio;
 
   // Torque-based velocity does not require a feed forward, as torque will accelerate the rotor up to the desired velocity by itself
   public static final double FEEDER_KS = 0.0; // Static feedforward gain
@@ -53,11 +51,13 @@ public class FeederSubsystem extends SubsystemBase {
   public static final AngularAcceleration FEEDER_kMaxA = RotationsPerSecondPerSecond.of(2500);
 
   private final Distance flywheelDiameter = Inches.of(4);
-  private final Mass flywheelMass = Pounds.of(1);
+  private final Mass flywheelMass = Pounds.of(0.5);
 
   public static final AngularVelocity feederVelocity = RPM.of(3000);
   public static final AngularVelocity feederUnstuckVelocity = RPM.of(-2000);
     
+  private static final double kFeederTeleopFactor = 0.8;
+
   // TalonFX hardware instance (kept for wrapper)
   private final TalonFX m_feederMotor = new TalonFX(FEEDERMOTOR_ID, kCANBus);
 
@@ -99,14 +99,15 @@ public class FeederSubsystem extends SubsystemBase {
   private final FlyWheel m_feeder = new FlyWheel(m_feederConfig);
 
   private boolean m_isTeleop = false;
+  private final Telemetry telemetry;
 
-  public FeederSubsystem() {
+  public FeederSubsystem(Telemetry telemetry) {
+    this.telemetry = telemetry; 
   }
 
   @Override
   public void periodic() {
-    // updateSmartDashboard();
-    m_feeder.updateTelemetry();
+    this.updateTelemetry();
   }
 
   @Override
@@ -164,31 +165,39 @@ public class FeederSubsystem extends SubsystemBase {
     .withTimeout(5.0)
     .finallyDo(() -> feederStop());
   }
-  public void teleop(double aspeed) {
-    aspeed = MathUtil.applyDeadband(aspeed, STICK_DEADBAND);
-
-    if (aspeed != 0.0) {
-      m_isTeleop = true;
-      setDutyCycle(aspeed);
-    } else if (m_isTeleop) {
-      m_isTeleop = false;
-      setDutyCycle(0.0);
-    }
-  }
 
   /** Stops the feeder motor immediately (open-loop stop). */
   public void feederStop() {
     m_feederSMC.stopClosedLoopController();
     m_feederSMC.setDutyCycle(0.0);
   }
+
+  /**
+   * Teleop controls
+   *
+   * @param aspeed a double that sets the arm speed during teleop
+   */
+  public void teleop(double aspeed) {
+    aspeed = MathUtil.applyDeadband(aspeed, STICK_DEADBAND);
+
+    if (aspeed != 0.0) {
+      m_isTeleop = true;
+      m_feederSMC.setDutyCycle(aspeed * kFeederTeleopFactor);
+    } else if (m_isTeleop) {
+      m_isTeleop = false;
+      this.feederStop();
+    }
+  }
+
   // -- SmartDashboard ----------------------------------------------------
-  // private void updateSmartDashboard() {
-  //   try {
-  //     SmartDashboard.putNumber("FeederIntake RPS", getVelocity().in(RotationsPerSecond));
-  //   } catch (Exception e) {
-  //     SmartDashboard.putNumber("FeederIntake RPS", 0.0);
-  //   }
-  // }
+  private void updateTelemetry() {
+    m_feeder.updateTelemetry();
+    try {
+      telemetry.putNumber("FeederIntake RPS", getVelocity().in(RotationsPerSecond));
+    } catch (Exception e) {
+      telemetry.putNumber("FeederIntake RPS", 0.0);
+    }
+  }
 
 }
 

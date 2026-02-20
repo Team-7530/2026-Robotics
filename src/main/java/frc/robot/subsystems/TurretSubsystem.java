@@ -3,6 +3,7 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.*;
 
+import frc.robot.Telemetry;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.CANBus;
@@ -20,6 +21,7 @@ import yams.gearing.MechanismGearing;
 import yams.mechanisms.config.MechanismPositionConfig;
 import yams.mechanisms.config.PivotConfig;
 import yams.mechanisms.positional.Pivot;
+
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -29,8 +31,6 @@ import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.AnalogPotentiometer;
-// SmartDashboard access replaced by centralized Telemetry
-import frc.robot.Telemetry;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -53,11 +53,12 @@ public class TurretSubsystem extends SubsystemBase {
   public static final double kTurretGearRatio = kTurretChainRatio * kTurretGearboxRatio;
 
   public static final double TURRET_KS = 0.0;
-  public static final double TURRET_KV = 0.0;
-  public static final double TURRET_KA = 0.0;
   public static final double TURRET_KP = 180.0; // 45
   public static final double TURRET_KI = 0.0;
   public static final double TURRET_KD = 0.0;
+  public static final double TURRET_KV = 0.0;
+  public static final double TURRET_KA = 0.0;
+
   public static final AngularVelocity TURRET_kMaxV = DegreesPerSecond.of(1440);
   public static final AngularAcceleration TURRET_kMaxA = DegreesPerSecondPerSecond.of(1440);
 
@@ -120,7 +121,6 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   private void seedTurretPosition() {
-    // Angle potAngle = Degrees.of(0);
     Angle potAngle = Degrees.of(-m_turretPotentiometer.get() + kTurretOffset);
     m_turretSMC.setEncoderPosition(potAngle);
 
@@ -129,17 +129,7 @@ public class TurretSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    m_turret.updateTelemetry();
-    // publish a few human-friendly telemetry values through the central Telemetry class
-    try {
-      telemetry.putNumber("Turret/TurretAngleDeg", this.getTurretAngleDegrees());
-      telemetry.putNumber("Turret/TurretAngleDeg2", m_turret.getAngle().in(Degrees));
-      telemetry.putNumber("Turret/TurretTargetDeg", turretTargetDeg);
-      telemetry.putNumber("Turret/TurretRotorPos", m_turretSMC.getRotorPosition().in(Rotations));
-      telemetry.putNumber("Turret/TurrtPot", -m_turretPotentiometer.get());
-    } catch (Exception e) {
-      // ignore transient telemetry failures
-    }
+    this.updateTelemetry();
   }
 
   @Override
@@ -147,28 +137,24 @@ public class TurretSubsystem extends SubsystemBase {
     m_turret.simIterate();
   }
 
+  public Angle getAngle() {
+    return m_turret.getAngle();
+  }
+
   public Command setAngle(Angle angle) {
     return m_turret.setAngle(angle);
   }
 
-  public void setAngleDirect(Angle angle) {
-    m_turretSMC.setPosition(angle);
+  public Command setAngle(Angle angle, Angle tolerance) {
+    return m_turret.setAngle(angle);
   }
 
   public Command setAngle(Supplier<Angle> angleSupplier) {
     return m_turret.setAngle(angleSupplier);
   }
 
-  public Angle getAngle() {
-    return m_turret.getAngle();
-  }
-
-  public Command sysId() {
-    return m_turret.sysId(
-                    Volts.of(4.0), // maximumVoltage
-                    Volts.per(Second).of(0.5), // step
-                    Seconds.of(8.0) // duration
-    );
+  public void setAngleDirect(Angle angle) {
+    m_turretSMC.setPosition(angle);
   }
 
   public Command setDutyCycle(Supplier<Double> dutyCycleSupplier) {
@@ -179,24 +165,32 @@ public class TurretSubsystem extends SubsystemBase {
     return m_turret.set(dutyCycle);
   }
 
+  public void setDutyCycleDirect(double dutyCycle) {
+    m_turretSMC.setDutyCycle(dutyCycle);
+  }
+
+  public Command sysId() {
+    return m_turret.sysId(
+                    Volts.of(4.0), // maximumVoltage
+                    Volts.per(Second).of(0.5), // step
+                    Seconds.of(8.0) // duration
+    );
+  }
+
   
   // -- Turret control -----------------------------------------------------
+  @Logged
+  public double getTurretAngleDegrees() {
+    return m_turret.getAngle().in(Degrees);
+  }
+
   /**
    * Sets the turret angle in degrees (clamped to configured limits).
    */
-  public void setTurretAngleDegrees(double degrees) {
+  public Command setTurretAngleDegrees(double degrees) {
     m_isTeleop = false;
     turretTargetDeg = MathUtil.clamp(degrees, TURRET_MIN_DEG, TURRET_MAX_DEG);
-    // convert degrees to rotations (1 rotation = 360 degrees) and apply gear ratio
-    double rotations = (turretTargetDeg / 360.0) * kTurretGearRatio;
-    m_turretSMC.setPosition(Rotations.of(rotations));
-    // m_turret.setAngle(Degrees.of(turretTargetDeg));
-  }
-
-  @Logged
-  public double getTurretAngleDegrees() {
-    double rotations = m_turret.getAngle().in(Rotations);
-    return rotations / kTurretGearRatio * 360.0;
+    return this.setAngle(Degrees.of(turretTargetDeg));
   }
 
   public void stopTurret() {
@@ -218,32 +212,32 @@ public class TurretSubsystem extends SubsystemBase {
       m_turretSMC.setDutyCycle(aspeed * kTurretTeleopSpeed);
     } else if (m_isTeleop) {
       m_isTeleop = false;
-      m_turretSMC.setDutyCycle(0.0);
+      this.stopTurret();
     }
   }
 
-  // // -- SmartDashboard ----------------------------------------------------
-  // private void updateSmartDashboard() {
-  //   SmartDashboard.putNumber("Turret/TurretAngleDeg", this.getTurretAngleDegrees());
-  //   SmartDashboard.putNumber("Turret/TurretTargetDeg", turretTargetDeg);
-  //   // additional telemetry from YAMS controller
-  //   try {
-  //     SmartDashboard.putNumber("Turret/TurretRotorPos", m_turretSMC.getRotorPosition().in(Rotations));
-  //   } catch (Exception e) {
-  //     // ignore
-  //   }
-  // }
+  private void updateTelemetry() {
+    m_turret.updateTelemetry();
+    // publish a few human-friendly telemetry values through the central Telemetry class
+    try {
+      telemetry.putNumber("Turret/TurretAngleDeg", this.getAngle().in(Degrees));
+      telemetry.putNumber("Turret/TurretTargetDeg", turretTargetDeg);
+      telemetry.putNumber("Turret/TurretRotorPos", m_turretSMC.getRotorPosition().in(Rotations));
+      telemetry.putNumber("Turret/TurretPotentiometer", -m_turretPotentiometer.get());
+    } catch (Exception e) {
+      // ignore transient telemetry failures
+    }
+  }
 
   // -- Commands -----------------------------------------------------------
   public Command turretToAngleCommand(double degrees) {
-    return run(() -> this.setTurretAngleDegrees(degrees))
+    return this.setAngle(Degrees.of(degrees), Degrees.of(2.0))
         .withName("TurretToAngleCommand")
-        .until(() -> MathUtil.isNear(degrees, this.getTurretAngleDegrees(), 2.0))
         .withTimeout(5.0);
   }
 
   public Command seedTurretPositionCommand() {
-    return run(() -> seedTurretPosition())
+    return runOnce(this::seedTurretPosition)
         .withName("SeedTurretPositionCommand");
   }
 

@@ -1,11 +1,10 @@
 package frc.robot;
 
-// import static frc.robot.Constants.*;
-
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.commands.PathfindingCommand;
+
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.livewindow.LiveWindow;
@@ -14,6 +13,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+
 import frc.robot.Constants.DriveTrainConstants;
 import frc.robot.commands.*;
 import frc.robot.generated.TunerConstants;
@@ -45,7 +45,8 @@ public class RobotContainer {
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
   public final VisionSubsystem vision = new VisionSubsystem(logger);
   public final ShooterSubsystem shooter = new ShooterSubsystem(logger);
-  public final RakeSubsystem rake = new RakeSubsystem(logger);
+  public final RakeArmSubsystem rakeArm = new RakeArmSubsystem(logger);
+  public final RakeIntakeSubsystem rakeIntake = new RakeIntakeSubsystem(logger);
   public final CollectorSubsystem collector = new CollectorSubsystem(logger);
 
   /* Path follower */
@@ -150,13 +151,13 @@ public class RobotContainer {
     oi.getYButton().onTrue(shooter.feeder.feederUnstuckCommand());
 
     oi.getLeftBumper().onTrue(collector.collectorStartCommand());
-    oi.getRightBumper().onTrue(rake.setRakeIntakeDutyCycle(0.5)).onFalse(rake.setRakeIntakeDutyCycle(0));
+    oi.getRightBumper().onTrue(rakeIntake.rakeIntakeStartCommand()).onFalse(rakeIntake.rakeIntakeStopCommand());
 
     oi.getLeftTrigger().onTrue(shooter.shooterToVelocityCommand(2000)).onFalse(shooter.shooterToPercentCommand(0.0));
     oi.getRightTrigger().onTrue(shooter.shootCommand()).onFalse(shooter.stopShootCommand());
     
-    oi.getPOVUp().onTrue(rake.setRakeArmAngle(RakeSubsystem.kRakeArmPositionMax));
-    oi.getPOVDown().onTrue(rake.setRakeArmAngle(RakeSubsystem.kRakeArmPositionMin));
+    oi.getPOVUp().onTrue(rakeArm.rakeArmDeployCommand());
+    oi.getPOVDown().onTrue(rakeArm.rakeArmRetractCommand());
     oi.getPOVLeft().onTrue(shooter.turretToAngleCommand(20));
     oi.getPOVRight().onTrue(shooter.turretToAngleCommand(0));
 
@@ -193,7 +194,8 @@ public class RobotContainer {
     drivetrain.setDefaultCommand(new SwerveTeleopCommand(drivetrain, oi));
 
     shooter.setDefaultCommand(Commands.run(() -> shooter.teleop(oi.getRightThumbstickX(), -oi.getRightThumbstickY()), shooter));
-    rake.setDefaultCommand(Commands.run(() -> rake.teleop(oi.getLeftThumbstickY(), -oi.getLeftThumbstickX()), rake));
+    rakeArm.setDefaultCommand(Commands.run(() -> rakeArm.teleop(oi.getLeftThumbstickY()), rakeArm));
+    rakeIntake.setDefaultCommand(Commands.run(() -> rakeIntake.teleop(-oi.getLeftThumbstickX()), rakeIntake));
 
     // climber.setDefaultCommand(
     //     Commands.run(() -> climber.teleopClimb(-oi.getRightThumbstickY()), climber));
@@ -206,31 +208,26 @@ public class RobotContainer {
     NamedCommands.registerCommand("climb", Commands.runOnce(() -> System.out.println("Climb command executed")));
     NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
     NamedCommands.registerCommand("collectorCommand", collector.collectorStartCommand());
-    NamedCommands.registerCommand("rakeDeploy", rake.setRakeArmAngle(RakeSubsystem.kRakeArmPositionMin));
-    NamedCommands.registerCommand("rakeRetract", rake.setRakeArmAngle(RakeSubsystem.kRakeArmPositionMax));
+    NamedCommands.registerCommand("rakeDeploy", rakeArm.rakeArmDeployCommand());
+    NamedCommands.registerCommand("rakeRetract", rakeArm.rakeArmRetractCommand());
   }
 
   private void configureTelemetry() {
     drivetrain.registerTelemetry(logger::telemeterize);
 
-  logger.putData("AutoChooser", autoChooser);
+    logger.putData("AutoChooser", autoChooser);
     // SmartDashboard.putData("Intake", intake.intakeCommand());
     // SmartDashboard.putData("Outtake", intake.outtakeL2Command());
     // SmartDashboard.putData("OuttakeSpin", intake.outtakeL1Command());
     // SmartDashboard.putData("ClimbToFull", climber.climbToFullPositionCommand());
-  logger.putData("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
+    logger.putData("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
   }
 
-  public void robotPeriodic() {
-    // shooter.teleop(oi.getRightThumbstickX(), -oi.getRightThumbstickY());
-    // rake.teleop(oi.getLeftThumbstickY(), -oi.getLeftThumbstickX());
-    // vision.updateGlobalPoseCommand(drivetrain);
-  }
+  public void robotPeriodic() {}
 
   public void simulationInit() {}
 
   public void simulationPeriodic() {
-
     // Update camera simulation
     vision.simulationPeriodic(drivetrain.getState().Pose);
 

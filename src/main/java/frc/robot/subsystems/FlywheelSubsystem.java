@@ -3,13 +3,9 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.*;
 
+import frc.robot.Telemetry;
 import java.util.function.Supplier;
 
-import com.ctre.phoenix6.CANBus;
-import com.ctre.phoenix6.hardware.TalonFX;
-
-import yams.gearing.GearBox;
-import yams.gearing.MechanismGearing;
 import yams.motorcontrollers.SmartMotorController;
 import yams.motorcontrollers.SmartMotorControllerConfig;
 import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
@@ -17,22 +13,26 @@ import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
 import yams.motorcontrollers.remote.TalonFXWrapper;
 import yams.mechanisms.config.FlyWheelConfig;
 import yams.mechanisms.velocity.FlyWheel;
+import yams.gearing.GearBox;
+import yams.gearing.MechanismGearing;
 
-import edu.wpi.first.math.controller.SimpleMotorFeedforward;
-import edu.wpi.first.math.system.plant.DCMotor;
+import com.ctre.phoenix6.CANBus;
+import com.ctre.phoenix6.hardware.TalonFX;
+
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.Pair;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.units.measure.AngularAcceleration;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
-import edu.wpi.first.units.measure.AngularAcceleration;
-import edu.wpi.first.units.measure.AngularVelocity;
-// import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Telemetry;
+import edu.wpi.first.math.Pair;
 
+//Subsystem for the shooter flywheel
 public class FlywheelSubsystem extends SubsystemBase {
 
   public static final CANBus kCANBus = CANBUS_FD;
@@ -41,27 +41,23 @@ public class FlywheelSubsystem extends SubsystemBase {
   public static final int FLYWHEEL_MASTER_ID = 60;
   public static final int FLYWHEEL_FOLLOWER_ID = 61;
 
-  // Flywheel tuning
-  public static final double FLYWHEEL_MAX_RPM = 6000.0; // adjust to your flywheel
-  public static final double FLYWHEEL_DEFAULT_RPM = 3000.0;
-
   public static final double kFlywheelChainRatio = 24.0 / 24.0; // 24:24 ratio
   public static final double kFlywheelGearboxRatio = 1.0; // 1:1
-  public static final double kFlywheelGearRatio = kFlywheelChainRatio * kFlywheelGearboxRatio;
 
   // Flywheel control tuning (Velocity closed-loop)
   public static final double FLYWHEEL_kS = 0.0;
   public static final double FLYWHEEL_kP = 0.1;
   public static final double FLYWHEEL_kI = 0.0;
   public static final double FLYWHEEL_kD = 0.0;
-  public static final AngularVelocity FLYWHEEL_kMaxV = RPM.of(FLYWHEEL_MAX_RPM);
-  public static final AngularAcceleration FLYWHEEL_kMaxA = RotationsPerSecondPerSecond.of(2500);
+  public static final AngularVelocity FLYWHEEL_kMaxV = RPM.of(6000.0);
+  public static final AngularAcceleration FLYWHEEL_kMaxA = RotationsPerSecondPerSecond.of(3000);
   
+  private final Distance flywheelDiameter = Inches.of(4);
+  private final Mass flywheelMass = Pounds.of(1);
+
+  public static final AngularVelocity flywheelVelocity = RPM.of(3000);
+
     private static final double kFlywheelTeleopSpeed = 0.8;
-  
-    // flywheel (master + follower)
-    private final Distance flywheelDiameter = Inches.of(4);
-    private final Mass flywheelMass = Pounds.of(1);
   
     // TalonFX hardware instances
     private final TalonFX m_flywheelMasterMotor = new TalonFX(FLYWHEEL_MASTER_ID, kCANBus);
@@ -115,12 +111,7 @@ public class FlywheelSubsystem extends SubsystemBase {
   
     @Override
     public void periodic() {
-      m_flywheel.updateTelemetry();
-      try {
-        telemetry.putNumber("Shooter/FlywheelRPM", this.getVelocity().in(RPM));
-      } catch (Exception e) {
-        // ignore telemetry failures
-      }
+      this.updateTelemetry();
     }
   
     @Override
@@ -140,15 +131,6 @@ public class FlywheelSubsystem extends SubsystemBase {
   
     public Command setVelocity(Supplier<AngularVelocity> speed) {
       return m_flywheel.setSpeed(speed);
-    }
-  
-    /**
-     * Convenience: set velocity using RPM (double) as a command.
-     * @param rpm desired speed in RPM
-     * @return a Command that sets the flywheel speed
-     */
-    public Command setVelocityRPM(double rpm) {
-      return setVelocity(RPM.of(rpm));
     }
   
     public Command setDutyCycle(double dutyCycle) {
@@ -172,6 +154,26 @@ public class FlywheelSubsystem extends SubsystemBase {
       m_flywheelSMC.setVelocity(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
     }
   
+    /** Sets motors to constants intake speed */
+    public Command flywheelStartCommand() {
+      return setVelocity(flywheelVelocity).withName("FlywheelStartCommand");
+    }
+
+    /** Sets motors to constants intake speed */
+    public Command flywheelStartCommand(double rpm) {
+      return setVelocity(RPM.of(rpm)).withName("FlywheelStartCommand");
+    }
+
+    public Command flywheelStopCommand() {
+      return runOnce(this::flywheelStop).withName("FlywheelStopCommand");
+    }
+
+    /** Stops the flywheel motor immediately (open-loop stop). */
+    public void flywheelStop() {
+      m_flywheelSMC.stopClosedLoopController();
+      m_flywheelSMC.setDutyCycle(0.0);
+    }
+
     /**
      * Teleop controls
      *
@@ -183,14 +185,18 @@ public class FlywheelSubsystem extends SubsystemBase {
       if (aspeed != 0.0) {
         m_isTeleop = true;
         m_flywheelSMC.setDutyCycle(aspeed * kFlywheelTeleopSpeed);
-    } else if (m_isTeleop) {
-      m_isTeleop = false;
-      m_flywheelSMC.setDutyCycle(0.0);
-    }
+      } else if (m_isTeleop) {
+        m_isTeleop = false;
+        this.flywheelStop();
+      }
   }
-  // -- SmartDashboard ----------------------------------------------------
-  // private void updateSmartDashboard() {
-  //   // Display flywheel speed in RPM
-  //   SmartDashboard.putNumber("Shooter/FlywheelRPM", this.getVelocity().in(RPM));
-  // }
+
+  private void updateTelemetry() {
+      m_flywheel.updateTelemetry();
+      try {
+        telemetry.putNumber("Shooter/FlywheelRPM", this.getVelocity().in(RPM));
+      } catch (Exception e) {
+        // ignore telemetry failures
+      }
+  }
 }
