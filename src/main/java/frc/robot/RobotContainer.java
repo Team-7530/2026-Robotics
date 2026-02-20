@@ -144,9 +144,10 @@ public class RobotContainer {
     // oi.getBButton().onTrue(intake.outtakeL1Command());
 
     //Testing Controls
-    oi.getAButton().onTrue(shooter.shootCommand());
-    // oi.getBButton().onTrue(shooter.feederUnstuckCommand());
+    oi.getAButton().onTrue(shooter.flywheel.setDutyCycle(0));
+    oi.getBButton().onTrue(collector.collectorStopCommand());
     oi.getXButton().onTrue(collector.collectorUnstuckCommand());
+    oi.getYButton().onTrue(shooter.feeder.feederStopCommand());
 
     oi.getLeftBumper().onTrue(shooter.stopShootCommand());
     oi.getRightBumper().onTrue(shooter.feederUnstuckCommand());
@@ -157,7 +158,7 @@ public class RobotContainer {
     oi.getPOVUp().onTrue(rake.setRakeAngle(RakeSubsystem.kRakeArmPositionMax));
     oi.getPOVDown().onTrue(rake.setRakeAngle(RakeSubsystem.kRakeArmPositionMin));
     oi.getPOVLeft().onTrue(shooter.turretToAngleCommand(20));
-    oi.getPOVRight().onTrue(shooter.turretToAngleCommand(-20));
+    oi.getPOVRight().onTrue(shooter.turretToAngleCommand(0));
 
     oi.getStartButton().onTrue(Commands.runOnce(() -> shooter.turret.seedTurretPositionCommand()));
 
