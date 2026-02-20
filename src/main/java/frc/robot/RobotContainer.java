@@ -147,16 +147,16 @@ public class RobotContainer {
     oi.getAButton().onTrue(shooter.flywheel.setDutyCycle(0));
     oi.getBButton().onTrue(collector.collectorStopCommand());
     oi.getXButton().onTrue(collector.collectorUnstuckCommand());
-    oi.getYButton().onTrue(shooter.feeder.feederStopCommand());
+    oi.getYButton().onTrue(shooter.feeder.feederUnstuckCommand());
 
-    oi.getLeftBumper().onTrue(shooter.stopShootCommand());
-    oi.getRightBumper().onTrue(shooter.feederUnstuckCommand());
+    oi.getLeftBumper().onTrue(collector.collectorStartCommand());
+    oi.getRightBumper().onTrue(rake.setRakeIntakeDutyCycle(0.5)).onFalse(rake.setRakeIntakeDutyCycle(0));
 
-    oi.getRightTrigger().onTrue(shooter.shooterToVelocityCommand(2000)).onFalse(shooter.shooterToPercentCommand(0.0));
-    oi.getLeftTrigger().onTrue(collector.collectorStartCommand());
+    oi.getLeftTrigger().onTrue(shooter.shooterToVelocityCommand(2000)).onFalse(shooter.shooterToPercentCommand(0.0));
+    oi.getRightTrigger().onTrue(shooter.shootCommand()).onFalse(shooter.stopShootCommand());
     
-    oi.getPOVUp().onTrue(rake.setRakeAngle(RakeSubsystem.kRakeArmPositionMax));
-    oi.getPOVDown().onTrue(rake.setRakeAngle(RakeSubsystem.kRakeArmPositionMin));
+    oi.getPOVUp().onTrue(rake.setRakeArmAngle(RakeSubsystem.kRakeArmPositionMax));
+    oi.getPOVDown().onTrue(rake.setRakeArmAngle(RakeSubsystem.kRakeArmPositionMin));
     oi.getPOVLeft().onTrue(shooter.turretToAngleCommand(20));
     oi.getPOVRight().onTrue(shooter.turretToAngleCommand(0));
 
@@ -206,8 +206,8 @@ public class RobotContainer {
     NamedCommands.registerCommand("climb", Commands.runOnce(() -> System.out.println("Climb command executed")));
     NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
     NamedCommands.registerCommand("collectorCommand", collector.collectorStartCommand());
-    NamedCommands.registerCommand("rakeDeploy", rake.setRakeAngle(RakeSubsystem.kRakeArmPositionMin));
-    NamedCommands.registerCommand("rakeRetract", rake.setRakeAngle(RakeSubsystem.kRakeArmPositionMax));
+    NamedCommands.registerCommand("rakeDeploy", rake.setRakeArmAngle(RakeSubsystem.kRakeArmPositionMin));
+    NamedCommands.registerCommand("rakeRetract", rake.setRakeArmAngle(RakeSubsystem.kRakeArmPositionMax));
   }
 
   private void configureTelemetry() {
@@ -221,7 +221,11 @@ public class RobotContainer {
   logger.putData("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
   }
 
-  public void robotPeriodic() {}
+  public void robotPeriodic() {
+    // shooter.teleop(oi.getRightThumbstickX(), -oi.getRightThumbstickY());
+    // rake.teleop(oi.getLeftThumbstickY(), -oi.getLeftThumbstickX());
+    // vision.updateGlobalPoseCommand(drivetrain);
+  }
 
   public void simulationInit() {}
 

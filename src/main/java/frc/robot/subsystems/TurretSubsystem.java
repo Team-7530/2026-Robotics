@@ -55,13 +55,13 @@ public class TurretSubsystem extends SubsystemBase {
   public static final double TURRET_KS = 0.0;
   public static final double TURRET_KV = 0.0;
   public static final double TURRET_KA = 0.0;
-  public static final double TURRET_KP = 30.0; // 45
+  public static final double TURRET_KP = 180.0; // 45
   public static final double TURRET_KI = 0.0;
   public static final double TURRET_KD = 0.0;
-  public static final AngularVelocity TURRET_kMaxV = DegreesPerSecond.of(180);
-  public static final AngularAcceleration TURRET_kMaxA = DegreesPerSecondPerSecond.of(90);
+  public static final AngularVelocity TURRET_kMaxV = DegreesPerSecond.of(1440);
+  public static final AngularAcceleration TURRET_kMaxA = DegreesPerSecondPerSecond.of(1440);
 
-  public static final double kTurretTeleopSpeed = 0;
+  public static final double kTurretTeleopSpeed = 0.8;
 
   // TalonFX hardware + YAMS controller
   private final TalonFX m_turretMotor = new TalonFX(TURRET_MASTER_ID, kCANBus);
@@ -89,7 +89,7 @@ public class TurretSubsystem extends SubsystemBase {
       .withClosedLoopRampRate(Seconds.of(0.25))
       .withOpenLoopRampRate(Seconds.of(0.25));
 
-  private final SmartMotorController m_turretSMC = new TalonFXWrapper(m_turretMotor, DCMotor.getKrakenX44(1), smc_config);
+  private final SmartMotorController m_turretSMC = new TalonFXWrapper(m_turretMotor, DCMotor.getKrakenX60Foc(1), smc_config);
 
   private final MechanismPositionConfig robotToMechanism = new MechanismPositionConfig()
       .withMaxRobotHeight(Inches.of(23.0))
@@ -121,7 +121,7 @@ public class TurretSubsystem extends SubsystemBase {
 
   private void seedTurretPosition() {
     // Angle potAngle = Degrees.of(0);
-    Angle potAngle = Degrees.of(m_turretPotentiometer.get() + kTurretOffset);
+    Angle potAngle = Degrees.of(-m_turretPotentiometer.get() + kTurretOffset);
     m_turretSMC.setEncoderPosition(potAngle);
 
     telemetry.putNumber("Turret/SeededTurretDeg", potAngle.in(Degrees));
@@ -133,8 +133,10 @@ public class TurretSubsystem extends SubsystemBase {
     // publish a few human-friendly telemetry values through the central Telemetry class
     try {
       telemetry.putNumber("Turret/TurretAngleDeg", this.getTurretAngleDegrees());
+      telemetry.putNumber("Turret/TurretAngleDeg2", m_turret.getAngle().in(Degrees));
       telemetry.putNumber("Turret/TurretTargetDeg", turretTargetDeg);
       telemetry.putNumber("Turret/TurretRotorPos", m_turretSMC.getRotorPosition().in(Rotations));
+      telemetry.putNumber("Turret/TurrtPot", -m_turretPotentiometer.get());
     } catch (Exception e) {
       // ignore transient telemetry failures
     }
@@ -188,6 +190,7 @@ public class TurretSubsystem extends SubsystemBase {
     // convert degrees to rotations (1 rotation = 360 degrees) and apply gear ratio
     double rotations = (turretTargetDeg / 360.0) * kTurretGearRatio;
     m_turretSMC.setPosition(Rotations.of(rotations));
+    // m_turret.setAngle(Degrees.of(turretTargetDeg));
   }
 
   @Logged

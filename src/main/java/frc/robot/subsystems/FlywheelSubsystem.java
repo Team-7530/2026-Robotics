@@ -56,134 +56,136 @@ public class FlywheelSubsystem extends SubsystemBase {
   public static final double FLYWHEEL_kD = 0.0;
   public static final AngularVelocity FLYWHEEL_kMaxV = RPM.of(FLYWHEEL_MAX_RPM);
   public static final AngularAcceleration FLYWHEEL_kMaxA = RotationsPerSecondPerSecond.of(2500);
-
-  // flywheel (master + follower)
-  private final Distance flywheelDiameter = Inches.of(4);
-  private final Mass flywheelMass = Pounds.of(1);
-
-  // TalonFX hardware instances
-  private final TalonFX m_flywheelMasterMotor = new TalonFX(FLYWHEEL_MASTER_ID, kCANBus);
-  private final TalonFX m_flywheelFollowerMotor = new TalonFX(FLYWHEEL_FOLLOWER_ID, kCANBus);
-
-  private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
-      .withControlMode(ControlMode.CLOSED_LOOP)
-      // PID Constants
-      .withClosedLoopController(FLYWHEEL_kP, FLYWHEEL_kI, FLYWHEEL_kD, FLYWHEEL_kMaxV, FLYWHEEL_kMaxA)
-      .withSimClosedLoopController(FLYWHEEL_kP, FLYWHEEL_kI, FLYWHEEL_kD, FLYWHEEL_kMaxV, FLYWHEEL_kMaxA)
-      // Feedforward Constants
-      .withFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, 0, 0))
-      .withSimFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, 0, 0))
-      // Telemetry name and verbosity level
-      .withTelemetry("FlywheelMotor", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
-      // Gearing from the motor rotor to final shaft.
-      // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
-      .withGearing(new MechanismGearing(GearBox.fromReductionStages(kFlywheelChainRatio, kFlywheelGearboxRatio)))
-      // Motor properties to prevent over currenting.
-      .withMotorInverted(true)
-      .withIdleMode(MotorMode.COAST)
-      // Power Optimization
-      .withStatorCurrentLimit(Amps.of(40))
-      .withClosedLoopRampRate(Seconds.of(0.25))
-      .withOpenLoopRampRate(Seconds.of(0.25))
-      // Follower Motors
-      .withFollowers(Pair.of(m_flywheelFollowerMotor, true));
-
-  private final SmartMotorController m_flywheelSMC = new TalonFXWrapper(m_flywheelMasterMotor, DCMotor.getKrakenX60Foc(1), smc_config);
-
-  // Construct YAMS FlyWheel config & mechanism (use master controller for mech config)
-  private FlyWheelConfig m_flywheelConfig = new FlyWheelConfig(m_flywheelSMC)
-      // Diameter of the flywheel.
-      .withDiameter(flywheelDiameter)
-      // Mass of the flywheel.
-      .withMass(flywheelMass)
-      // Maximum speed of the shooter.
-      .withUpperSoftLimit(FLYWHEEL_kMaxV)
-      // Telemetry name and verbosity for the arm.
-      .withTelemetry("Flywheel", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
-      .withSpeedometerSimulation(FLYWHEEL_kMaxV);
-
-  private FlyWheel m_flywheel = new FlyWheel(m_flywheelConfig);
-
-  private boolean m_isTeleop = false;
-  private final Telemetry telemetry;
-
-  public FlywheelSubsystem(Telemetry telemetry) {
-    this.telemetry = telemetry;
-  }
-
-  @Override
-  public void periodic() {
-    m_flywheel.updateTelemetry();
-    try {
-      telemetry.putNumber("Shooter/FlywheelRPM", this.getVelocity().in(RPM));
-    } catch (Exception e) {
-      // ignore telemetry failures
+  
+    private static final double kFlywheelTeleopSpeed = 0.8;
+  
+    // flywheel (master + follower)
+    private final Distance flywheelDiameter = Inches.of(4);
+    private final Mass flywheelMass = Pounds.of(1);
+  
+    // TalonFX hardware instances
+    private final TalonFX m_flywheelMasterMotor = new TalonFX(FLYWHEEL_MASTER_ID, kCANBus);
+    private final TalonFX m_flywheelFollowerMotor = new TalonFX(FLYWHEEL_FOLLOWER_ID, kCANBus);
+  
+    private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
+        .withControlMode(ControlMode.CLOSED_LOOP)
+        // PID Constants
+        .withClosedLoopController(FLYWHEEL_kP, FLYWHEEL_kI, FLYWHEEL_kD, FLYWHEEL_kMaxV, FLYWHEEL_kMaxA)
+        .withSimClosedLoopController(FLYWHEEL_kP, FLYWHEEL_kI, FLYWHEEL_kD, FLYWHEEL_kMaxV, FLYWHEEL_kMaxA)
+        // Feedforward Constants
+        .withFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, 0, 0))
+        .withSimFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, 0, 0))
+        // Telemetry name and verbosity level
+        .withTelemetry("FlywheelMotor", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+        // Gearing from the motor rotor to final shaft.
+        // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
+        .withGearing(new MechanismGearing(GearBox.fromReductionStages(kFlywheelChainRatio, kFlywheelGearboxRatio)))
+        // Motor properties to prevent over currenting.
+        .withMotorInverted(true)
+        .withIdleMode(MotorMode.COAST)
+        // Power Optimization
+        .withStatorCurrentLimit(Amps.of(40))
+        .withClosedLoopRampRate(Seconds.of(0.25))
+        .withOpenLoopRampRate(Seconds.of(0.25))
+        // Follower Motors
+        .withFollowers(Pair.of(m_flywheelFollowerMotor, true));
+  
+    private final SmartMotorController m_flywheelSMC = new TalonFXWrapper(m_flywheelMasterMotor, DCMotor.getKrakenX60Foc(1), smc_config);
+  
+    // Construct YAMS FlyWheel config & mechanism (use master controller for mech config)
+    private FlyWheelConfig m_flywheelConfig = new FlyWheelConfig(m_flywheelSMC)
+        // Diameter of the flywheel.
+        .withDiameter(flywheelDiameter)
+        // Mass of the flywheel.
+        .withMass(flywheelMass)
+        // Maximum speed of the shooter.
+        .withUpperSoftLimit(FLYWHEEL_kMaxV)
+        // Telemetry name and verbosity for the arm.
+        .withTelemetry("Flywheel", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+        .withSpeedometerSimulation(FLYWHEEL_kMaxV);
+  
+    private FlyWheel m_flywheel = new FlyWheel(m_flywheelConfig);
+  
+    private boolean m_isTeleop = false;
+    private final Telemetry telemetry;
+  
+    public FlywheelSubsystem(Telemetry telemetry) {
+      this.telemetry = telemetry;
     }
-  }
-
-  @Override
-  public void simulationPeriodic() {
-    m_flywheel.simIterate();
-  }
-
-  // YAMS Flywheel API wrappers
-  @Logged
-  public AngularVelocity getVelocity() {
-    return m_flywheel.getSpeed();
-  }
-
-  public Command setVelocity(AngularVelocity speed) {
-    return m_flywheel.setSpeed(speed);
-  }
-
-  public Command setVelocity(Supplier<AngularVelocity> speed) {
-    return m_flywheel.setSpeed(speed);
-  }
-
-  /**
-   * Convenience: set velocity using RPM (double) as a command.
-   * @param rpm desired speed in RPM
-   * @return a Command that sets the flywheel speed
-   */
-  public Command setVelocityRPM(double rpm) {
-    return setVelocity(RPM.of(rpm));
-  }
-
-  public Command setDutyCycle(double dutyCycle) {
-    return m_flywheel.set(dutyCycle);
-  }
-
-  public Command setDutyCycle(Supplier<Double> dutyCycle) {
-    return m_flywheel.set(dutyCycle);
-  }
-
-  public Command sysId() {
-    return m_flywheel.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
-  }
-
-  public Command setRPM(LinearVelocity speed) {
-    return m_flywheel.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
-  }
-
-  public void setRPMDirect(LinearVelocity speed) {
-    // directly set the motor velocity on the master based on linear speed -> rotational
-    m_flywheelSMC.setVelocity(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
-  }
-
-  /**
-   * Teleop controls
-   *
-   * @param aspeed a double that sets the arm speed during teleop
-   */
-  public void teleop(double aspeed) {
-    aspeed = MathUtil.applyDeadband(aspeed, STICK_DEADBAND);
-
-    if (aspeed != 0.0) {
-      m_isTeleop = true;
-      setDutyCycle(aspeed);
+  
+    @Override
+    public void periodic() {
+      m_flywheel.updateTelemetry();
+      try {
+        telemetry.putNumber("Shooter/FlywheelRPM", this.getVelocity().in(RPM));
+      } catch (Exception e) {
+        // ignore telemetry failures
+      }
+    }
+  
+    @Override
+    public void simulationPeriodic() {
+      m_flywheel.simIterate();
+    }
+  
+    // YAMS Flywheel API wrappers
+    @Logged
+    public AngularVelocity getVelocity() {
+      return m_flywheel.getSpeed();
+    }
+  
+    public Command setVelocity(AngularVelocity speed) {
+      return m_flywheel.setSpeed(speed);
+    }
+  
+    public Command setVelocity(Supplier<AngularVelocity> speed) {
+      return m_flywheel.setSpeed(speed);
+    }
+  
+    /**
+     * Convenience: set velocity using RPM (double) as a command.
+     * @param rpm desired speed in RPM
+     * @return a Command that sets the flywheel speed
+     */
+    public Command setVelocityRPM(double rpm) {
+      return setVelocity(RPM.of(rpm));
+    }
+  
+    public Command setDutyCycle(double dutyCycle) {
+      return m_flywheel.set(dutyCycle);
+    }
+  
+    public Command setDutyCycle(Supplier<Double> dutyCycle) {
+      return m_flywheel.set(dutyCycle);
+    }
+  
+    public Command sysId() {
+      return m_flywheel.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
+    }
+  
+    public Command setRPM(LinearVelocity speed) {
+      return m_flywheel.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
+    }
+  
+    public void setRPMDirect(LinearVelocity speed) {
+      // directly set the motor velocity on the master based on linear speed -> rotational
+      m_flywheelSMC.setVelocity(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
+    }
+  
+    /**
+     * Teleop controls
+     *
+     * @param aspeed a double that sets the arm speed during teleop
+     */
+    public void teleop(double aspeed) {
+      aspeed = MathUtil.applyDeadband(aspeed, STICK_DEADBAND);
+  
+      if (aspeed != 0.0) {
+        m_isTeleop = true;
+        m_flywheelSMC.setDutyCycle(aspeed * kFlywheelTeleopSpeed);
     } else if (m_isTeleop) {
       m_isTeleop = false;
-      setDutyCycle(0.0);
+      m_flywheelSMC.setDutyCycle(0.0);
     }
   }
   // -- SmartDashboard ----------------------------------------------------
