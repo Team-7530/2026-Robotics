@@ -46,14 +46,14 @@ public class RakeArmSubsystem extends SubsystemBase {
   public static final double RAKEARM_KS = 0.0;
   public static final double RAKEARM_KV = 0.0;
   public static final double RAKEARM_KA = 0.0;
-  public static final double RAKEARM_KP = 35.0; // 70
+  public static final double RAKEARM_KP = 110.0; // 70
   public static final double RAKEARM_KI = 0.0;
   public static final double RAKEARM_KD = 0.0;
   public static final AngularVelocity RAKEARM_kMaxV = RPM.of(5000);
   public static final AngularAcceleration RAKEARM_kMaxA = RotationsPerSecondPerSecond.of(2500);
 
-  public static final Angle kRakeArmPositionDeploy = Degrees.of(-90.0);
-  public static final Angle kRakeArmPositionRetract = Degrees.of(0.0);
+  public static final Angle kRakeArmPositionDeploy = Degrees.of(112.0);
+  public static final Angle kRakeArmPositionRetract = Degrees.of(-26.0);
 
   public static final double kRakeArmTeleopSpeed = 0.2;
     
@@ -84,6 +84,7 @@ public class RakeArmSubsystem extends SubsystemBase {
       // External Encoder
       .withExternalEncoder(m_rakeArmEncoder)
       .withExternalEncoderGearing(1.0)
+      .withExternalEncoderInverted(true)
       .withUseExternalFeedbackEncoder(true);
 
   private final SmartMotorController m_rakeArmSMC = new TalonFXWrapper(m_rakeArmMotor, DCMotor.getKrakenX60Foc(1), smc_config);
@@ -97,7 +98,7 @@ public class RakeArmSubsystem extends SubsystemBase {
       // Length of the arm.
       .withLength(Meters.of(0.135))
       // Angle limits
-      .withHardLimit(Degrees.of(-100), Degrees.of(200))
+      .withHardLimit(Degrees.of(-28), Degrees.of(112))
       .withStartingPosition(Degrees.of(0))
 //    .withHorizontalZero(Degrees.of(0))
       // Mass of the flywheel.

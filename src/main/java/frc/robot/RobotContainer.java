@@ -152,8 +152,8 @@ public class RobotContainer {
     oi.getLeftTrigger().onTrue(shooter.flywheelToVelocityCommand(4000)).onFalse(shooter.flywheelStopCommand());
     oi.getRightTrigger().onTrue(shooter.feederStartCommand()).onFalse(shooter.feederStopCommand());
     
-    oi.getPOVUp().onTrue(rakeArm.rakeArmDeployCommand());
-    oi.getPOVDown().onTrue(rakeArm.rakeArmRetractCommand());
+    oi.getPOVUp().onTrue(rakeArm.rakeArmRetractCommand());
+    oi.getPOVDown().onTrue(rakeArm.rakeArmDeployCommand());
     oi.getPOVLeft().onTrue(shooter.turretToAngleCommand(20));
     oi.getPOVRight().onTrue(shooter.turretToAngleCommand(0));
 
