@@ -149,7 +149,7 @@ public class RobotContainer {
     oi.getLeftBumper().onTrue(collector.collectorStartCommand());
     oi.getRightBumper().onTrue(rakeIntake.rakeIntakeStartCommand()).onFalse(rakeIntake.rakeIntakeStopCommand());
 
-    oi.getLeftTrigger().onTrue(shooter.flywheelToVelocityCommand(4000)).onFalse(shooter.flywheelStopCommand());
+    oi.getLeftTrigger().onTrue(shooter.flywheelToVelocityCommand(6000)).onFalse(shooter.flywheelStopCommand());
     oi.getRightTrigger().onTrue(shooter.feederStartCommand()).onFalse(shooter.feederStopCommand());
     
     oi.getPOVUp().onTrue(rakeArm.rakeArmRetractCommand());
