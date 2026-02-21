@@ -4,6 +4,8 @@
 
 package frc.robot;
 
+import edu.wpi.first.epilogue.Epilogue;
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -18,6 +20,7 @@ import java.nio.file.Path;
  * the package after creating this project, you must also update the build.gradle file in the
  * project.
  */
+@Logged
 public class Robot extends TimedRobot {
 
   private RobotContainer m_robotContainer;
@@ -48,6 +51,7 @@ public class Robot extends TimedRobot {
     // autonomous chooser on the dashboard.
     m_robotContainer = new RobotContainer();
     DataLogManager.start();
+    Epilogue.bind(this);
   }
 
   /**

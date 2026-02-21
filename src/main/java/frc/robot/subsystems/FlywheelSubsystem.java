@@ -33,6 +33,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.math.Pair;
 
 //Subsystem for the shooter flywheel
+@Logged
 public class FlywheelSubsystem extends SubsystemBase {
 
   public static final CANBus kCANBus = CANBUS_FD;

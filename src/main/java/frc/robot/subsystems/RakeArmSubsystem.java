@@ -31,6 +31,7 @@ import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
 import yams.motorcontrollers.remote.TalonFXWrapper;
 
+@Logged
 public class RakeArmSubsystem extends SubsystemBase {
 
   public static final CANBus kCANBus = CANBUS_FD;

@@ -32,6 +32,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 //Subsystem for feeder flywheel to the shooter flywheel
+@Logged
 public class FeederSubsystem extends SubsystemBase {
 
   public static final CANBus kCANBus = CANBUS_RIO;

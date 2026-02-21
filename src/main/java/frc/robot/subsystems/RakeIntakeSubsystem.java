@@ -32,6 +32,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 //Subsystem for rollers inside of hopper
+@Logged
 public class RakeIntakeSubsystem extends SubsystemBase {
 
   public static final CANBus kCANBus = CANBUS_FD;

@@ -34,6 +34,7 @@ import edu.wpi.first.wpilibj.AnalogPotentiometer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
+@Logged
 public class TurretSubsystem extends SubsystemBase {
 
   public static final CANBus kCANBus = CANBUS_FD;
