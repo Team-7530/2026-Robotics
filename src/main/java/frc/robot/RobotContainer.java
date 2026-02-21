@@ -216,10 +216,6 @@ public class RobotContainer {
     drivetrain.registerTelemetry(logger::telemeterize);
 
     logger.putData("AutoChooser", autoChooser);
-    // SmartDashboard.putData("Intake", intake.intakeCommand());
-    // SmartDashboard.putData("Outtake", intake.outtakeL2Command());
-    // SmartDashboard.putData("OuttakeSpin", intake.outtakeL1Command());
-    // SmartDashboard.putData("ClimbToFull", climber.climbToFullPositionCommand());
     logger.putData("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
   }
 

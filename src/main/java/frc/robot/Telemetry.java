@@ -10,10 +10,15 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+// SmartDashboard usage replaced by Shuffleboard/tab APIs for modern telemetry
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.util.sendable.Sendable;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
+import edu.wpi.first.networktables.GenericEntry;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Telemetry {
   private final double MaxSpeed;
@@ -27,20 +32,32 @@ public class Telemetry {
     MaxSpeed = maxSpeed;
     SignalLogger.start();
     // SignalLogger.stop();
-    SmartDashboard.putData("Field", field);
+    // register the common sendables once on the shuffleboard tab
+    putData("Field", field);
+    for (int i = 0; i < m_moduleMechanisms.length; ++i) {
+      putData("Module " + i, m_moduleMechanisms[i]);
+    }
   }
 
   /* Convenience helpers so subsystems stop calling SmartDashboard directly */
   public void putData(String key, Sendable sendable) {
-    SmartDashboard.putData(key, sendable);
+    m_tab.add(key, sendable);
   }
 
   public void putNumber(String key, double value) {
-    SmartDashboard.putNumber(key, value);
+    GenericEntry entry = m_entries.computeIfAbsent(key, k -> m_tab.add(k, value).getEntry());
+    entry.setDouble(value);
   }
 
   public void putString(String key, String value) {
-    SmartDashboard.putString(key, value);
+    GenericEntry entry = m_entries.computeIfAbsent(key, k -> m_tab.add(k, value).getEntry());
+    entry.setString(value);
+  }
+
+  /** Publish a simple boolean value under the telemetry tab. */
+  public void putBoolean(String key, boolean value) {
+    GenericEntry entry = m_entries.computeIfAbsent(key, k -> m_tab.add(k, value).getEntry());
+    entry.setBoolean(value);
   }
 
   /* What to publish over networktables for telemetry */
@@ -48,6 +65,10 @@ public class Telemetry {
 
   /* Robot pose visualization */
   private final Field2d field = new Field2d();
+
+  /* Shuffleboard tab and cached entries for fewer allocations */
+  private final ShuffleboardTab m_tab = Shuffleboard.getTab("Telemetry");
+  private final Map<String, GenericEntry> m_entries = new HashMap<>();
 
   /* Robot speeds for general checking */
   private final NetworkTable driveStats = inst.getTable("Drive");
@@ -101,7 +122,7 @@ public class Telemetry {
 
   private final double[] m_poseArray = new double[3];
 
-  /** Accept the swerve drive state and telemeterize it to SmartDashboard and SignalLogger. */
+  /** Accept the swerve drive state and telemeterize it to the dashboard (Shuffleboard) and SignalLogger. */
   public void telemeterize(SwerveDriveState state) {
   /* Telemeterize the pose */
   var pose = state.Pose;
@@ -131,8 +152,6 @@ public class Telemetry {
       m_moduleSpeeds[i].setAngle(state.ModuleStates[i].angle);
       m_moduleDirections[i].setAngle(state.ModuleStates[i].angle);
       m_moduleSpeeds[i].setLength(state.ModuleStates[i].speedMetersPerSecond / (2 * MaxSpeed));
-
-      SmartDashboard.putData("Module " + i, m_moduleMechanisms[i]);
     }
 
     SignalLogger.writeDoubleArray("odometry", m_poseArray);

@@ -188,8 +188,9 @@ public class CollectorSubsystem extends SubsystemBase {
       this.collectorStop();
     }
   }
-  // -- SmartDashboard ----------------------------------------------------
-  private void updateTelemetry() {
+
+  private void updateTelemetry() 
+  {
     m_collector.updateTelemetry();
     try {
       telemetry.putNumber("CollectorIntake RPS", getVelocity().in(RotationsPerSecond));

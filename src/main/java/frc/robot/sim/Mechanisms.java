@@ -2,7 +2,6 @@ package frc.robot.sim;
 
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 
@@ -53,6 +52,11 @@ public class Mechanisms {
         turretBase.setAngle(turretDeg);
         turretShaft.setAngle(turretDeg);
 
-        SmartDashboard.putData("mech2d", mech); // Creates mech2d in SmartDashboard
+                // publish the mechanism drawing through the centralized telemetry system
+                if (frc.robot.RobotContainer.GetInstance() != null) {
+                    frc.robot.RobotContainer.GetInstance()
+                            .getTelemetry()
+                            .putData("mech2d", mech);
+                }
     }
 }

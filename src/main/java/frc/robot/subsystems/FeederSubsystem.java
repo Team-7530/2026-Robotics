@@ -189,8 +189,8 @@ public class FeederSubsystem extends SubsystemBase {
     }
   }
 
-  // -- SmartDashboard ----------------------------------------------------
-  private void updateTelemetry() {
+  private void updateTelemetry() 
+  {
     m_feeder.updateTelemetry();
     try {
       telemetry.putNumber("FeederIntake RPS", getVelocity().in(RotationsPerSecond));
