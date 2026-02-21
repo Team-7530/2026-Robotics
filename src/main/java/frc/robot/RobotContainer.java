@@ -140,21 +140,17 @@ public class RobotContainer {
     //         new PathOnTheFlyCommand(
     //             drivetrain, new Pose2d(13.85, 2.67, Rotation2d.fromDegrees(124))));
 
-    // oi.getAButton().onTrue(intake.intakeCommand());
-    // oi.getXButton().onTrue(intake.outtakeL2Command());
-    // oi.getBButton().onTrue(intake.outtakeL1Command());
-
     //Testing Controls
-    oi.getAButton().onTrue(shooter.flywheel.setDutyCycle(0));
+    oi.getAButton().onTrue(shooter.flywheelStopCommand());
     oi.getBButton().onTrue(collector.collectorStopCommand());
     oi.getXButton().onTrue(collector.collectorUnstuckCommand());
-    oi.getYButton().onTrue(shooter.feeder.feederUnstuckCommand());
+    oi.getYButton().onTrue(shooter.feederUnstuckCommand());
 
     oi.getLeftBumper().onTrue(collector.collectorStartCommand());
     oi.getRightBumper().onTrue(rakeIntake.rakeIntakeStartCommand()).onFalse(rakeIntake.rakeIntakeStopCommand());
 
-    oi.getLeftTrigger().onTrue(shooter.shooterToVelocityCommand(2000)).onFalse(shooter.shooterToPercentCommand(0.0));
-    oi.getRightTrigger().onTrue(shooter.shootCommand()).onFalse(shooter.stopShootCommand());
+    oi.getLeftTrigger().onTrue(shooter.flywheelToVelocityCommand(4000)).onFalse(shooter.flywheelStopCommand());
+    oi.getRightTrigger().onTrue(shooter.feederStartCommand()).onFalse(shooter.feederStopCommand());
     
     oi.getPOVUp().onTrue(rakeArm.rakeArmDeployCommand());
     oi.getPOVDown().onTrue(rakeArm.rakeArmRetractCommand());
@@ -163,18 +159,9 @@ public class RobotContainer {
 
     oi.getStartButton().onTrue(Commands.runOnce(() -> shooter.turret.seedTurretPositionCommand()));
 
-  // back button toggles continuous hub-aiming for testing; cancels immediately
-  // when released by virtue of being a run-while-true command.
-  oi.getBackButton().whileTrue(new AimAtHubCommand(shooter, vision, drivetrain));
-
-    
-    // oi.getRightTrigger().onTrue(new SequentialCommandGroup(this.getCoralPositionCommand(), intake.intakeCommand()));
-
-    //oi.getLeftTrigger().onTrue(climber.climbToStartPositionCommand());
-    //oi.getRightTrigger().onTrue(climber.climbToFullPositionCommand());
-
-    //    oi.getStartButton().onTrue(Commands.runOnce(() -> climber.resetMotorPostion()));
-    //    oi.getBackButton().onTrue(new DoAllResetCommand(arm, rake, climber));
+    // back button toggles continuous hub-aiming for testing; cancels immediately
+    // when released by virtue of being a run-while-true command.
+    oi.getBackButton().whileTrue(new AimAtHubCommand(shooter, vision, drivetrain));
   }
 
   /**
@@ -208,7 +195,7 @@ public class RobotContainer {
 
   private void configureAutoPaths() {
     NamedCommands.registerCommand("aimRange", shooter.turretToAngleCommand(0));
-    NamedCommands.registerCommand("shoot", shooter.shootCommand());
+    NamedCommands.registerCommand("shoot", shooter.feederStartCommand());
     NamedCommands.registerCommand("climb", Commands.runOnce(() -> System.out.println("Climb command executed")));
     NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
     NamedCommands.registerCommand("collectorCommand", collector.collectorStartCommand());
@@ -216,12 +203,12 @@ public class RobotContainer {
     NamedCommands.registerCommand("rakeRetract", rakeArm.rakeArmRetractCommand());
   // simple command class that repeatedly calls vision.updateGlobalPose; useful
   // if you want to schedule the behaviour without making it the default.
-  NamedCommands.registerCommand("UpdateStoppedPose",
-    new UpdateGlobalPoseWhenStoppedCommand(vision, drivetrain));
+    NamedCommands.registerCommand("UpdateStoppedPose",
+      new UpdateGlobalPoseWhenStoppedCommand(vision, drivetrain));
 
   // aim at the alliance hub using the latest vision/odometry pose
-  NamedCommands.registerCommand("AimAtHub",
-    new AimAtHubCommand(shooter, vision, drivetrain));
+    NamedCommands.registerCommand("AimAtHub",
+      new AimAtHubCommand(shooter, vision, drivetrain));
   }
 
   private void configureTelemetry() {
@@ -229,8 +216,8 @@ public class RobotContainer {
 
     logger.putData("AutoChooser", autoChooser);
     logger.putData("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
-  logger.putData("UpdateStoppedPose", new UpdateGlobalPoseWhenStoppedCommand(vision, drivetrain));
-  logger.putData("AimAtHub", new AimAtHubCommand(shooter, vision, drivetrain));
+    logger.putData("UpdateStoppedPose", new UpdateGlobalPoseWhenStoppedCommand(vision, drivetrain));
+    logger.putData("AimAtHub", new AimAtHubCommand(shooter, vision, drivetrain));
   }
 
   public void robotPeriodic() {}

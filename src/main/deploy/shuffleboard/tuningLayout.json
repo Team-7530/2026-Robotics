@@ -1,0 +1,21 @@
+{
+  "Shuffleboard": {
+    "name": "Shuffleboard",
+    "tabs": [
+      {
+        "title": "Tuning",
+        "layout": "Elastic",
+        "components": [
+          { "type": "Number", "title": "Drive/FL Velocity", "networkTables": { "key": "/Drive/VelFL" } },
+          { "type": "Number", "title": "Drive/FR Velocity", "networkTables": { "key": "/Drive/VelFR" } },
+          { "type": "Number", "title": "Drive/BL Velocity", "networkTables": { "key": "/Drive/VelBL" } },
+          { "type": "Number", "title": "Drive/BR Velocity", "networkTables": { "key": "/Drive/VelBR" } },
+          { "type": "Number", "title": "Shooter/RPM", "networkTables": { "key": "/Shooter/RPM" } },
+          { "type": "Number", "title": "Turret/Angle", "networkTables": { "key": "/Shooter/TurretAngle" } },
+          { "type": "Number", "title": "Vision/Ambiguity", "networkTables": { "key": "/Vision/SelectedAmbiguity" } },
+          { "type": "Boolean", "title": "Vision/Target", "networkTables": { "key": "/Vision/TargetVisible" } }
+        ]
+      }
+    ]
+  }
+}

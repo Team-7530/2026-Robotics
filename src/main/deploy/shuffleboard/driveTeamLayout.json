@@ -1,0 +1,19 @@
+{
+  "Shuffleboard": {
+    "name": "Shuffleboard",
+    "tabs": [
+      {
+        "title": "Drive Team",
+        "layout": "Elastic",
+        "components": [
+          { "type": "Number", "title": "Battery Voltage", "networkTables": { "key": "/Power/Voltage" } },
+          { "type": "Number", "title": "Heading", "networkTables": { "key": "/Drive/Heading" } },
+          { "type": "Number", "title": "Pose X", "networkTables": { "key": "/Drive/PoseX" } },
+          { "type": "Number", "title": "Pose Y", "networkTables": { "key": "/Drive/PoseY" } },
+          { "type": "String", "title": "Camera", "networkTables": { "key": "/Vision/SelectedCamera" } },
+          { "type": "String", "title": "Mode", "networkTables": { "key": "/Vision/ActiveMode" } }
+        ]
+      }
+    ]
+  }
+}
