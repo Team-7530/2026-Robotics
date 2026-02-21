@@ -61,30 +61,41 @@ public class ShooterSubsystem extends SubsystemBase {
 
   // -- Commands -----------------------------------------------------------
   public Command turretToAngleCommand(double degrees) {
+    // move turret to specified field-relative angle
     return turret.setTurretAngleDegrees(degrees)
         .withName("TurretToAngleCommand");
   }
 
   public Command shooterToVelocityCommand(double velocity) {
+    // spin flywheel up to the given RPM
   return flywheel.flywheelStartCommand(velocity)
     .withName("ShooterToVelocityCommand");
   }
 
   public Command shooterToPercentCommand(double pct) {
+    // set flywheel power directly (open-loop)
   return flywheel.setDutyCycle(pct)
     .withName("ShooterToPercentCommand");
   }
 
   public Command shootCommand() {
+    // start feeder wheel to feed balls
     return feeder.feederStartCommand();
   }
 
   public Command stopShootCommand() {
+    // stop feeder wheel
     return feeder.feederStopCommand();
   }
 
   public Command feederUnstuckCommand() {
+    // reverse feeder briefly to clear jams
     return feeder.feederUnstuckCommand();
+  }
+
+  /** Return a command that runs the flywheel backward briefly to unjam it. */
+  public Command flywheelUnstuckCommand() {
+    return flywheel.flywheelUnstuckCommand();
   }
 
 }

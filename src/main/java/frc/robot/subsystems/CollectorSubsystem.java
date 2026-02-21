@@ -138,10 +138,12 @@ public class CollectorSubsystem extends SubsystemBase {
   }
 
   public Command sysId() {
+    // system identification helper
     return m_collector.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
   }
 
   public Command setRPM(LinearVelocity speed) {
+    // convert linear speed to rotational for cases where units matter
     return m_collector.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
   }
 
@@ -156,10 +158,12 @@ public class CollectorSubsystem extends SubsystemBase {
   }
 
   public Command collectorStopCommand() {
+    // quick stop command
     return runOnce(this::collectorStop).withName("CollectorStopCommand");
   }
 
   public Command collectorUnstuckCommand() {
+    // reverse velocity briefly to eject jams
       return setVelocity(collectorUnstuckVelocity)
         .withName("CollectorUnstuckCommand")    
         .withTimeout(5.0)

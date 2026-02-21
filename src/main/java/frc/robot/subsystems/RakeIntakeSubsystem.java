@@ -138,6 +138,7 @@ public class RakeIntakeSubsystem extends SubsystemBase {
   }
 
   public Command sysId() {
+    // run on the practice field to capture plant data
     return m_rakeIntake.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
   }
 
@@ -152,18 +153,20 @@ public class RakeIntakeSubsystem extends SubsystemBase {
 
   /** Sets motors to constants intake speed */
   public Command rakeIntakeStartCommand() {
-      return setVelocity(rakeIntakeVelocity);
+    return setVelocity(rakeIntakeVelocity).withName("RakeIntakeStartCommand");
   }
 
   public Command rakeIntakeStopCommand() {
+    // immediate stop command
     return runOnce(this::rakeIntakeStop).withName("RakeIntakeStopCommand");
   }
 
   public Command rakeIntakeUnstuckCommand() {
-      return setVelocity(rakeIntakeUnstuckVelocity)
-        .withName("RakeIntakeUnstuckCommand")
-        .withTimeout(5.0)
-        .finallyDo(() -> rakeIntakeStop());
+    // spin backward to clear jams
+  return setVelocity(rakeIntakeUnstuckVelocity)
+    .withName("RakeIntakeUnstuckCommand")
+    .withTimeout(5.0)
+    .finallyDo(interrupted -> rakeIntakeStop());
   }
 
     /** Stops the rake intake motor immediately (open-loop stop). */
@@ -192,9 +195,9 @@ public class RakeIntakeSubsystem extends SubsystemBase {
   private void updateTelemetry() {
     m_rakeIntake.updateTelemetry();
     try {
-      telemetry.putNumber("RakeIntakeIntake RPS", getVelocity().in(RotationsPerSecond));
+      telemetry.putNumber("RakeIntake RPS", getVelocity().in(RotationsPerSecond));
     } catch (Exception e) {
-      telemetry.putNumber("RakeIntakeIntake RPS", 0.0);
+      telemetry.putNumber("RakeIntake RPS", 0.0);
     }
   }
 

@@ -168,6 +168,16 @@ public class FlywheelSubsystem extends SubsystemBase {
       return runOnce(this::flywheelStop).withName("FlywheelStopCommand");
     }
 
+    /**
+     * Run the flywheel backward for a short duration to clear jams.
+     */
+    public Command flywheelUnstuckCommand() {
+      return setDutyCycle(-0.2)
+          .withName("FlywheelUnstuckCommand")
+          .withTimeout(1.0)
+          .finallyDo(interrupted -> flywheelStop());
+    }
+
     /** Stops the flywheel motor immediately (open-loop stop). */
     public void flywheelStop() {
       m_flywheelSMC.stopClosedLoopController();

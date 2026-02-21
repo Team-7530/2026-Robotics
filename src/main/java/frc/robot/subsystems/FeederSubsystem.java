@@ -138,10 +138,12 @@ public class FeederSubsystem extends SubsystemBase {
   }
 
   public Command sysId() {
+    // run during practice to log system identification data
     return m_feeder.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
   }
 
   public Command setRPM(LinearVelocity speed) {
+    // helper converting linear to angular speed
     return m_feeder.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
   }
 
@@ -156,10 +158,12 @@ public class FeederSubsystem extends SubsystemBase {
   }
 
   public Command feederStopCommand() {
+    // scheduleable command that immediately cuts power
     return runOnce(this::feederStop).withName("FeederStopCommand");
   }
 
   public Command feederUnstuckCommand() {
+    // run the velocity control in reverse to clear jams (negative RPM)
   return setVelocity(feederUnstuckVelocity)
     .withName("FeederUnstuckCommand")
     .withTimeout(5.0)

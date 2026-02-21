@@ -158,18 +158,22 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   public Command setDutyCycle(Supplier<Double> dutyCycleSupplier) {
+    // command to run turret at a variable duty cycle (open-loop)
     return m_turret.set(dutyCycleSupplier);
   }
 
   public Command setDutyCycle(double dutyCycle) {
+    // open-loop control with a constant duty value
     return m_turret.set(dutyCycle);
   }
 
   public void setDutyCycleDirect(double dutyCycle) {
+    // direct motor call bypassing the YAMS command API
     m_turretSMC.setDutyCycle(dutyCycle);
   }
 
   public Command sysId() {
+    // step test for calibration; run on practice field
     return m_turret.sysId(
                     Volts.of(4.0), // maximumVoltage
                     Volts.per(Second).of(0.5), // step
