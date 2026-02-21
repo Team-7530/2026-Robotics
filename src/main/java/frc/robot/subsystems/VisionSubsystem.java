@@ -6,6 +6,59 @@
  * and a Field2d debug field.
  */
 
+/*
+ * === Limelight Bring-up Notes ===
+ *
+ * These are the steps students should follow when installing and initially
+ * configuring the Limelight camera.  We omit the basic networking/setup that
+ * can be found at limelightvision.io; instead this section highlights the
+ * configuration items that our code depends on, and serves as a reminder to
+ * keep the constants in sync with the physical hardware.
+ *
+ * 1. Mount the Limelight on the robot and power it.  Verify you can reach the
+ *    web UI at the address defined by LIMELIGHTURL/LIMELIGHTURL_2.
+ *
+ * 2. **Camera pose constants**: update kCamerasList at the top of this file
+ *    with the measured translation and rotation of the camera relative to the
+ *    robot's coordinate frame.  Values are in meters and radians; the helper
+ *    constructor here uses inches-to-meters conversion for convenience.  Use a
+ *    tape measure and a digital level to obtain accurate offsets – the
+ *    drivetrain odometry will not correct for a bad camera pose.
+ *
+ * 3. **Pipelines**: open the "Pipelines"/"Fiducial" section in the UI and
+ *    create at least two pipelines:
+ *      - one that detects only your alliance's HUB tags (multi-tag detection).
+ *      - one that detects the tower tag for your alliance (single-tag).
+ *    Write down the pipeline index numbers (0..9) and copy them into the
+ *    constants LIMELIGHT_PIPELINE_HUB_BLUE/RED and
+ *    LIMELIGHT_PIPELINE_TOWER_BLUE/RED below.
+ *
+ *    The code uses `setHubPipelineForAlliance` and
+ *    `setTowerPipelineForAlliance` helpers to choose the correct pipeline at
+ *    runtime; these commands are scheduled by default when the corresponding
+ *    vision-based routines run.
+ *
+ * 4. **LED mode**: our constructor forces the LEDs to "PipelineControl" so
+ *    that we can toggle them in software if needed.  If you prefer to use the
+ *    hardware button or the networktables property directly, make sure the
+ *    mode aligns with the rest of your team.
+ *
+ * 5. Once the camera and pipelines are configured, you can start the robot
+ *    and observe the `Vision/Camera/.../Pipeline` telemetry entries on
+ *    Shuffleboard to confirm the desired index is selected.  The hub/tower
+ *    pipeline helpers populate `Vision/ActiveMode` for clarity.
+ *
+ * 6. At competition, double-check the alliance color and pipeline selection
+ *    after each match – the `AimAtHubCommand` will auto-select the correct
+ *    pipeline when it starts, but manual overrides via buttons/commands are
+ *    still available if you need to troubleshoot.
+ *
+ * 7. Simulation: the Limelight is simulated by our `VisionSubsystem` when the
+ *    robot is running in simulation; the camera pose constants above are also
+ *    used by the simulation code, so keeping them accurate helps both real
+ *    and simulated testing.
+ */
+
 package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
