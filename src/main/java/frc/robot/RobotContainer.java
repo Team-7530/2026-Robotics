@@ -163,6 +163,10 @@ public class RobotContainer {
 
     oi.getStartButton().onTrue(Commands.runOnce(() -> shooter.turret.seedTurretPositionCommand()));
 
+  // back button toggles continuous hub-aiming for testing; cancels immediately
+  // when released by virtue of being a run-while-true command.
+  oi.getBackButton().whileTrue(new AimAtHubCommand(shooter, vision, drivetrain));
+
     
     // oi.getRightTrigger().onTrue(new SequentialCommandGroup(this.getCoralPositionCommand(), intake.intakeCommand()));
 
@@ -210,6 +214,14 @@ public class RobotContainer {
     NamedCommands.registerCommand("collectorCommand", collector.collectorStartCommand());
     NamedCommands.registerCommand("rakeDeploy", rakeArm.rakeArmDeployCommand());
     NamedCommands.registerCommand("rakeRetract", rakeArm.rakeArmRetractCommand());
+  // simple command class that repeatedly calls vision.updateGlobalPose; useful
+  // if you want to schedule the behaviour without making it the default.
+  NamedCommands.registerCommand("UpdateStoppedPose",
+    new UpdateGlobalPoseWhenStoppedCommand(vision, drivetrain));
+
+  // aim at the alliance hub using the latest vision/odometry pose
+  NamedCommands.registerCommand("AimAtHub",
+    new AimAtHubCommand(shooter, vision, drivetrain));
   }
 
   private void configureTelemetry() {
@@ -217,6 +229,8 @@ public class RobotContainer {
 
     logger.putData("AutoChooser", autoChooser);
     logger.putData("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
+  logger.putData("UpdateStoppedPose", new UpdateGlobalPoseWhenStoppedCommand(vision, drivetrain));
+  logger.putData("AimAtHub", new AimAtHubCommand(shooter, vision, drivetrain));
   }
 
   public void robotPeriodic() {}

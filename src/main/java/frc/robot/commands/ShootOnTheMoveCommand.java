@@ -126,7 +126,10 @@ public class ShootOnTheMoveCommand extends Command
   @Override
   public boolean isFinished()
   {
-    // TODO: Make this return true when this Command no longer needs to run execute()
+    // This command is intended to be run until cancelled (for example, during
+    // a teleop period where you always want the turret tracking).  Higher-level
+    // commands or button bindings can cancel it when shooting is no longer
+    // required.
     return false;
   }
 

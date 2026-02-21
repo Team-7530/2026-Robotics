@@ -31,6 +31,16 @@ public final class Constants {
             RotationsPerSecond.of(0.75).in(RadiansPerSecond) * 0.2);
   }
 
+  /** Field geometry constants. */
+  public static final class Field {
+    // approximate location of the center of the scoring hub relative to the field origin
+    // (update these values to match your game-specific coordinates).
+    public static final double HUB_X_METERS = 8.0;
+    public static final double HUB_Y_METERS = 4.0;
+    public static final edu.wpi.first.math.geometry.Pose2d HUB_POSE =
+        new edu.wpi.first.math.geometry.Pose2d(HUB_X_METERS, HUB_Y_METERS, edu.wpi.first.math.geometry.Rotation2d.fromDegrees(0));
+  }
+
   // public static final class ArmConstants {
   //   public static final CANBus CANBUS = new CANBus("CANFD");
   //   public static final int ARMMOTOR_ID = 31;
