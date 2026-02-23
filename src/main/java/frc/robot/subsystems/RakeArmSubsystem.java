@@ -147,21 +147,21 @@ public class RakeArmSubsystem extends SubsystemBase {
    * @param wspeed double, target speed
    */
   public Command setRakeArmSpeed(double wspeed) {
-    return m_rakeArm.set(wspeed);
+    return m_rakeArm.set(wspeed).withName("rakeArmSetSpeedCommand");
   }
 
   /** Sets motors to constants intake speed */
   public Command rakeArmDeployCommand() {
-      return m_rakeArm.setAngle(kRakeArmPositionDeploy);
+      return m_rakeArm.setAngle(kRakeArmPositionDeploy).withName("rakeArmDeployCommand").withTimeout(5.0);
   }
 
   public Command rakeArmRetractCommand() {
-      return m_rakeArm.setAngle(kRakeArmPositionRetract);
+      return m_rakeArm.setAngle(kRakeArmPositionRetract).withName("rakeArmRetractCommand").withTimeout(5.0);
   }
 
   /** Stops motor and activates brakes */
   public Command rakeArmStopCommand() {
-      return runOnce(this::rakeArmStop).withName("RakeArmStopCommand");
+      return runOnce(this::rakeArmStop).withName("rakeArmStopCommand");
     }
 
     /** Stops the rake arm motor immediately (open-loop stop). */

@@ -94,11 +94,12 @@ public class RakeIntakeSubsystem extends SubsystemBase {
       // Maximum speed of the shooter.
       .withUpperSoftLimit(RAKEINTAKE_kMaxV)
       // Telemetry name and verbosity for the arm.
-      .withTelemetry("RakeIntakeMech", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withTelemetry("RakeIntake", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
       .withSpeedometerSimulation(RAKEINTAKE_kMaxV);
 
   private final FlyWheel m_rakeIntake = new FlyWheel(m_rakeIntakeConfig);
 
+  @Logged
   private boolean m_isTeleop = false;
   private final Telemetry telemetry;
 

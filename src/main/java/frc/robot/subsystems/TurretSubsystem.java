@@ -44,8 +44,8 @@ public class TurretSubsystem extends SubsystemBase {
   public static final int TURRET_ANALOG_ID = 0;
 
   // Turret limits in degrees (180-degree travel centered on 0)
-  public static final double TURRET_MIN_DEG = -90.0;
-  public static final double TURRET_MAX_DEG = 90.0;
+  public static final Angle TURRET_MIN_DEG = Degrees.of(-90.0);
+  public static final Angle TURRET_MAX_DEG = Degrees.of(90.0);
 
   public static final double kTurretOffset = 0.0;
 
@@ -101,7 +101,7 @@ public class TurretSubsystem extends SubsystemBase {
   PivotConfig m_turretconfig = new PivotConfig(m_turretSMC)
       .withStartingPosition(Degrees.of(0)) // Starting position of the Pivot
       .withWrapping(Degrees.of(-180), Degrees.of(180)) // Wrapping enabled bc the pivot can spin infinitely
-      .withHardLimit(Degrees.of(TURRET_MIN_DEG), Degrees.of(TURRET_MAX_DEG)) // Hard limit bc wiring prevents infinite spinning
+      .withHardLimit(TURRET_MIN_DEG, TURRET_MAX_DEG) // Hard limit bc wiring prevents infinite spinning
       .withTelemetry("Turret", TelemetryVerbosity.HIGH) // Telemetry
       .withMOI(Meters.of(0.25), Pounds.of(4)) // MOI Calculation
       .withMechanismPositionConfig(robotToMechanism);
@@ -111,7 +111,7 @@ public class TurretSubsystem extends SubsystemBase {
   @Logged
   private boolean m_isTeleop = false;
   @Logged
-  private double turretTargetDeg = 0.0;
+  private Angle turretTargetAngle = Degrees.of(0.0);
 
   private final Telemetry telemetry;
 
@@ -138,38 +138,49 @@ public class TurretSubsystem extends SubsystemBase {
     m_turret.simIterate();
   }
 
+  @Logged
   public Angle getAngle() {
     return m_turret.getAngle();
   }
 
   public Command setAngle(Angle angle) {
-    return m_turret.setAngle(angle);
+    m_isTeleop = false;
+    turretTargetAngle = Degrees.of(MathUtil.clamp(angle.in(Degrees), TURRET_MIN_DEG.in(Degrees), TURRET_MAX_DEG.in(Degrees)));
+    return m_turret.setAngle(turretTargetAngle).withName("TurretSetAngleCommand");
   }
 
   public Command setAngle(Angle angle, Angle tolerance) {
-    return m_turret.setAngle(angle);
+    m_isTeleop = false;
+    turretTargetAngle = Degrees.of(MathUtil.clamp(angle.in(Degrees), TURRET_MIN_DEG.in(Degrees), TURRET_MAX_DEG.in(Degrees)));
+    return m_turret.runTo(turretTargetAngle, tolerance).withName("TurretSetAngleWithToleranceCommand");
   }
 
   public Command setAngle(Supplier<Angle> angleSupplier) {
-    return m_turret.setAngle(angleSupplier);
+    m_isTeleop = false;
+    return m_turret.setAngle(angleSupplier).withName("TurretSetAngleSupplierCommand");
   }
 
   public void setAngleDirect(Angle angle) {
-    m_turretSMC.setPosition(angle);
+    m_isTeleop = false;
+    turretTargetAngle = Degrees.of(MathUtil.clamp(angle.in(Degrees), TURRET_MIN_DEG.in(Degrees), TURRET_MAX_DEG.in(Degrees)));
+    m_turretSMC.setPosition(turretTargetAngle);
   }
 
   public Command setDutyCycle(Supplier<Double> dutyCycleSupplier) {
     // command to run turret at a variable duty cycle (open-loop)
-    return m_turret.set(dutyCycleSupplier);
+    turretTargetAngle = Degrees.of(0.0);
+    return m_turret.set(dutyCycleSupplier).withName("TurretSetDutyCycleCommand");
   }
 
   public Command setDutyCycle(double dutyCycle) {
     // open-loop control with a constant duty value
-    return m_turret.set(dutyCycle);
+    turretTargetAngle = Degrees.of(0.0);
+    return m_turret.set(dutyCycle).withName("TurretSetDutyCycleCommand");
   }
 
   public void setDutyCycleDirect(double dutyCycle) {
     // direct motor call bypassing the YAMS command API
+    turretTargetAngle = Degrees.of(0.0);
     m_turretSMC.setDutyCycle(dutyCycle);
   }
 
@@ -181,23 +192,7 @@ public class TurretSubsystem extends SubsystemBase {
                     Seconds.of(8.0) // duration
     );
   }
-
   
-  // -- Turret control -----------------------------------------------------
-  @Logged
-  public double getTurretAngleDegrees() {
-    return m_turret.getAngle().in(Degrees);
-  }
-
-  /**
-   * Sets the turret angle in degrees (clamped to configured limits).
-   */
-  public Command setTurretAngleDegrees(double degrees) {
-    m_isTeleop = false;
-    turretTargetDeg = MathUtil.clamp(degrees, TURRET_MIN_DEG, TURRET_MAX_DEG);
-    return this.setAngle(Degrees.of(turretTargetDeg));
-  }
-
   public void stopTurret() {
     m_turretSMC.stopClosedLoopController();
     m_turretSMC.setDutyCycle(0.0);
@@ -213,7 +208,7 @@ public class TurretSubsystem extends SubsystemBase {
 
     if (aspeed != 0.0) {
       m_isTeleop = true;
-      turretTargetDeg = 0;
+      turretTargetAngle = Degrees.of(0);
       m_turretSMC.setDutyCycle(aspeed * kTurretTeleopSpeed);
     } else if (m_isTeleop) {
       m_isTeleop = false;
@@ -226,7 +221,7 @@ public class TurretSubsystem extends SubsystemBase {
     // publish a few human-friendly telemetry values through the central Telemetry class
     try {
       telemetry.putNumber("Turret/TurretAngleDeg", this.getAngle().in(Degrees));
-      telemetry.putNumber("Turret/TurretTargetDeg", turretTargetDeg);
+      telemetry.putNumber("Turret/TurretTargetAngleDeg", turretTargetAngle.in(Degrees));
       telemetry.putNumber("Turret/TurretRotorPos", m_turretSMC.getRotorPosition().in(Rotations));
       telemetry.putNumber("Turret/TurretPotentiometer", -m_turretPotentiometer.get());
     } catch (Exception e) {
@@ -235,12 +230,6 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   // -- Commands -----------------------------------------------------------
-  public Command turretToAngleCommand(double degrees) {
-    return this.setAngle(Degrees.of(degrees), Degrees.of(2.0))
-        .withName("TurretToAngleCommand")
-        .withTimeout(5.0);
-  }
-
   public Command seedTurretPositionCommand() {
     return runOnce(this::seedTurretPosition)
         .withName("SeedTurretPositionCommand");

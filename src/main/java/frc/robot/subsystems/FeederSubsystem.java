@@ -99,6 +99,7 @@ public class FeederSubsystem extends SubsystemBase {
 
   private final FlyWheel m_feeder = new FlyWheel(m_feederConfig);
 
+  @Logged
   private boolean m_isTeleop = false;
   private final Telemetry telemetry;
 
@@ -123,19 +124,19 @@ public class FeederSubsystem extends SubsystemBase {
   }
 
   public Command setVelocity(AngularVelocity speed) {
-    return m_feeder.setSpeed(speed);
+    return m_feeder.setSpeed(speed).withName("FeederSetVelocityCommand");
   }
 
   public Command setVelocity(Supplier<AngularVelocity> speed) {
-    return m_feeder.setSpeed(speed);
+    return m_feeder.setSpeed(speed).withName("FeederSetVelocitySupplierCommand");
   }
 
   public Command setDutyCycle(double duty) {
-    return m_feeder.set(duty);
+    return m_feeder.set(duty).withName("FeederSetDutyCycleCommand");
   }
 
   public Command setDutyCycle(Supplier<Double> dutyCycle) {
-    return m_feeder.set(dutyCycle);
+    return m_feeder.set(dutyCycle).withName("FeederSetDutyCycleSupplierCommand");
   }
 
   public Command sysId() {
@@ -145,7 +146,7 @@ public class FeederSubsystem extends SubsystemBase {
 
   public Command setRPM(LinearVelocity speed) {
     // helper converting linear to angular speed
-    return m_feeder.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
+    return m_feeder.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters))).withName("FeederSetRPMCommand");
   }
 
   public void setRPMDirect(LinearVelocity speed) {

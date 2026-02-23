@@ -103,6 +103,7 @@ public class FlywheelSubsystem extends SubsystemBase {
   
     private FlyWheel m_flywheel = new FlyWheel(m_flywheelConfig);
   
+    @Logged
     private boolean m_isTeleop = false;
     private final Telemetry telemetry;
   
@@ -127,19 +128,19 @@ public class FlywheelSubsystem extends SubsystemBase {
     }
   
     public Command setVelocity(AngularVelocity speed) {
-      return m_flywheel.setSpeed(speed);
+      return m_flywheel.setSpeed(speed).withName("FlywheelSetVelocityCommand");
     }
   
     public Command setVelocity(Supplier<AngularVelocity> speed) {
-      return m_flywheel.setSpeed(speed);
+      return m_flywheel.setSpeed(speed).withName("FlywheelSetVelocitySupplierCommand");
     }
   
     public Command setDutyCycle(double dutyCycle) {
-      return m_flywheel.set(dutyCycle);
+      return m_flywheel.set(dutyCycle).withName("FlywheelSetDutyCycleCommand");
     }
   
     public Command setDutyCycle(Supplier<Double> dutyCycle) {
-      return m_flywheel.set(dutyCycle);
+      return m_flywheel.set(dutyCycle).withName("FlywheelSetDutyCycleSupplierCommand");
     }
   
     public Command sysId() {
@@ -147,7 +148,7 @@ public class FlywheelSubsystem extends SubsystemBase {
     }
   
     public Command setRPM(LinearVelocity speed) {
-      return m_flywheel.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
+      return m_flywheel.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters))).withName("FlywheelSetRPMCommand");
     }
   
     public void setRPMDirect(LinearVelocity speed) {

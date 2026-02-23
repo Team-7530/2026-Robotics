@@ -1,5 +1,7 @@
 package frc.robot.subsystems;
 
+import static edu.wpi.first.units.Units.Degree;
+import static edu.wpi.first.units.Units.Degrees;
 import static frc.robot.Constants.*;
 
 import edu.wpi.first.math.MathUtil;
@@ -62,7 +64,7 @@ public class ShooterSubsystem extends SubsystemBase {
   // -- Commands -----------------------------------------------------------
   public Command turretToAngleCommand(double degrees) {
     // move turret to specified field-relative angle
-    return turret.setTurretAngleDegrees(degrees)
+    return turret.setAngle(Degrees.of(degrees), Degrees.of(0.1))
         .withName("TurretToAngleCommand");
   }
 

@@ -99,6 +99,7 @@ public class CollectorSubsystem extends SubsystemBase {
 
   private final FlyWheel m_collector = new FlyWheel(m_collectorConfig);
 
+  @Logged
   private boolean m_isTeleop = false;
   private final Telemetry telemetry;
 
@@ -123,19 +124,19 @@ public class CollectorSubsystem extends SubsystemBase {
   }
 
   public Command setVelocity(AngularVelocity speed) {
-    return m_collector.setSpeed(speed);
+    return m_collector.setSpeed(speed).withName("CollectorSetVelocityCommand");
   }
 
   public Command setVelocity(Supplier<AngularVelocity> speed) {
-    return m_collector.setSpeed(speed);
+    return m_collector.setSpeed(speed).withName("CollectorSetVelocitySupplierCommand");
   }
 
   public Command setDutyCycle(double duty) {
-    return m_collector.set(duty);
+    return m_collector.set(duty).withName("CollectorSetDutyCycleCommand");
   }
 
   public Command setDutyCycle(Supplier<Double> dutyCycle) {
-    return m_collector.set(dutyCycle);
+    return m_collector.set(dutyCycle).withName("CollectorSetDutyCycleSupplierCommand");
   }
 
   public Command sysId() {
@@ -145,7 +146,7 @@ public class CollectorSubsystem extends SubsystemBase {
 
   public Command setRPM(LinearVelocity speed) {
     // convert linear speed to rotational for cases where units matter
-    return m_collector.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
+    return m_collector.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters))).withName("CollectorSetRPMCommand");
   }
 
   public void setRPMDirect(LinearVelocity speed) {
