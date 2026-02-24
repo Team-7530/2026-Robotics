@@ -57,6 +57,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
   private final SwerveRequest.FieldCentric driveFieldCentric = new SwerveRequest.FieldCentric();
   private final SwerveRequest.RobotCentric driveRobotCentric = new SwerveRequest.RobotCentric();
+  private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
   private final ChassisSpeeds maxSpeed = new ChassisSpeeds(3.0, 3.0, 2.0);
 
   /** Swerve request to apply during robot-centric path following */
@@ -327,6 +328,20 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
    */
   public Command sysIdDynamic(SysIdRoutine.Direction direction) {
     return m_sysIdRoutineToApply.dynamic(direction);
+  }
+
+  public Command setMaxSpeedsCommand(ChassisSpeeds speeds) {
+    return runOnce(() -> setMaxSpeeds(speeds));
+  }
+
+    // reset gyro to 0 degrees
+  public Command resetGyroCommand() {
+    return runOnce(() -> seedFieldCentric());
+  }
+
+  // x-stance
+  public Command setXStanceCommand() {
+    return applyRequest(() -> brake);
   }
 
   /**

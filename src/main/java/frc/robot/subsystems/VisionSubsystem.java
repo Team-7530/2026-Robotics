@@ -100,10 +100,6 @@ public class VisionSubsystem extends SubsystemBase {
   public static final String LIMELIGHTNAME = "limelight";
   public static final String LIMELIGHTURL = "limelight.local";
   
-  // Optional second limelight (e.g. limelight2). Update name/URL if you have a second camera.
-  public static final String LIMELIGHTNAME_2 = "limelight-two";
-  public static final String LIMELIGHTURL_2 = "limelight-two.local";
-
   // Cam - x = +toward front, 0 center, -toward rear in meters.
   //       y = +left of center, 0 center, -right of center in meters
   //       z = +up from base of robot in meters
@@ -112,13 +108,9 @@ public class VisionSubsystem extends SubsystemBase {
   //     yaw = rotate left/right around z axis. PI/4 = rotate camera to the left 45 degrees.
   public static final List<Pair<String, Transform3d>> kCamerasList =
       List.of(
-          // Pair.of("OV9281", new Transform3d(new Translation3d(0.28, 0, 0.15), new Rotation3d(0, 0, 0))),
         Pair.of(
           LIMELIGHTNAME,
           new Transform3d(new Translation3d(0.28, 0, 0.16), new Rotation3d(0, 0, 0)))
-        // Pair.of(
-        //   LIMELIGHTNAME_2,
-        //   new Transform3d(new Translation3d(0.28, 0.10, 0.16), new Rotation3d(0, 0, 0)))
       );
 
     // The standard deviations of our vision estimated poses, which affect correction rate
@@ -192,17 +184,6 @@ public class VisionSubsystem extends SubsystemBase {
       .save();
     limelightCameras.add(limelight1);
     poseEstimators.add(limelight1.createPoseEstimator(EstimationMode.MEGATAG2));
-
-    // Limelight limelight2 = new Limelight(LIMELIGHTNAME_2);
-    // limelight2.getSettings()
-    //   .withLimelightLEDMode(LEDMode.PipelineControl)
-    //   .withCameraOffset(new Pose3d(Inches.of(11).in(Meters),
-    //                                 Inches.of(0).in(Meters),
-    //                                 Inches.of(6.3).in(Meters),
-    //                                 new Rotation3d(0, 0, Degrees.of(180.0).in(Radian))))
-    //   .save();
-    // limelightCameras.add(limelight2);
-    // poseEstimators.add(limelight2.createPoseEstimator(EstimationMode.MEGATAG2));
 
     if (RobotBase.isReal()) {
       // cam0 = CameraServer.startAutomaticCapture();
@@ -422,11 +403,6 @@ public class VisionSubsystem extends SubsystemBase {
   public void setPipelineForFrontCamera(int pipelineIndex) {
     limelightCameras.get(0).getSettings().withPipelineIndex(pipelineIndex).save();
     telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/Pipeline", pipelineIndex);
-  }
-
-  public void setPipelineForBackCamera(int pipelineIndex) {
-    limelightCameras.get(1).getSettings().withPipelineIndex(pipelineIndex).save();
-    telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME_2 + "/Pipeline", pipelineIndex);
   }
 
   /** Set the pipeline index for every configured limelight camera. */

@@ -17,6 +17,8 @@ public class OISelector {
   private static final String dualJoystickOperatorInterfaces = "Dual Joysticks connected.";
   private static final String dualJoystickXBoxOperatorInterfaces =
       "Dual Joysticks and XBox controller connected.";
+  private static final String testOperatorInterfaces =
+      " Test controller connected.";
 
   private OISelector() {}
 
@@ -56,7 +58,10 @@ public class OISelector {
       }
     }
     if (joyList.size() > 1) {
-      if (xboxList.size() > 0) {
+      if (xboxList.size() > 1) {
+        DriverStation.reportWarning(dualJoystickXBoxOperatorInterfaces + testOperatorInterfaces, false);
+        return new DualJoystickXboxOI(joyList.get(0), joyList.get(1), xboxList.get(0), xboxList.get(1));
+      } else if (xboxList.size() > 0) {
         DriverStation.reportWarning(dualJoystickXBoxOperatorInterfaces, false);
         return new DualJoystickXboxOI(joyList.get(0), joyList.get(1), xboxList.get(0));
       } else {
@@ -66,6 +71,9 @@ public class OISelector {
     } else if (joyList.size() > 0) {
       DriverStation.reportWarning(singleJoystickOperatorInterfaces, false);
       return new SingleHandheldOI(joyList.get(0));
+    } else if (xboxList.size() > 2) {
+      DriverStation.reportWarning(dualXBoxOperatorInterfaces + testOperatorInterfaces, false);
+      return new DualHandheldOI(xboxList.get(0), xboxList.get(1), xboxList.get(2));
     } else if (xboxList.size() > 1) {
       DriverStation.reportWarning(dualXBoxOperatorInterfaces, false);
       return new DualHandheldOI(xboxList.get(0), xboxList.get(1));

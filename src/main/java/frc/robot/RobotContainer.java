@@ -1,6 +1,5 @@
 package frc.robot;
 
-import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.commands.PathfindingCommand;
@@ -31,7 +30,6 @@ public class RobotContainer {
   private static RobotContainer instance;
 
   /* Setting up bindings for necessary control of the swerve drive platform */
-  private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
   // private final SwerveRequest.RobotCentric forwardStraight =
   //     new SwerveRequest.RobotCentric().withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
@@ -81,7 +79,7 @@ public class RobotContainer {
    */
   public void updateOI() {
     if (!OISelector.didJoysticksChange()) {
-      logger.putNumber("DriveTrain/Drive Scaling", oi.driveScalingValue());
+      // logger.putNumber("DriveTrain/Drive Scaling", oi.driveScalingValue());
       return;
     }
 
@@ -93,19 +91,17 @@ public class RobotContainer {
   }
 
   private void configureButtonBindings() {
-    // reset gyro to 0 degrees
-    oi.getResetGyroButton().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
+    oi.getResetGyroButton().onTrue(drivetrain.resetGyroCommand());
 
-    // x-stance
-    oi.getXStanceButton().whileTrue(drivetrain.applyRequest(() -> brake));
+    oi.getXStanceButton().whileTrue(drivetrain.setXStanceCommand());
 
     oi.driveScalingUp()
-        .onTrue(Commands.runOnce(() -> drivetrain.setMaxSpeeds(DriveTrainConstants.maxSpeed)));
+        .onTrue(drivetrain.setMaxSpeedsCommand(DriveTrainConstants.maxSpeed));
     oi.driveScalingDown()
-        .onTrue(Commands.runOnce(() -> drivetrain.setMaxSpeeds(DriveTrainConstants.cruiseSpeed)));
+        .onTrue(drivetrain.setMaxSpeedsCommand(DriveTrainConstants.cruiseSpeed));
     oi.driveScalingSlow()
-        .onTrue(Commands.runOnce(() -> drivetrain.setMaxSpeeds(DriveTrainConstants.slowSpeed)))
-        .onFalse(Commands.runOnce(() -> drivetrain.setMaxSpeeds(DriveTrainConstants.cruiseSpeed)));
+        .onTrue(drivetrain.setMaxSpeedsCommand(DriveTrainConstants.slowSpeed))
+        .onFalse(drivetrain.setMaxSpeedsCommand(DriveTrainConstants.cruiseSpeed));
 
     // // Run SysId routines when holding back/start and X/Y.
     // // Note that each routine should be run exactly once in a single log.
@@ -140,7 +136,7 @@ public class RobotContainer {
     //         new PathOnTheFlyCommand(
     //             drivetrain, new Pose2d(13.85, 2.67, Rotation2d.fromDegrees(124))));
 
-    //Testing Controls
+    //Operator Controls
     oi.getAButton().onTrue(shooter.flywheelStopCommand());
     oi.getBButton().onTrue(collector.collectorStopCommand());
     oi.getXButton().onTrue(collector.collectorUnstuckCommand());
@@ -162,6 +158,12 @@ public class RobotContainer {
     // back button toggles continuous hub-aiming for testing; cancels immediately
     // when released by virtue of being a run-while-true command.
     oi.getBackButton().whileTrue(new AimAtHubCommand(shooter, vision, drivetrain));
+
+    //Testing Controls
+    oi.getTestOI().getAButton().onTrue(shooter.flywheelStopCommand());
+    oi.getTestOI().getBButton().onTrue(collector.collectorStopCommand());
+    oi.getTestOI().getXButton().onTrue(collector.collectorUnstuckCommand());
+    oi.getTestOI().getYButton().onTrue(shooter.feederUnstuckCommand());
   }
 
   /**

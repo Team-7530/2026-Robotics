@@ -7,6 +7,7 @@ public interface OperatorInterface {
 
   public static int DRIVER = 0;
   public static int OPERATOR = 1;
+  public static int TEST = 2;
 
   public default double getTranslateX() {
     return 0.0;
@@ -34,14 +35,6 @@ public interface OperatorInterface {
 
   public default Trigger driveScalingSlow() {
     return new Trigger(() -> false);
-  }
-
-  public default double driveScalingValue() {
-    return 1.0;
-  }
-
-  public default boolean isRobotRelative() {
-    return false;
   }
 
   public default Trigger getRobotRelative() {
@@ -144,9 +137,7 @@ public interface OperatorInterface {
     return new Trigger(() -> false);
   }
 
-  public default void testOI(int mode) {}
-
-  public default boolean testResults(int mode) {
-    return true;
+  public default OperatorInterface getTestOI() {
+    return new OperatorInterface() {};
   }
 }
