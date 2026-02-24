@@ -150,6 +150,16 @@ public class RakeArmSubsystem extends SubsystemBase {
     return m_rakeArm.set(wspeed).withName("rakeArmSetSpeedCommand");
   }
 
+  /**
+   * Run a simple SysId routine on the rake arm motor.  This is useful when
+   * characterizing the mechanism during practice‑field tuning.  The command
+   * will apply a 10 V step for 5 s while logging the response; modify the
+   * parameters if you need a different profile.
+   */
+  public Command sysId() {
+    return m_rakeArm.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
+  }
+
   /** Sets motors to constants intake speed */
   public Command rakeArmDeployCommand() {
       return m_rakeArm.setAngle(kRakeArmPositionDeploy).withName("rakeArmDeployCommand").withTimeout(5.0);

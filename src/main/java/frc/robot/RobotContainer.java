@@ -159,11 +159,49 @@ public class RobotContainer {
     // when released by virtue of being a run-while-true command.
     oi.getBackButton().whileTrue(new AimAtHubCommand(shooter, vision, drivetrain));
 
-    //Testing Controls
-    oi.getTestOI().getAButton().onTrue(shooter.flywheelStopCommand());
-    oi.getTestOI().getBButton().onTrue(collector.collectorStopCommand());
-    oi.getTestOI().getXButton().onTrue(collector.collectorUnstuckCommand());
-    oi.getTestOI().getYButton().onTrue(shooter.feederUnstuckCommand());
+  // Testing controls: only activate these when neither modifier button is held
+  // (Start/Back are used as sysid modifiers below).
+  oi.getTestOI().getAButton()
+    .and(oi.getTestOI().getStartButton().negate())
+    .and(oi.getTestOI().getBackButton().negate())
+    .onTrue(shooter.flywheelStopCommand());
+  oi.getTestOI().getBButton()
+    .and(oi.getTestOI().getStartButton().negate())
+    .and(oi.getTestOI().getBackButton().negate())
+    .onTrue(collector.collectorStopCommand());
+  oi.getTestOI().getXButton()
+    .and(oi.getTestOI().getStartButton().negate())
+    .and(oi.getTestOI().getBackButton().negate())
+    .onTrue(collector.collectorUnstuckCommand());
+  oi.getTestOI().getYButton()
+    .and(oi.getTestOI().getStartButton().negate())
+    .and(oi.getTestOI().getBackButton().negate())
+    .onTrue(shooter.feederUnstuckCommand());
+
+  // sysID helpers bound to the test controller.  hold Start or Back together
+  // with a face button to exercise each mechanism's built-in sysid routine.
+  // these commands are short-lived (they run until the button is released)
+  // and log data to SignalLogger for later analysis.
+  oi.getTestOI().getStartButton()
+    .and(oi.getTestOI().getAButton())
+    .whileTrue(shooter.turret.sysId());
+  oi.getTestOI().getStartButton()
+    .and(oi.getTestOI().getBButton())
+    .whileTrue(rakeArm.sysId());
+  oi.getTestOI().getStartButton()
+    .and(oi.getTestOI().getXButton())
+    .whileTrue(shooter.flywheel.sysId());
+  oi.getTestOI().getStartButton()
+    .and(oi.getTestOI().getYButton())
+    .whileTrue(shooter.feeder.sysId());
+
+  oi.getTestOI().getBackButton()
+    .and(oi.getTestOI().getAButton())
+    .whileTrue(collector.sysId());
+  oi.getTestOI().getBackButton()
+    .and(oi.getTestOI().getBButton())
+    .whileTrue(rakeIntake.sysId());
+  // you can add additional mappings here if you have more subsystems
   }
 
   /**
