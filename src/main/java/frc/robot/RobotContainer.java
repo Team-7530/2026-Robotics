@@ -91,6 +91,14 @@ public class RobotContainer {
   }
 
   private void configureButtonBindings() {
+
+    configureDriverControls();
+    configureOperatorControls();
+    configureTestingControls();
+    configureDriveTestingControls();
+  }
+
+  private void configureDriverControls() {
     oi.getResetGyroButton().onTrue(drivetrain.resetGyroCommand());
 
     oi.getXStanceButton().whileTrue(drivetrain.setXStanceCommand());
@@ -102,7 +110,78 @@ public class RobotContainer {
     oi.driveScalingSlow()
         .onTrue(drivetrain.setMaxSpeedsCommand(DriveTrainConstants.slowSpeed))
         .onFalse(drivetrain.setMaxSpeedsCommand(DriveTrainConstants.cruiseSpeed));
+  }
 
+  private void configureOperatorControls() {
+    oi.getAButton().onTrue(shooter.flywheelStopCommand());
+    oi.getBButton().onTrue(collector.collectorStopCommand());
+    oi.getXButton().onTrue(collector.collectorUnstuckCommand());
+    oi.getYButton().onTrue(shooter.feederUnstuckCommand());
+
+    oi.getLeftBumper().onTrue(collector.collectorStartCommand());
+    oi.getRightBumper().onTrue(rakeIntake.rakeIntakeStartCommand()).onFalse(rakeIntake.rakeIntakeStopCommand());
+
+    oi.getLeftTrigger().onTrue(shooter.flywheelToVelocityCommand(6000)).onFalse(shooter.flywheelStopCommand());
+    oi.getRightTrigger().onTrue(shooter.feederStartCommand()).onFalse(shooter.feederStopCommand());
+    
+    oi.getPOVUp().onTrue(rakeArm.rakeArmRetractCommand());
+    oi.getPOVDown().onTrue(rakeArm.rakeArmDeployCommand());
+    oi.getPOVLeft().onTrue(shooter.turretToAngleCommand(20));
+    oi.getPOVRight().onTrue(shooter.turretToAngleCommand(0));
+
+    oi.getStartButton().onTrue(shooter.turret.seedTurretPositionCommand());
+
+    // back button toggles continuous hub-aiming for testing; cancels immediately
+    // when released by virtue of being a run-while-true command.
+    oi.getBackButton().whileTrue(new AimAtHubCommand(shooter, vision, drivetrain));
+  }
+
+  private void configureTestingControls() {
+    // Testing controls: only activate these when neither modifier button is held
+    // (Start/Back are used as sysid modifiers below).
+    oi.getTestOI().getAButton()
+      .and(oi.getTestOI().getStartButton().negate())
+      .and(oi.getTestOI().getBackButton().negate())
+      .onTrue(shooter.flywheelStopCommand());
+    oi.getTestOI().getBButton()
+      .and(oi.getTestOI().getStartButton().negate())
+      .and(oi.getTestOI().getBackButton().negate())
+      .onTrue(collector.collectorStopCommand());
+    oi.getTestOI().getXButton()
+      .and(oi.getTestOI().getStartButton().negate())
+      .and(oi.getTestOI().getBackButton().negate())
+      .onTrue(collector.collectorUnstuckCommand());
+    oi.getTestOI().getYButton()
+      .and(oi.getTestOI().getStartButton().negate())
+      .and(oi.getTestOI().getBackButton().negate())
+      .onTrue(shooter.feederUnstuckCommand());
+
+    // sysID helpers bound to the test controller.  hold Start or Back together
+    // with a face button to exercise each mechanism's built-in sysid routine.
+    // these commands are short-lived (they run until the button is released)
+    // and log data to SignalLogger for later analysis.
+    oi.getTestOI().getStartButton()
+      .and(oi.getTestOI().getAButton())
+      .whileTrue(shooter.turret.sysId());
+    oi.getTestOI().getStartButton()
+      .and(oi.getTestOI().getBButton())
+      .whileTrue(rakeArm.sysId());
+    oi.getTestOI().getStartButton()
+      .and(oi.getTestOI().getXButton())
+      .whileTrue(shooter.flywheel.sysId());
+    oi.getTestOI().getStartButton()
+      .and(oi.getTestOI().getYButton())
+      .whileTrue(shooter.feeder.sysId());
+
+    oi.getTestOI().getBackButton()
+      .and(oi.getTestOI().getAButton())
+      .whileTrue(collector.sysId());
+    oi.getTestOI().getBackButton()
+      .and(oi.getTestOI().getBButton())
+      .whileTrue(rakeIntake.sysId());
+  }
+
+  private void configureDriveTestingControls() {
     // // Run SysId routines when holding back/start and X/Y.
     // // Note that each routine should be run exactly once in a single log.
     // oi.getStartButton()
@@ -135,73 +214,6 @@ public class RobotContainer {
     //     .whileTrue(
     //         new PathOnTheFlyCommand(
     //             drivetrain, new Pose2d(13.85, 2.67, Rotation2d.fromDegrees(124))));
-
-    //Operator Controls
-    oi.getAButton().onTrue(shooter.flywheelStopCommand());
-    oi.getBButton().onTrue(collector.collectorStopCommand());
-    oi.getXButton().onTrue(collector.collectorUnstuckCommand());
-    oi.getYButton().onTrue(shooter.feederUnstuckCommand());
-
-    oi.getLeftBumper().onTrue(collector.collectorStartCommand());
-    oi.getRightBumper().onTrue(rakeIntake.rakeIntakeStartCommand()).onFalse(rakeIntake.rakeIntakeStopCommand());
-
-    oi.getLeftTrigger().onTrue(shooter.flywheelToVelocityCommand(6000)).onFalse(shooter.flywheelStopCommand());
-    oi.getRightTrigger().onTrue(shooter.feederStartCommand()).onFalse(shooter.feederStopCommand());
-    
-    oi.getPOVUp().onTrue(rakeArm.rakeArmRetractCommand());
-    oi.getPOVDown().onTrue(rakeArm.rakeArmDeployCommand());
-    oi.getPOVLeft().onTrue(shooter.turretToAngleCommand(20));
-    oi.getPOVRight().onTrue(shooter.turretToAngleCommand(0));
-
-    oi.getStartButton().onTrue(Commands.runOnce(() -> shooter.turret.seedTurretPositionCommand()));
-
-    // back button toggles continuous hub-aiming for testing; cancels immediately
-    // when released by virtue of being a run-while-true command.
-    oi.getBackButton().whileTrue(new AimAtHubCommand(shooter, vision, drivetrain));
-
-  // Testing controls: only activate these when neither modifier button is held
-  // (Start/Back are used as sysid modifiers below).
-  oi.getTestOI().getAButton()
-    .and(oi.getTestOI().getStartButton().negate())
-    .and(oi.getTestOI().getBackButton().negate())
-    .onTrue(shooter.flywheelStopCommand());
-  oi.getTestOI().getBButton()
-    .and(oi.getTestOI().getStartButton().negate())
-    .and(oi.getTestOI().getBackButton().negate())
-    .onTrue(collector.collectorStopCommand());
-  oi.getTestOI().getXButton()
-    .and(oi.getTestOI().getStartButton().negate())
-    .and(oi.getTestOI().getBackButton().negate())
-    .onTrue(collector.collectorUnstuckCommand());
-  oi.getTestOI().getYButton()
-    .and(oi.getTestOI().getStartButton().negate())
-    .and(oi.getTestOI().getBackButton().negate())
-    .onTrue(shooter.feederUnstuckCommand());
-
-  // sysID helpers bound to the test controller.  hold Start or Back together
-  // with a face button to exercise each mechanism's built-in sysid routine.
-  // these commands are short-lived (they run until the button is released)
-  // and log data to SignalLogger for later analysis.
-  oi.getTestOI().getStartButton()
-    .and(oi.getTestOI().getAButton())
-    .whileTrue(shooter.turret.sysId());
-  oi.getTestOI().getStartButton()
-    .and(oi.getTestOI().getBButton())
-    .whileTrue(rakeArm.sysId());
-  oi.getTestOI().getStartButton()
-    .and(oi.getTestOI().getXButton())
-    .whileTrue(shooter.flywheel.sysId());
-  oi.getTestOI().getStartButton()
-    .and(oi.getTestOI().getYButton())
-    .whileTrue(shooter.feeder.sysId());
-
-  oi.getTestOI().getBackButton()
-    .and(oi.getTestOI().getAButton())
-    .whileTrue(collector.sysId());
-  oi.getTestOI().getBackButton()
-    .and(oi.getTestOI().getBButton())
-    .whileTrue(rakeIntake.sysId());
-  // you can add additional mappings here if you have more subsystems
   }
 
   /**
