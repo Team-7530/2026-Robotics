@@ -92,7 +92,7 @@ public class RakeIntakeSubsystem extends SubsystemBase {
       // Mass of the flywheel.
       .withMass(flywheelMass)
       // Maximum speed of the shooter.
-      .withUpperSoftLimit(RAKEINTAKE_kMaxV)
+      .withSoftLimit(RAKEINTAKE_kMaxV.unaryMinus(), RAKEINTAKE_kMaxV)
       // Telemetry name and verbosity for the arm.
       .withTelemetry("RakeIntake", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
       .withSpeedometerSimulation(RAKEINTAKE_kMaxV);
@@ -165,10 +165,10 @@ public class RakeIntakeSubsystem extends SubsystemBase {
 
   public Command rakeIntakeUnstuckCommand() {
     // spin backward to clear jams
-  return setVelocity(rakeIntakeUnstuckVelocity)
-    .withName("RakeIntakeUnstuckCommand")
-    .withTimeout(5.0)
-    .finallyDo(interrupted -> rakeIntakeStop());
+    return setVelocity(rakeIntakeUnstuckVelocity)
+      .withName("RakeIntakeUnstuckCommand")
+      .withTimeout(5.0)
+      .finallyDo(interrupted -> rakeIntakeStop());
   }
 
     /** Stops the rake intake motor immediately (open-loop stop). */

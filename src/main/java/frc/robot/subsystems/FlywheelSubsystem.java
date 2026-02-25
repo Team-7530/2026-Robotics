@@ -56,8 +56,6 @@ public class FlywheelSubsystem extends SubsystemBase {
   private final Distance flywheelDiameter = Inches.of(4);
   private final Mass flywheelMass = Pounds.of(1);
 
-  public static final AngularVelocity flywheelVelocity = RPM.of(3000);
-
     private static final double kFlywheelTeleopSpeed = 0.8;
   
     // TalonFX hardware instances
@@ -96,7 +94,7 @@ public class FlywheelSubsystem extends SubsystemBase {
         // Mass of the flywheel.
         .withMass(flywheelMass)
         // Maximum speed of the shooter.
-        .withUpperSoftLimit(FLYWHEEL_kMaxV)
+        .withSoftLimit(FLYWHEEL_kMaxV.unaryMinus(), FLYWHEEL_kMaxV)
         // Telemetry name and verbosity for the arm.
         .withTelemetry("Flywheel", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
         .withSpeedometerSimulation(FLYWHEEL_kMaxV);
@@ -157,13 +155,8 @@ public class FlywheelSubsystem extends SubsystemBase {
     }
   
     /** Sets motors to constants intake speed */
-    public Command flywheelStartCommand() {
-      return setVelocity(flywheelVelocity).withName("FlywheelStartCommand");
-    }
-
-    /** Sets motors to constants intake speed */
-    public Command flywheelStartCommand(double rpm) {
-      return setVelocity(RPM.of(rpm)).withName("FlywheelStartCommand");
+    public Command flywheelStartCommand(AngularVelocity velocity) {
+      return setVelocity(velocity).withName("FlywheelStartCommand");
     }
 
     public Command flywheelStopCommand() {

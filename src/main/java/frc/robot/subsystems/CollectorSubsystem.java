@@ -92,9 +92,9 @@ public class CollectorSubsystem extends SubsystemBase {
       // Mass of the flywheel.
       .withMass(flywheelMass)
       // Maximum speed of the shooter.
-      .withUpperSoftLimit(COLLECTOR_kMaxV)
+      .withSoftLimit(COLLECTOR_kMaxV.unaryMinus(), COLLECTOR_kMaxV)
       // Telemetry name and verbosity for the arm.
-      .withTelemetry("CollectorMech", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withTelemetry("Collector", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
       .withSpeedometerSimulation(COLLECTOR_kMaxV);
 
   private final FlyWheel m_collector = new FlyWheel(m_collectorConfig);
@@ -166,10 +166,12 @@ public class CollectorSubsystem extends SubsystemBase {
 
   public Command collectorUnstuckCommand() {
     // reverse velocity briefly to eject jams
+      AngularVelocity returnVelocity = getVelocity().in(RPM) > 0 ? collectorVelocity : RPM.of(0);
+
       return setVelocity(collectorUnstuckVelocity)
         .withName("CollectorUnstuckCommand")    
-        .withTimeout(5.0)
-        .finallyDo(() -> collectorStop());
+        .withTimeout(1.0)
+        .andThen(setVelocity(returnVelocity));
   }
 
   /** Stops the collector motor immediately (open-loop stop). */

@@ -186,16 +186,16 @@ public class RakeArmSubsystem extends SubsystemBase {
    * @param rspeed rake target speed during teleop
    */
   public void teleop(double rspeed) {
-  rspeed = MathUtil.applyDeadband(rspeed, STICK_DEADBAND);
+    rspeed = MathUtil.applyDeadband(rspeed, STICK_DEADBAND);
 
     if (rspeed != 0.0) {
       m_isTeleop = true;
       m_rakeArmSMC.setDutyCycle(rspeed * kRakeArmTeleopSpeed);
-  } else if (m_isTeleop) {
+    } else if (m_isTeleop) {
       m_isTeleop = false;
       this.rakeArmStop();
+    }
   }
-}
 
   private void updateTelemetry() {
     m_rakeArm.updateTelemetry();

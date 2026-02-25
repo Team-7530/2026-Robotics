@@ -1,9 +1,11 @@
 package frc.robot.subsystems;
 
-import static edu.wpi.first.units.Units.Degrees;
 import static frc.robot.Constants.*;
+import static edu.wpi.first.units.Units.*;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -20,6 +22,7 @@ public class ShooterSubsystem extends SubsystemBase {
   public final FlywheelSubsystem flywheel;
   public final FeederSubsystem feeder;
 
+  private AngularVelocity flywheelVelocity = RPM.of(8000);
   private boolean m_isTeleop = false;
       
   public ShooterSubsystem(frc.robot.Telemetry telemetry) {
@@ -61,22 +64,33 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   // -- Commands -----------------------------------------------------------
-  public Command turretToAngleCommand(double degrees) {
-    // move turret to specified field-relative angle
-    return turret.setAngle(Degrees.of(degrees), Degrees.of(0.1))
-        .withName("TurretToAngleCommand");
+  // spin flywheel up to the given velocity
+  public Command setFlywheelVelocityCommand(AngularVelocity velocity) {
+    return runOnce(() -> flywheelVelocity = velocity);
   }
 
-  public Command flywheelToVelocityCommand(double velocity) {
-    // spin flywheel up to the given RPM
-  return flywheel.flywheelStartCommand(velocity)
-    .withName("FlywheelToVelocityCommand");
+  public Command turretToAngleCommand(Angle angle) {
+    // move turret to specified field-relative angle
+    return turret.setAngle(angle, Degrees.of(0.1))
+        .withName("TurretToAngleCommand");
   }
 
   public Command flywheelToPercentCommand(double pct) {
     // set flywheel power directly (open-loop)
   return flywheel.setDutyCycle(pct)
     .withName("FlywheelToPercentCommand");
+  }
+
+  public Command flywheelStartCommand(AngularVelocity velocity) {
+    // set flywheel power directly (open-loop)
+  return flywheel.flywheelStartCommand(velocity)
+    .withName("FlywheelStartCommandWithVelocity");
+  }
+
+  public Command flywheelStartCommand() {
+    // set flywheel power directly (open-loop)
+  return flywheel.flywheelStartCommand(flywheelVelocity)
+    .withName("FlywheelStartCommand");
   }
 
   public Command flywheelStopCommand() {

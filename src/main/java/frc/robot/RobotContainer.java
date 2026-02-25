@@ -1,5 +1,7 @@
 package frc.robot;
 
+import static edu.wpi.first.units.Units.*;
+
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.commands.PathfindingCommand;
@@ -94,8 +96,8 @@ public class RobotContainer {
 
     configureDriverControls();
     configureOperatorControls();
-    // configureTestingControls();
-    // configureDriveTestingControls();
+    configureTestingControls();
+    configureDriveTestingControls();
   }
 
   private void configureDriverControls() {
@@ -118,16 +120,23 @@ public class RobotContainer {
     oi.getXButton().onTrue(collector.collectorUnstuckCommand());
     oi.getYButton().onTrue(shooter.feederUnstuckCommand());
 
-    oi.getLeftBumper().onTrue(collector.collectorStartCommand());
-    oi.getRightBumper().onTrue(rakeIntake.rakeIntakeStartCommand()).onFalse(rakeIntake.rakeIntakeStopCommand());
+    oi.getLeftBumper()
+      .onTrue(shooter.flywheelStartCommand(RPM.of(6000)).andThen(shooter.feederStartCommand()));
+    oi.getRightBumper()
+      .onTrue(shooter.flywheelStopCommand().alongWith(shooter.feederStopCommand()).alongWith(collector.collectorStopCommand()));
 
-    oi.getLeftTrigger().onTrue(shooter.flywheelToVelocityCommand(6000)).onFalse(shooter.flywheelStopCommand());
-    oi.getRightTrigger().onTrue(shooter.feederStartCommand()).onFalse(shooter.feederStopCommand());
+    oi.getLeftTrigger()
+      .onTrue(collector.collectorStartCommand())
+      .onFalse(collector.collectorUnstuckCommand());
+
+    oi.getRightTrigger()
+      .onTrue(rakeIntake.rakeIntakeStartCommand()).onFalse(rakeIntake.rakeIntakeStopCommand());
+
     
     oi.getPOVUp().onTrue(rakeArm.rakeArmRetractCommand());
     oi.getPOVDown().onTrue(rakeArm.rakeArmDeployCommand());
-    oi.getPOVLeft().onTrue(shooter.turretToAngleCommand(20));
-    oi.getPOVRight().onTrue(shooter.turretToAngleCommand(0));
+    oi.getPOVLeft().onTrue(shooter.turretToAngleCommand(Degrees.of(20)));
+    oi.getPOVRight().onTrue(shooter.turretToAngleCommand(Degrees.of(0)));
 
     oi.getStartButton().onTrue(shooter.turret.seedTurretPositionCommand());
 
@@ -246,7 +255,7 @@ public class RobotContainer {
   }
 
   private void configureAutoPaths() {
-    NamedCommands.registerCommand("aimRange", shooter.turretToAngleCommand(0));
+    NamedCommands.registerCommand("aimRange", shooter.turretToAngleCommand(Degrees.of(0)));
     NamedCommands.registerCommand("shoot", shooter.feederStartCommand());
     NamedCommands.registerCommand("climb", Commands.runOnce(() -> System.out.println("Climb command executed")));
     NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));

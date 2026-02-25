@@ -92,9 +92,9 @@ public class FeederSubsystem extends SubsystemBase {
       // Mass of the flywheel.
       .withMass(flywheelMass)
       // Maximum speed of the shooter.
-      .withUpperSoftLimit(FEEDER_kMaxV)
+      .withSoftLimit(FEEDER_kMaxV.unaryMinus(), FEEDER_kMaxV)
       // Telemetry name and verbosity for the arm.
-      .withTelemetry("FeederMech", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withTelemetry("Feeder", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
       .withSpeedometerSimulation(FEEDER_kMaxV);
 
   private final FlyWheel m_feeder = new FlyWheel(m_feederConfig);
@@ -166,10 +166,10 @@ public class FeederSubsystem extends SubsystemBase {
 
   public Command feederUnstuckCommand() {
     // run the velocity control in reverse to clear jams (negative RPM)
-  return setVelocity(feederUnstuckVelocity)
-    .withName("FeederUnstuckCommand")
-    .withTimeout(5.0)
-    .finallyDo(() -> feederStop());
+    return setVelocity(feederUnstuckVelocity)
+      .withName("FeederUnstuckCommand")
+      .withTimeout(5.0)
+      .finallyDo(() -> feederStop());
   }
 
   /** Stops the feeder motor immediately (open-loop stop). */
