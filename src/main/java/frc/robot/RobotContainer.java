@@ -94,8 +94,8 @@ public class RobotContainer {
 
     configureDriverControls();
     configureOperatorControls();
-    configureTestingControls();
-    configureDriveTestingControls();
+    // configureTestingControls();
+    // configureDriveTestingControls();
   }
 
   private void configureDriverControls() {
