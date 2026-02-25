@@ -81,7 +81,6 @@ public class RobotContainer {
    */
   public void updateOI() {
     if (!OISelector.didJoysticksChange()) {
-      // logger.putNumber("DriveTrain/Drive Scaling", oi.driveScalingValue());
       return;
     }
 
@@ -112,16 +111,18 @@ public class RobotContainer {
     oi.driveScalingSlow()
         .onTrue(drivetrain.setMaxSpeedsCommand(DriveTrainConstants.slowSpeed))
         .onFalse(drivetrain.setMaxSpeedsCommand(DriveTrainConstants.cruiseSpeed));
+
+    drivetrain.setDefaultCommand(new SwerveTeleopCommand(drivetrain, oi));
   }
 
   private void configureOperatorControls() {
-    oi.getAButton().onTrue(shooter.flywheelStopCommand());
-    oi.getBButton().onTrue(collector.collectorStopCommand());
-    oi.getXButton().onTrue(collector.collectorUnstuckCommand());
-    oi.getYButton().onTrue(shooter.feederUnstuckCommand());
+    oi.getAButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(4000)));
+    oi.getBButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(5000)));
+    oi.getXButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(6000)));
+    oi.getYButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(8000)));
 
     oi.getLeftBumper()
-      .onTrue(shooter.flywheelStartCommand(RPM.of(6000)).andThen(shooter.feederStartCommand()));
+      .onTrue(shooter.flywheelStartCommand().andThen(shooter.feederStartCommand()));
     oi.getRightBumper()
       .onTrue(shooter.flywheelStopCommand().alongWith(shooter.feederStopCommand()).alongWith(collector.collectorStopCommand()));
 
@@ -143,6 +144,9 @@ public class RobotContainer {
     // back button toggles continuous hub-aiming for testing; cancels immediately
     // when released by virtue of being a run-while-true command.
     oi.getBackButton().whileTrue(new AimAtHubCommand(shooter, vision, drivetrain));
+
+    shooter.turret.setDefaultCommand(Commands.run(() -> shooter.turret.teleop(oi.getLeftThumbstickX()), shooter.turret));    
+    rakeArm.setDefaultCommand(Commands.run(() -> rakeArm.teleop(oi.getRightThumbstickY()), rakeArm));
   }
 
   private void configureTestingControls() {
@@ -188,6 +192,9 @@ public class RobotContainer {
     oi.getTestOI().getBackButton()
       .and(oi.getTestOI().getBButton())
       .whileTrue(rakeIntake.sysId());
+
+    rakeIntake.setDefaultCommand(Commands.run(() -> rakeIntake.teleop(-oi.getTestOI().getLeftThumbstickX()), rakeIntake));
+    shooter.flywheel.setDefaultCommand(Commands.run(() -> shooter.flywheel.teleop(-oi.getTestOI().getRightThumbstickY()), shooter.flywheel));
   }
 
   private void configureDriveTestingControls() {
@@ -243,11 +250,6 @@ public class RobotContainer {
   }
 
   private void configureDefaultCommands() {
-    drivetrain.setDefaultCommand(new SwerveTeleopCommand(drivetrain, oi));
-
-    shooter.setDefaultCommand(Commands.run(() -> shooter.teleop(oi.getRightThumbstickX(), -oi.getRightThumbstickY()), shooter));
-    rakeArm.setDefaultCommand(Commands.run(() -> rakeArm.teleop(oi.getLeftThumbstickY()), rakeArm));
-    rakeIntake.setDefaultCommand(Commands.run(() -> rakeIntake.teleop(-oi.getLeftThumbstickX()), rakeIntake));
 
     // climber.setDefaultCommand(
     //     Commands.run(() -> climber.teleopClimb(-oi.getRightThumbstickY()), climber));
