@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Commands;
 
 import frc.robot.Constants.DriveTrainConstants;
@@ -230,6 +231,29 @@ public class RobotContainer {
     //     .whileTrue(
     //         new PathOnTheFlyCommand(
     //             drivetrain, new Pose2d(13.85, 2.67, Rotation2d.fromDegrees(124))));
+
+    // simple 10-foot forward/back commands on the test controller; the goal
+    // pose is computed from the current drivetrain odometry whenever the
+    // button is pressed.  Useful to verify wheel/gyro calibration quickly.
+    oi.getTestOI().getPOVUp().onTrue(
+        Commands.runOnce(() -> {
+          Pose2d start = drivetrain.getState().Pose;
+      Pose2d goal = new Pose2d(
+        start.getX() + Feet.of(10).in(Meters),
+        start.getY(),
+        start.getRotation());
+          CommandScheduler.getInstance().schedule(new PathOnTheFlyCommand(drivetrain, goal));
+        }));
+
+    oi.getTestOI().getPOVDown().onTrue(
+        Commands.runOnce(() -> {
+          Pose2d start = drivetrain.getState().Pose;
+      Pose2d goal = new Pose2d(
+        start.getX() - Feet.of(10).in(Meters),
+        start.getY(),
+        start.getRotation());
+          CommandScheduler.getInstance().schedule(new PathOnTheFlyCommand(drivetrain, goal));
+        }));
   }
 
   /**
