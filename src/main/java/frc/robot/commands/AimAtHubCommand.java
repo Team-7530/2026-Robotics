@@ -5,6 +5,7 @@ import static edu.wpi.first.units.Units.*;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj.DriverStation;
 import frc.robot.Constants;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.VisionSubsystem;
@@ -40,9 +41,8 @@ public class AimAtHubCommand extends Command {
     // ensure the limelight is running the correct pipeline for our alliance's
     // hub tags; this makes the command self-contained from a setup standpoint.
   vision.setHubPipelineForAlliance(
-    edu.wpi.first.wpilibj.DriverStation.getAlliance()
-      .orElse(edu.wpi.first.wpilibj.DriverStation.Alliance.Blue)
-      == edu.wpi.first.wpilibj.DriverStation.Alliance.Blue);
+    DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
+      == DriverStation.Alliance.Blue);
   }
 
   @Override
@@ -52,7 +52,13 @@ public class AimAtHubCommand extends Command {
         vision.getVisionMeasurement_MT1().map(est -> est.pose.toPose2d());
   Pose2d currentPose = maybeVisionPose.orElse(drivetrain.getState().Pose);
 
-    Translation2d toHub = Constants.Field.HUB_POSE.getTranslation().minus(currentPose.getTranslation());
+  // pick the appropriate hub position for the current alliance; the constant
+  // already includes any centering offset from the raw tag coordinates.
+  boolean isBlue = DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
+    == DriverStation.Alliance.Blue;
+  Translation2d toHub = Constants.Field.getHubPose(isBlue)
+    .getTranslation()
+    .minus(currentPose.getTranslation());
     double turretAngle = toHub.getAngle().getDegrees();
     shooter.turret.setAngleDirect(Degrees.of(turretAngle));
   }
