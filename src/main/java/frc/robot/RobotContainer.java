@@ -123,7 +123,7 @@ public class RobotContainer {
     oi.getYButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(8000)));
 
     oi.getLeftBumper()
-      .onTrue(shooter.flywheelStartCommand().andThen(shooter.feederStartCommand()));
+      .onTrue(shooter.flywheelStartCommand().alongWith(shooter.feederStartCommand()));
     oi.getRightBumper()
       .onTrue(shooter.flywheelStopCommand().alongWith(shooter.feederStopCommand()).alongWith(collector.collectorStopCommand()));
 
@@ -147,7 +147,7 @@ public class RobotContainer {
     oi.getBackButton().whileTrue(new AimAtHubCommand(shooter, vision, drivetrain));
 
     shooter.turret.setDefaultCommand(Commands.run(() -> shooter.turret.teleop(oi.getLeftThumbstickX()), shooter.turret));    
-    rakeArm.setDefaultCommand(Commands.run(() -> rakeArm.teleop(oi.getRightThumbstickY()), rakeArm));
+    rakeArm.setDefaultCommand(Commands.run(() -> rakeArm.teleop(-oi.getRightThumbstickY()), rakeArm));
   }
 
   private void configureTestingControls() {

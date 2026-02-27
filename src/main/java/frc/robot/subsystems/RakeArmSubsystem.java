@@ -52,8 +52,8 @@ public class RakeArmSubsystem extends SubsystemBase {
   public static final AngularVelocity RAKEARM_kMaxV = RPM.of(5000);
   public static final AngularAcceleration RAKEARM_kMaxA = RotationsPerSecondPerSecond.of(2500);
 
-  public static final Angle kRakeArmPositionDeploy = Degrees.of(112.0);
-  public static final Angle kRakeArmPositionRetract = Degrees.of(-26.0);
+  public static final Angle kRakeArmPositionDeploy = Degrees.of(0);
+  public static final Angle kRakeArmPositionRetract = Degrees.of(131.0);
 
   public static final double kRakeArmTeleopSpeed = 0.2;
     
@@ -75,7 +75,7 @@ public class RakeArmSubsystem extends SubsystemBase {
       // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
       .withGearing(new MechanismGearing(GearBox.fromReductionStages(kRakeArmChainRatio, kRakeArmGearboxRatio)))
       // Motor properties to prevent over currenting.
-      .withMotorInverted(false)
+      .withMotorInverted(true)
       .withIdleMode(MotorMode.COAST)
       // Power Optimization
       .withStatorCurrentLimit(Amps.of(40))
@@ -85,7 +85,7 @@ public class RakeArmSubsystem extends SubsystemBase {
       .withExternalEncoder(m_rakeArmEncoder)
       .withExternalEncoderGearing(1.0)
       .withExternalEncoderInverted(true)
-      .withExternalEncoderZeroOffset(Rotations.of(0))
+      .withExternalEncoderZeroOffset(Rotations.of(0.48))
       .withUseExternalFeedbackEncoder(true);
 
   private final SmartMotorController m_rakeArmSMC = new TalonFXWrapper(m_rakeArmMotor, DCMotor.getKrakenX60Foc(1), smc_config);
@@ -99,7 +99,7 @@ public class RakeArmSubsystem extends SubsystemBase {
       // Length of the arm.
       .withLength(Meters.of(0.135))
       // Angle limits
-      .withHardLimit(Degrees.of(-28), Degrees.of(112))
+      .withHardLimit(Degrees.of(0), Degrees.of(132))
       .withStartingPosition(Degrees.of(0))
 //    .withHorizontalZero(Degrees.of(0))
       // Mass of the flywheel.
