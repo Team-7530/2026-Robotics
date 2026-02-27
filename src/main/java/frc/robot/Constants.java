@@ -83,8 +83,8 @@ public final class Constants {
       }
 
       // IDs of the two hub tags; update these values to match the game document.
-      public static final int RED_HUB_TAG_ID = 9;
-      public static final int BLUE_HUB_TAG_ID = 19;
+      public static final int RED_HUB_TAG_ID = 10;
+      public static final int BLUE_HUB_TAG_ID = 20;
 
       /**
        * Offset from a tag coordinate to the physical centre of the hub fixture.
@@ -94,7 +94,7 @@ public final class Constants {
        * Teams can adjust this value based on their own measurements.
        */
       public static final Translation2d HUB_CENTRE_OFFSET =
-          new Translation2d(0.425958, 0.1778); 
+          new Translation2d(0.603758, 0); 
 
       /**
        * Return the pose of the hub centre for the given alliance.  The result is

@@ -85,6 +85,7 @@ public class RakeArmSubsystem extends SubsystemBase {
       .withExternalEncoder(m_rakeArmEncoder)
       .withExternalEncoderGearing(1.0)
       .withExternalEncoderInverted(true)
+      .withExternalEncoderZeroOffset(Rotations.of(0))
       .withUseExternalFeedbackEncoder(true);
 
   private final SmartMotorController m_rakeArmSMC = new TalonFXWrapper(m_rakeArmMotor, DCMotor.getKrakenX60Foc(1), smc_config);
