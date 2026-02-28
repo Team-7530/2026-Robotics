@@ -282,7 +282,7 @@ public class RobotContainer {
 
   private void configureAutoPaths() {
     NamedCommands.registerCommand("aimRange", shooter.turretToAngleCommand(Degrees.of(0)));
-    NamedCommands.registerCommand("shoot", shooter.feederStartCommand());
+    NamedCommands.registerCommand("shoot", shooter.flywheelStartCommand().alongWith(shooter.feederStartCommand()));
     NamedCommands.registerCommand("climb", Commands.runOnce(() -> System.out.println("Climb command executed")));
     NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
     NamedCommands.registerCommand("collectorCommand", collector.collectorStartCommand());

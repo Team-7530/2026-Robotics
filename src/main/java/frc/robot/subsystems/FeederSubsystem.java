@@ -35,7 +35,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 @Logged
 public class FeederSubsystem extends SubsystemBase {
 
-  public static final CANBus kCANBus = CANBUS_RIO;
+  public static final CANBus kCANBus = CANBUS_FD;
 
   // CAN IDs
   public static final int FEEDERMOTOR_ID = 50;
