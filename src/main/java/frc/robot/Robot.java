@@ -22,7 +22,7 @@ import java.nio.file.Path;
  */
 @Logged
 public class Robot extends TimedRobot {
-
+@Logged
   private RobotContainer m_robotContainer;
 
   /**
@@ -40,7 +40,9 @@ public class Robot extends TimedRobot {
   /** The filepath to the resources folder containing the config files. */
   public static final Path RESOURCES_PATH =
       RobotBase.isReal() ? RESOURCES_PATH_REAL : RESOURCES_PATH_SIMULATED;
-
+  public Robot() {
+    Epilogue.bind(this);
+  }
   /**
    * This function is run when the robot is first started up and should be used for any
    * initialization code.

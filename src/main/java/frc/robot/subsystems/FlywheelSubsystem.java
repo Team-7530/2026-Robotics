@@ -158,7 +158,11 @@ public class FlywheelSubsystem extends SubsystemBase {
     public Command flywheelStartCommand(AngularVelocity velocity) {
       return setVelocity(velocity).withName("FlywheelStartCommand");
     }
-
+ 
+    /** Sets motors to constants intake speed */
+    public Command flywheelStartCommand(Supplier<AngularVelocity> velocity) {
+      return setVelocity(velocity).withName("FlywheelStartCommand");
+    }
     public Command flywheelStopCommand() {
       return runOnce(this::flywheelStop).withName("FlywheelStopCommand");
     }

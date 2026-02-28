@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Commands;
 
@@ -29,6 +30,7 @@ import frc.robot.subsystems.*;
  * periodic methods (other than the scheduler calls). Instead, the structure of the robot (including
  * subsystems, commands, and button mappings) should be declared here.
  */
+@Logged
 public class RobotContainer {
   private static RobotContainer instance;
 
@@ -45,6 +47,7 @@ public class RobotContainer {
   public final PowerDistribution power = new PowerDistribution();
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
   public final VisionSubsystem vision = new VisionSubsystem(logger);
+  @Logged
   public final ShooterSubsystem shooter = new ShooterSubsystem(logger);
   public final RakeArmSubsystem rakeArm = new RakeArmSubsystem(logger);
   public final RakeIntakeSubsystem rakeIntake = new RakeIntakeSubsystem(logger);
@@ -117,10 +120,10 @@ public class RobotContainer {
   }
 
   private void configureOperatorControls() {
-    oi.getAButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(4000)));
-    oi.getBButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(5000)));
-    oi.getXButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(6000)));
-    oi.getYButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(8000)));
+    oi.getAButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(6000)));
+    oi.getBButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(6500)));
+    oi.getXButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(7000)));
+    oi.getYButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(7500)));
 
     oi.getLeftBumper()
       .onTrue(shooter.flywheelStartCommand().alongWith(shooter.feederStartCommand()));
@@ -141,6 +144,8 @@ public class RobotContainer {
     oi.getPOVRight().onTrue(shooter.turretToAngleCommand(Degrees.of(0)));
 
     oi.getStartButton().onTrue(shooter.turret.seedTurretPositionCommand());
+
+    oi.getRightThumbstickButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(8000)));
 
     // back button toggles continuous hub-aiming for testing; cancels immediately
     // when released by virtue of being a run-while-true command.

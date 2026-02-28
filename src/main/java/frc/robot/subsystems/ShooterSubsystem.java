@@ -3,6 +3,7 @@ package frc.robot.subsystems;
 import static frc.robot.Constants.*;
 import static edu.wpi.first.units.Units.*;
 
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -62,6 +63,10 @@ public class ShooterSubsystem extends SubsystemBase {
 
   private void updateTelemetry() {
   }
+  @Logged
+  public double getVelocity() {
+    return this.flywheelVelocity.magnitude();
+  }
 
   // -- Commands -----------------------------------------------------------
   // spin flywheel up to the given velocity
@@ -89,7 +94,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
   public Command flywheelStartCommand() {
     // set flywheel power directly (open-loop)
-  return flywheel.flywheelStartCommand(flywheelVelocity)
+  return flywheel.flywheelStartCommand(() -> flywheelVelocity)
     .withName("FlywheelStartCommand");
   }
 
