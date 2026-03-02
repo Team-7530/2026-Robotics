@@ -40,6 +40,7 @@ public class Robot extends TimedRobot {
   /** The filepath to the resources folder containing the config files. */
   public static final Path RESOURCES_PATH =
       RobotBase.isReal() ? RESOURCES_PATH_REAL : RESOURCES_PATH_SIMULATED;
+
   public Robot() {
     Epilogue.bind(this);
   }
@@ -53,7 +54,6 @@ public class Robot extends TimedRobot {
     // autonomous chooser on the dashboard.
     m_robotContainer = new RobotContainer();
     DataLogManager.start();
-    Epilogue.bind(this);
   }
 
   /**
