@@ -2,6 +2,7 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -12,6 +13,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
  * flywheel (master + follower). This is a lightweight, conservative implementation that uses
  * percent open-loop control for the flywheel and position control for the turret. 
  */
+@Logged
 public class ShooterSubsystem extends SubsystemBase {
 
     // Holds and manages turret, hood and flywheel
@@ -39,7 +41,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
   private void updateTelemetry() {
   }
-  @Logged
+
   public double getVelocity() {
     return this.flywheelVelocity.magnitude();
   }
