@@ -141,7 +141,7 @@ public class FlywheelSubsystem extends SubsystemBase {
       return m_flywheel.set(dutyCycle).withName("FlywheelSetDutyCycleSupplierCommand");
     }
   
-    public Command sysId() {
+    public Command sysIdCommand() {
       return m_flywheel.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
     }
   

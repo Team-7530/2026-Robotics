@@ -139,7 +139,7 @@ public class CollectorSubsystem extends SubsystemBase {
     return m_collector.set(dutyCycle).withName("CollectorSetDutyCycleSupplierCommand");
   }
 
-  public Command sysId() {
+  public Command sysIdCommand() {
     // system identification helper
     return m_collector.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
   }
@@ -166,12 +166,9 @@ public class CollectorSubsystem extends SubsystemBase {
 
   public Command collectorUnstuckCommand() {
     // reverse velocity briefly to eject jams
-      AngularVelocity returnVelocity = getVelocity().in(RPM) > 0 ? collectorVelocity : RPM.of(0);
-
       return setVelocity(collectorUnstuckVelocity)
         .withName("CollectorUnstuckCommand")    
-        .withTimeout(1.0)
-        .andThen(setVelocity(returnVelocity));
+        .withTimeout(1.0);
   }
 
   /** Stops the collector motor immediately (open-loop stop). */

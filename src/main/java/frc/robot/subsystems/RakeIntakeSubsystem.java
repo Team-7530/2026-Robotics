@@ -139,7 +139,7 @@ public class RakeIntakeSubsystem extends SubsystemBase {
     return m_rakeIntake.set(dutyCycle);
   }
 
-  public Command sysId() {
+  public Command sysIdCommand() {
     // run on the practice field to capture plant data
     return m_rakeIntake.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
   }

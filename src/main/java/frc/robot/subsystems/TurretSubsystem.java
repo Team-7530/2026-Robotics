@@ -143,19 +143,19 @@ public class TurretSubsystem extends SubsystemBase {
     return m_turret.getAngle();
   }
 
-  public Command setAngle(Angle angle) {
+  public Command setAngleCommand(Angle angle) {
     m_isTeleop = false;
     turretTargetAngle = Degrees.of(MathUtil.clamp(angle.in(Degrees), TURRET_MIN_DEG.in(Degrees), TURRET_MAX_DEG.in(Degrees)));
-    return m_turret.setAngle(turretTargetAngle).withName("TurretSetAngleCommand");
+    return m_turret.runTo(turretTargetAngle, Degrees.of(0.1)).withName("TurretSetAngleCommand");
   }
 
-  public Command setAngle(Angle angle, Angle tolerance) {
+  public Command setAngleCommand(Angle angle, Angle tolerance) {
     m_isTeleop = false;
     turretTargetAngle = Degrees.of(MathUtil.clamp(angle.in(Degrees), TURRET_MIN_DEG.in(Degrees), TURRET_MAX_DEG.in(Degrees)));
     return m_turret.runTo(turretTargetAngle, tolerance).withName("TurretSetAngleWithToleranceCommand");
   }
 
-  public Command setAngle(Supplier<Angle> angleSupplier) {
+  public Command setAngleCommand(Supplier<Angle> angleSupplier) {
     m_isTeleop = false;
     return m_turret.setAngle(angleSupplier).withName("TurretSetAngleSupplierCommand");
   }
@@ -166,13 +166,13 @@ public class TurretSubsystem extends SubsystemBase {
     m_turretSMC.setPosition(turretTargetAngle);
   }
 
-  public Command setDutyCycle(Supplier<Double> dutyCycleSupplier) {
+  public Command setDutyCycleCommand(Supplier<Double> dutyCycleSupplier) {
     // command to run turret at a variable duty cycle (open-loop)
     turretTargetAngle = Degrees.of(0.0);
     return m_turret.set(dutyCycleSupplier).withName("TurretSetDutyCycleCommand");
   }
 
-  public Command setDutyCycle(double dutyCycle) {
+  public Command setDutyCycleCommand(double dutyCycle) {
     // open-loop control with a constant duty value
     turretTargetAngle = Degrees.of(0.0);
     return m_turret.set(dutyCycle).withName("TurretSetDutyCycleCommand");
@@ -184,7 +184,7 @@ public class TurretSubsystem extends SubsystemBase {
     m_turretSMC.setDutyCycle(dutyCycle);
   }
 
-  public Command sysId() {
+  public Command sysIdCommand() {
     // step test for calibration; run on practice field
     return m_turret.sysId(
                     Volts.of(4.0), // maximumVoltage

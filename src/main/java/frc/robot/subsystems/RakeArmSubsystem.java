@@ -157,7 +157,7 @@ public class RakeArmSubsystem extends SubsystemBase {
    * will apply a 10 V step for 5 s while logging the response; modify the
    * parameters if you need a different profile.
    */
-  public Command sysId() {
+  public Command sysIdCommand() {
     return m_rakeArm.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
   }
 

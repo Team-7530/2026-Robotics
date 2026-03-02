@@ -1,13 +1,10 @@
 package frc.robot.subsystems;
 
-import static frc.robot.Constants.*;
 import static edu.wpi.first.units.Units.*;
 
-import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 /**
@@ -22,43 +19,22 @@ public class ShooterSubsystem extends SubsystemBase {
   public final TurretSubsystem turret;
   public final FlywheelSubsystem flywheel;
   public final FeederSubsystem feeder;
+  public final CollectorSubsystem collector;
 
   private AngularVelocity flywheelVelocity = RPM.of(8000);
-  private boolean m_isTeleop = false;
+  private boolean m_isSpinup = false;
       
   public ShooterSubsystem(frc.robot.Telemetry telemetry) {
     // inject telemetry into nested subsystems so they can publish centrally
     this.turret = new TurretSubsystem(telemetry);
     this.flywheel = new FlywheelSubsystem(telemetry);
     this.feeder = new FeederSubsystem(telemetry);
+    this.collector = new CollectorSubsystem(telemetry);
   }
   
   @Override
   public void periodic() {
     updateTelemetry();
-  }
-
-  /**
-   * Teleop controls
-   *
-   * @param tspeed a double that sets the turret speed during teleop
-   * @param fspeed a double that sets the flywheel speed during teleop
-   */
-  public void teleop(double tspeed, double fspeed) {
-    tspeed = MathUtil.applyDeadband(tspeed, STICK_DEADBAND);
-    fspeed = MathUtil.applyDeadband(fspeed, STICK_DEADBAND);
-  
-    if ((tspeed != 0.0) || (fspeed != 0.0)) {
-      m_isTeleop = true;
-      turret.teleop(tspeed);
-      flywheel.teleop(fspeed);
-      // feeder.teleop(feedSpeed);
-    } else if (m_isTeleop) {
-      m_isTeleop = false;
-      turret.teleop(0.0);
-      flywheel.teleop(0.0);
-      // feeder.teleop(0.0);
-    }
   }
 
   private void updateTelemetry() {
@@ -71,57 +47,58 @@ public class ShooterSubsystem extends SubsystemBase {
   // -- Commands -----------------------------------------------------------
   // spin flywheel up to the given velocity
   public Command setFlywheelVelocityCommand(AngularVelocity velocity) {
-    return runOnce(() -> flywheelVelocity = velocity);
+    flywheelVelocity = velocity;
+    if (m_isSpinup) {
+      return flywheel.flywheelStartCommand(flywheelVelocity)
+        .withName("setFlywheelVelocityCommand");
+    }
+    return Commands.none();
   }
 
-  public Command turretToAngleCommand(Angle angle) {
-    // move turret to specified field-relative angle
-    return turret.setAngle(angle, Degrees.of(0.1))
-        .withName("TurretToAngleCommand");
+  public Command shooterSpinupCommand(AngularVelocity velocity) {
+    m_isSpinup = true;
+    flywheelVelocity = velocity;
+    return this.shooterSpinupCommand();
   }
 
-  public Command flywheelToPercentCommand(double pct) {
-    // set flywheel power directly (open-loop)
-  return flywheel.setDutyCycle(pct)
-    .withName("FlywheelToPercentCommand");
+  public Command shooterSpinupCommand() {
+    return flywheel.flywheelStartCommand(flywheelVelocity)
+      .alongWith(feeder.feederStartCommand())
+      .withName("shooterSpinupCommand");
   }
 
-  public Command flywheelStartCommand(AngularVelocity velocity) {
-    // set flywheel power directly (open-loop)
-  return flywheel.flywheelStartCommand(velocity)
-    .withName("FlywheelStartCommandWithVelocity");
-  }
-
-  public Command flywheelStartCommand() {
-    // set flywheel power directly (open-loop)
-  return flywheel.flywheelStartCommand(() -> flywheelVelocity)
-    .withName("FlywheelStartCommand");
-  }
-
-  public Command flywheelStopCommand() {
-    // set flywheel power directly (open-loop)
+  public Command shooterStopCommand() {
+    m_isSpinup = false;
   return flywheel.flywheelStopCommand()
-    .withName("FlywheelStopCommand");
+    .alongWith(feeder.feederStopCommand())
+    .alongWith(collector.collectorStopCommand())
+    .withName("shooterStopCommand");
   }
   
-  public Command feederStartCommand() {
-    // start feeder wheel to feed balls
-    return feeder.feederStartCommand();
+  public Command shooterStartCommand() {
+    // start collector wheel to feed balls
+    if (!m_isSpinup) {
+      return collector.collectorStartCommand()
+        .withName("shooterStartCommand");
+    }
+    return Commands.none();
   }
 
-  public Command feederStopCommand() {
-    // stop feeder wheel
-    return feeder.feederStopCommand();
+  public Command shooterUnstuckCommand() {
+    // reverse collector briefly to clear jams
+    if (m_isSpinup) {
+      // if we're trying to shoot, run the collector unstuck command in parallel with the feeder to minimize downtime
+      return collector.collectorUnstuckCommand()
+        .alongWith(feeder.feederUnstuckCommand())
+        .withName("shooterUnstuckCommand")
+        .withTimeout(1.0)
+        .andThen(feeder.feederStartCommand())
+        .alongWith(collector.collectorStartCommand());
+    }
+    return collector.collectorUnstuckCommand()
+        .alongWith(feeder.feederUnstuckCommand())
+        .withName("shooterUnstuckCommand")
+        .withTimeout(1.0)
+        .andThen(this.shooterStopCommand());
   }
-
-  public Command feederUnstuckCommand() {
-    // reverse feeder briefly to clear jams
-    return feeder.feederUnstuckCommand();
-  }
-
-  /** Return a command that runs the flywheel backward briefly to unjam it. */
-  public Command flywheelUnstuckCommand() {
-    return flywheel.flywheelUnstuckCommand();
-  }
-
 }

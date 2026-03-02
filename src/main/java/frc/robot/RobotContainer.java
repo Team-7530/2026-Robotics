@@ -51,7 +51,6 @@ public class RobotContainer {
   public final ShooterSubsystem shooter = new ShooterSubsystem(logger);
   public final RakeArmSubsystem rakeArm = new RakeArmSubsystem(logger);
   public final RakeIntakeSubsystem rakeIntake = new RakeIntakeSubsystem(logger);
-  public final CollectorSubsystem collector = new CollectorSubsystem(logger);
 
   /* Path follower */
   private SendableChooser<Command> autoChooser;
@@ -126,13 +125,13 @@ public class RobotContainer {
     oi.getYButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(7500)));
 
     oi.getLeftBumper()
-      .onTrue(shooter.flywheelStartCommand().alongWith(shooter.feederStartCommand()));
+      .onTrue(shooter.shooterSpinupCommand());
     oi.getRightBumper()
-      .onTrue(shooter.flywheelStopCommand().alongWith(shooter.feederStopCommand()).alongWith(collector.collectorStopCommand()));
+      .onTrue(shooter.shooterStopCommand());
 
     oi.getLeftTrigger()
-      .onTrue(collector.collectorStartCommand())
-      .onFalse(collector.collectorUnstuckCommand());
+      .onTrue(shooter.shooterStartCommand())
+      .onFalse(shooter.shooterUnstuckCommand());
 
     oi.getRightTrigger()
       .onTrue(rakeIntake.rakeIntakeStartCommand()).onFalse(rakeIntake.rakeIntakeStopCommand());
@@ -140,8 +139,8 @@ public class RobotContainer {
     
     oi.getPOVUp().onTrue(rakeArm.rakeArmRetractCommand());
     oi.getPOVDown().onTrue(rakeArm.rakeArmDeployCommand());
-    oi.getPOVLeft().onTrue(shooter.turretToAngleCommand(Degrees.of(20)));
-    oi.getPOVRight().onTrue(shooter.turretToAngleCommand(Degrees.of(0)));
+    oi.getPOVLeft().onTrue(shooter.turret.setAngleCommand(Degrees.of(20)));
+    oi.getPOVRight().onTrue(shooter.turret.setAngleCommand(Degrees.of(0)));
 
     oi.getStartButton().onTrue(shooter.turret.seedTurretPositionCommand());
 
@@ -161,19 +160,19 @@ public class RobotContainer {
     oi.getTestOI().getAButton()
       .and(oi.getTestOI().getStartButton().negate())
       .and(oi.getTestOI().getBackButton().negate())
-      .onTrue(shooter.flywheelStopCommand());
+      .onTrue(shooter.flywheel.flywheelStopCommand());
     oi.getTestOI().getBButton()
       .and(oi.getTestOI().getStartButton().negate())
       .and(oi.getTestOI().getBackButton().negate())
-      .onTrue(collector.collectorStopCommand());
+      .onTrue(shooter.collector.collectorStopCommand());
     oi.getTestOI().getXButton()
       .and(oi.getTestOI().getStartButton().negate())
       .and(oi.getTestOI().getBackButton().negate())
-      .onTrue(collector.collectorUnstuckCommand());
+      .onTrue(shooter.collector.collectorUnstuckCommand());
     oi.getTestOI().getYButton()
       .and(oi.getTestOI().getStartButton().negate())
       .and(oi.getTestOI().getBackButton().negate())
-      .onTrue(shooter.feederUnstuckCommand());
+      .onTrue(shooter.feeder.feederUnstuckCommand());
 
     // sysID helpers bound to the test controller.  hold Start or Back together
     // with a face button to exercise each mechanism's built-in sysid routine.
@@ -181,23 +180,23 @@ public class RobotContainer {
     // and log data to SignalLogger for later analysis.
     oi.getTestOI().getStartButton()
       .and(oi.getTestOI().getAButton())
-      .whileTrue(shooter.turret.sysId());
+      .whileTrue(shooter.turret.sysIdCommand());
     oi.getTestOI().getStartButton()
       .and(oi.getTestOI().getBButton())
-      .whileTrue(rakeArm.sysId());
+      .whileTrue(rakeArm.sysIdCommand());
     oi.getTestOI().getStartButton()
       .and(oi.getTestOI().getXButton())
-      .whileTrue(shooter.flywheel.sysId());
+      .whileTrue(shooter.flywheel.sysIdCommand());
     oi.getTestOI().getStartButton()
       .and(oi.getTestOI().getYButton())
-      .whileTrue(shooter.feeder.sysId());
+      .whileTrue(shooter.feeder.sysIdCommand());
 
     oi.getTestOI().getBackButton()
       .and(oi.getTestOI().getAButton())
-      .whileTrue(collector.sysId());
+      .whileTrue(shooter.collector.sysIdCommand());
     oi.getTestOI().getBackButton()
       .and(oi.getTestOI().getBButton())
-      .whileTrue(rakeIntake.sysId());
+      .whileTrue(rakeIntake.sysIdCommand());
 
     rakeIntake.setDefaultCommand(Commands.run(() -> rakeIntake.teleop(-oi.getTestOI().getLeftThumbstickX()), rakeIntake));
     shooter.flywheel.setDefaultCommand(Commands.run(() -> shooter.flywheel.teleop(-oi.getTestOI().getRightThumbstickY()), shooter.flywheel));
@@ -286,11 +285,11 @@ public class RobotContainer {
   }
 
   private void configureAutoPaths() {
-    NamedCommands.registerCommand("aimRange", shooter.turretToAngleCommand(Degrees.of(0)));
-    NamedCommands.registerCommand("shoot", shooter.flywheelStartCommand().alongWith(shooter.feederStartCommand()));
+    NamedCommands.registerCommand("aimRange", shooter.turret.setAngleCommand(Degrees.of(0)));
+    NamedCommands.registerCommand("shoot", shooter.shooterSpinupCommand().alongWith(shooter.shooterStartCommand()));
     NamedCommands.registerCommand("climb", Commands.runOnce(() -> System.out.println("Climb command executed")));
     NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
-    NamedCommands.registerCommand("collectorCommand", collector.collectorStartCommand());
+    NamedCommands.registerCommand("collectorCommand", shooter.collector.collectorStartCommand());
     NamedCommands.registerCommand("rakeDeploy", rakeArm.rakeArmDeployCommand());
     NamedCommands.registerCommand("rakeRetract", rakeArm.rakeArmRetractCommand());
   // simple command class that repeatedly calls vision.updateGlobalPose; useful

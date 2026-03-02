@@ -139,7 +139,7 @@ public class FeederSubsystem extends SubsystemBase {
     return m_feeder.set(dutyCycle).withName("FeederSetDutyCycleSupplierCommand");
   }
 
-  public Command sysId() {
+  public Command sysIdCommand() {
     // run during practice to log system identification data
     return m_feeder.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
   }
@@ -168,8 +168,7 @@ public class FeederSubsystem extends SubsystemBase {
     // run the velocity control in reverse to clear jams (negative RPM)
     return setVelocity(feederUnstuckVelocity)
       .withName("FeederUnstuckCommand")
-      .withTimeout(5.0)
-      .finallyDo(() -> feederStop());
+      .withTimeout(1.0);
   }
 
   /** Stops the feeder motor immediately (open-loop stop). */
