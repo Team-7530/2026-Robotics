@@ -201,9 +201,9 @@ public class RakeArmSubsystem extends SubsystemBase {
   private void updateTelemetry() {
     m_rakeArm.updateTelemetry();
     try {
-      telemetry.putNumber("Rake Arm Position", this.getRakeArmPosition().in(Degrees));
+      telemetry.putNumber("Rake Arm Position", this.getRakeArmPosition().in(Degrees), true);
     } catch (Exception e) {
-      // ignore telemetry failures
+      telemetry.putNumber("Rake Arm Position", 0.0, true);
     }
   }
 }

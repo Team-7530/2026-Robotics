@@ -370,7 +370,7 @@ public class VisionSubsystem extends SubsystemBase {
     // Update stddevs and return the currently chosen pose estimate
     updateEstimationStdDevs(Optional.of(lastChosenPoseEstimate));
   telemetry.putString("Vision/SelectedCamera", lastSelectedCameraName == null ? "" : lastSelectedCameraName);
-  telemetry.putNumber("Vision/SelectedAmbiguity", lastSelectedAmbiguity == Double.MAX_VALUE ? -1 : lastSelectedAmbiguity);
+  telemetry.putNumber("Vision/SelectedAmbiguity", lastSelectedAmbiguity == Double.MAX_VALUE ? -1 : lastSelectedAmbiguity, true);
 
     return Optional.of(lastChosenPoseEstimate);
   }

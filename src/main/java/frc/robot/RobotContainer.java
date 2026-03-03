@@ -38,7 +38,13 @@ public class RobotContainer {
   // private final SwerveRequest.RobotCentric forwardStraight =
   //     new SwerveRequest.RobotCentric().withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
-  private final Telemetry logger = new Telemetry(DriveTrainConstants.maxSpeed.vxMetersPerSecond);
+  // create telemetry with debug enabled only in test/simulation modes to
+  // conserve CPU/NT traffic during competition.  Callers may also construct a
+  // separate telemetry object if dynamic toggling is required.
+  private final Telemetry logger = new Telemetry(
+      DriveTrainConstants.maxSpeed.vxMetersPerSecond,
+      edu.wpi.first.wpilibj.DriverStation.isTest() ||
+          edu.wpi.first.wpilibj.RobotBase.isSimulation());
 
   /* Operator Interface */
   public OperatorInterface oi = new OperatorInterface() {};
