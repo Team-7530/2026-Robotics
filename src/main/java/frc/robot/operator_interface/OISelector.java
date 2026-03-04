@@ -1,6 +1,8 @@
 package frc.robot.operator_interface;
 
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.RobotBase;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,6 +57,10 @@ public class OISelector {
         } else {
           joyList.add(port);
         }
+      } else if (RobotBase.isSimulation()) {
+        // During simulation, we want to be able to test with fewer controllers connected, so
+        // treat empty ports as test controllers.
+        xboxList.add(port);
       }
     }
     if (joyList.size() > 1) {

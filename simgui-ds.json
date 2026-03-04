@@ -1,9 +1,4 @@
 {
-  "System Joysticks": {
-    "window": {
-      "enabled": false
-    }
-  },
   "keyboardJoysticks": [
     {
       "axisConfig": [
@@ -16,30 +11,36 @@
           "incKey": 83
         },
         {
-          "decKey": 69,
-          "decayRate": 0.0,
-          "incKey": 82,
-          "keyRate": 0.009999999776482582
+          "decKey": 263,
+          "incKey": 262
+        },
+        {
+          "decKey": 264,
+          "incKey": 265
+        },
+        {
+          "incKey": 81
+        },
+        {
+          "incKey": 69
         }
       ],
-      "axisCount": 3,
-      "buttonCount": 4,
+      "axisCount": 6,
+      "buttonCount": 6,
       "buttonKeys": [
         90,
         88,
         67,
-        86
+        86,
+        96,
+        53
       ],
       "povConfig": [
         {
-          "key0": 328,
-          "key135": 323,
-          "key180": 322,
-          "key225": 321,
-          "key270": 324,
-          "key315": 327,
-          "key45": 329,
-          "key90": 326
+          "key0": 49,
+          "key180": 51,
+          "key270": 52,
+          "key90": 50
         }
       ],
       "povCount": 1
@@ -51,11 +52,25 @@
           "incKey": 76
         },
         {
-          "decKey": 73,
-          "incKey": 75
+          "decKey": 75,
+          "incKey": 73
+        },
+        {
+          "decKey": 91,
+          "incKey": 45
+        },
+        {
+          "decKey": 80,
+          "incKey": 93
+        },
+        {
+          "incKey": 85
+        },
+        {
+          "incKey": 79
         }
       ],
-      "axisCount": 2,
+      "axisCount": 6,
       "buttonCount": 4,
       "buttonKeys": [
         77,
@@ -63,19 +78,17 @@
         46,
         47
       ],
-      "povCount": 0
-    },
-    {
-      "axisConfig": [
+      "povConfig": [
         {
-          "decKey": 263,
-          "incKey": 262
-        },
-        {
-          "decKey": 265,
-          "incKey": 264
+          "key0": 55,
+          "key180": 57,
+          "key270": 48,
+          "key90": 56
         }
       ],
+      "povCount": 1
+    },
+    {
       "axisCount": 2,
       "buttonCount": 6,
       "buttonKeys": [
@@ -99,7 +112,10 @@
       "guid": "Keyboard0"
     },
     {
-      "guid": "030000006d04000016c2000014040000"
+      "guid": "Keyboard1"
+    },
+    {
+      "guid": "Keyboard2"
     }
   ]
 }

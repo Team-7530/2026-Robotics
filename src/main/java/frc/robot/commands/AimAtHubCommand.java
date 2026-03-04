@@ -40,25 +40,25 @@ public class AimAtHubCommand extends Command {
   public void initialize() {
     // ensure the limelight is running the correct pipeline for our alliance's
     // hub tags; this makes the command self-contained from a setup standpoint.
-  vision.setHubPipelineForAlliance(
+    vision.setHubPipelineForAlliance(
     DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
-      == DriverStation.Alliance.Blue);
+                            == DriverStation.Alliance.Blue);
   }
 
   @Override
   public void execute() {
     // prefer a vision-derived pose if available, otherwise use odometry
     Optional<Pose2d> maybeVisionPose =
-        vision.getVisionMeasurement_MT1().map(est -> est.pose.toPose2d());
-  Pose2d currentPose = maybeVisionPose.orElse(drivetrain.getState().Pose);
+      vision.getVisionMeasurement_MT1().map(est -> est.pose);
+    Pose2d currentPose = maybeVisionPose.orElse(drivetrain.getState().Pose);
 
-  // pick the appropriate hub position for the current alliance; the constant
-  // already includes any centering offset from the raw tag coordinates.
-  boolean isBlue = DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
-    == DriverStation.Alliance.Blue;
-  Translation2d toHub = Constants.Field.getHubPose(isBlue)
-    .getTranslation()
-    .minus(currentPose.getTranslation());
+    // pick the appropriate hub position for the current alliance; the constant
+    // already includes any centering offset from the raw tag coordinates.
+    boolean isBlue = DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
+                        == DriverStation.Alliance.Blue;
+    Translation2d toHub = Constants.Field.getHubPose(isBlue)
+                            .getTranslation()
+                            .minus(currentPose.getTranslation());
     double turretAngle = toHub.getAngle().getDegrees();
     shooter.turret.setAngleDirect(Degrees.of(turretAngle));
   }

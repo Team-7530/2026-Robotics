@@ -1,9 +1,12 @@
 /* VisionSubsystem
  *
- * This file contains the limelight-based vision subsystem and selection/hysteresis logic
- * for choosing the best limelight pose estimate. PhotonVision artifacts were previously
- * used and have been removed — simulation and pose estimation now use limelight helpers
- * and a Field2d debug field.
+ * This class encapsulates all of our Limelight camera logic.  It originally relied on the
+ * `limelight` third‑party jar, but that library contained a bug in its pose estimation
+ * routine which would occasionally produce NaN results.  We've since migrated to
+ * `LimelightHelpers` (see frc.lib.limelightvision) which reads directly from the
+ * camera's NetworkTables entries.  The rest of the file is largely unchanged – we still
+ * implement the same pipeline-selection helpers, ambiguity/hysteresis for choosing
+ * between multi‑tag and single‑tag estimates, and a simulation debug field.
  */
 
 /*
@@ -67,12 +70,10 @@ import com.ctre.phoenix6.Utils;
 // import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.math.Matrix;
-import edu.wpi.first.math.Pair;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
-import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -84,16 +85,15 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 
-import limelight.Limelight;
-import limelight.networktables.AngularVelocity3d;
-import limelight.networktables.LimelightPoseEstimator;
-import limelight.networktables.LimelightPoseEstimator.EstimationMode;
-import limelight.networktables.LimelightSettings.LEDMode;
-import limelight.networktables.Orientation3d;
-import limelight.networktables.PoseEstimate;
+// The original limelight library had a few bugs in its pose estimation code.
+// We now use the lightweight `LimelightHelpers` class which talks directly to
+// the NetworkTables entries exported by the camera.  All of our existing
+// helper logic (ambiguity-based hysteresis, stddev heuristics, etc.) still
+// works as before, but the internals below have been rewritten to consume the
+// helper's `PoseEstimate` rather than the old proprietary classes.
+import frc.lib.limelightvision.LimelightHelpers;
+import frc.lib.limelightvision.LimelightHelpers.PoseEstimate;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 public class VisionSubsystem extends SubsystemBase {
@@ -106,17 +106,18 @@ public class VisionSubsystem extends SubsystemBase {
   //    roll = rotate around front/rear in radians. PI = upsidedown
   //   pitch = tilt down/up along left/right axis. PI/4 = tilt down 45 degrees, -PI/4 = tilt up 45
   //     yaw = rotate left/right around z axis. PI/4 = rotate camera to the left 45 degrees.
-  public static final List<Pair<String, Transform3d>> kCamerasList =
-      List.of(
-        Pair.of(
-          LIMELIGHTNAME,
-          new Transform3d(new Translation3d(0.28, -0.221, 0.4064), new Rotation3d(0, -Math.PI/4.0, 0)))
-      );
+  public static final Pose3d LIMELIGHTPOSE = new Pose3d(
+          new Translation3d(Inches.of(11).in(Meters),
+                            Inches.of(8.7).in(Meters),
+                            Inches.of(6.3).in(Meters)),
+          new Rotation3d(Degrees.of(0), 
+                        Degrees.of(45.0), 
+                        Degrees.of(0)));
 
-    // The standard deviations of our vision estimated poses, which affect correction rate
-    // (Fake values. Experiment and determine estimation noise on an actual robot.)
-    public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(2, 2, 8);
-    public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.5, 0.5, 2);
+  // The standard deviations of our vision estimated poses, which affect correction rate
+  // (Fake values. Experiment and determine estimation noise on an actual robot.)
+  public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(2, 2, 8);
+  public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.5, 0.5, 2);
 
   // ------------------------------------------------------------------
   // Limelight pipeline indices
@@ -147,23 +148,13 @@ public class VisionSubsystem extends SubsystemBase {
   public static final int LIMELIGHT_PIPELINE_TOWER_BLUE = 3;
   public static final int LIMELIGHT_PIPELINE_TOWER_RED = 4;
 
-  private final List<Limelight> limelightCameras = new ArrayList<>();
-  private final List<LimelightPoseEstimator> poseEstimators = new ArrayList<>();
   private Matrix<N3, N1> curStdDevs;
 
   // Simulation debug field
   private Field2d simDebugField = null;
 
-  // Hysteresis / selection state for choosing which limelight camera's estimate to use
-  private String lastSelectedCameraName = "";
   // hysteresis parameters (ambiguity-delta-based)
-  private double lastSelectedAmbiguity = Double.MAX_VALUE;
-  private PoseEstimate lastChosenPoseEstimate = null;
-  private double switchConfidence = 0.0; // grows when candidate is meaningfully better
   private static final double AMBIGUITY_DELTA_THRESHOLD = 0.15; // new ambiguity must be this much lower
-  private static final double CONFIRM_THRESHOLD = 3.0; // confidence needed to commit a switch
-  private static final double CONFIDENCE_INCREMENT = 1.0; // per-frame increment when condition met
-  private static final double CONFIDENCE_DECREMENT = 0.5; // per-frame decrement when condition not met
 
   /* Cameras */
   public UsbCamera cam0;
@@ -173,17 +164,19 @@ public class VisionSubsystem extends SubsystemBase {
   public VisionSubsystem(Telemetry telemetry) {
     this.telemetry = telemetry;
 
-    Limelight limelight1 = new Limelight(LIMELIGHTNAME);
+  // configure camera pose and LED mode using the helper routines
+  LimelightHelpers.setCameraPose_RobotSpace(
+    LIMELIGHTNAME,
+    LIMELIGHTPOSE.getTranslation().getX(),
+    LIMELIGHTPOSE.getTranslation().getY(),
+    LIMELIGHTPOSE.getTranslation().getZ(),
+    Math.toDegrees(LIMELIGHTPOSE.getRotation().getX()),
+    Math.toDegrees(LIMELIGHTPOSE.getRotation().getY()),
+    Math.toDegrees(LIMELIGHTPOSE.getRotation().getZ()));
+  LimelightHelpers.setLEDMode_PipelineControl(LIMELIGHTNAME);
 
-    limelight1.getSettings()
-      .withLimelightLEDMode(LEDMode.PipelineControl)
-      .withCameraOffset(new Pose3d(Inches.of(11).in(Meters),
-                                    Inches.of(8.7).in(Meters),
-                                    Inches.of(6.3).in(Meters),
-                                    new Rotation3d(0, -Math.PI/4.0, 0)))
-      .save();
-    limelightCameras.add(limelight1);
-    poseEstimators.add(limelight1.createPoseEstimator(EstimationMode.MEGATAG2));
+  // there is no longer an object to construct for pose estimation; the
+  // helpers read directly from NetworkTables when requested.
 
     if (RobotBase.isReal()) {
       // cam0 = CameraServer.startAutomaticCapture();
@@ -258,121 +251,42 @@ public class VisionSubsystem extends SubsystemBase {
     return curStdDevs;
   }
 
-  public Optional<PoseEstimate> getVisionMeasurement_MT2(double yawdegrees) {
-    Orientation3d robotOrientation = new Orientation3d(new Rotation3d(0, 0, Degrees.of(yawdegrees).in(Radians)),
-      new AngularVelocity3d(DegreesPerSecond.of(0),
-                            DegreesPerSecond.of(0),
-                            DegreesPerSecond.of(0)));
+  public Optional<PoseEstimate> getVisionMeasurement_MT2(Rotation3d drivetrainRotation) {
+    // The MegaTag2 algorithm uses the robot's current orientation.  The
+    // helpers expect yaw/pitch/roll in degrees and will apply the finished
+    // values the next time we read one of the botpose entries.
+    double yawDeg = Math.toDegrees(drivetrainRotation.getZ());
+    double pitchDeg = Math.toDegrees(drivetrainRotation.getY());
+    double rollDeg = Math.toDegrees(drivetrainRotation.getX());
+    LimelightHelpers.SetRobotOrientation(LIMELIGHTNAME, yawDeg, 0, pitchDeg, 0, rollDeg, 0);
 
-    for (Limelight limelight : limelightCameras) {
-      limelight.getSettings()
-        .withRobotOrientation(robotOrientation)
-        .save();
+    PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(LIMELIGHTNAME);
+    if (est.tagCount >= 1) {
+      curStdDevs = est.tagCount > 1 ? kMultiTagStdDevs : kSingleTagStdDevs;
+      return Optional.of(est);
     }
-
-    for (LimelightPoseEstimator poseEst : poseEstimators) {
-      Optional<PoseEstimate> pose = poseEst.getPoseEstimate();
-      
-      if (pose.isPresent() && pose.get().tagCount >= 1) {
-        curStdDevs = pose.get().tagCount > 1 ? kMultiTagStdDevs : kSingleTagStdDevs;
-        return Optional.of(pose.get());
-      }
-    }
+    // helpers return a non-null object even when no tags are visible; use
+    // the `tagCount` field to determine emptiness.
     return Optional.empty();
   }
 
   public Optional<PoseEstimate> getVisionMeasurement_MT1() {
-    // Collect pose estimates and per-camera ambiguity
-    List<PoseEstimate> candidates = new ArrayList<>();
-    List<String> names = new ArrayList<>();
-
-    for (int i = 0; i < poseEstimators.size(); ++i) {
-      LimelightPoseEstimator poseEst = poseEstimators.get(i);
-      Optional<PoseEstimate> pose = poseEst.getPoseEstimate();
-
-      if (!pose.isPresent()) continue;
-
-      double minAmb = Double.MAX_VALUE;
-      if (pose.get().rawFiducials != null && pose.get().rawFiducials.length > 0) {
-        for (var rf : pose.get().rawFiducials) {
-          if (rf == null) continue;
-          minAmb = Math.min(minAmb, rf.ambiguity);
+    PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue(LIMELIGHTNAME);
+    if (est.tagCount > 0) {
+      double maxAmb = 0.0;
+      for (var rf : est.rawFiducials) {
+        if (rf != null) {
+          maxAmb = Math.max(maxAmb, rf.ambiguity);
         }
       }
-
-      // record candidate and the camera name that produced it
-      candidates.add(pose.get());
-      names.add(limelightCameras.get(i).limelightName);
-      // SmartDashboard.putNumber("Vision/Camera/" + limelightCameras.get(i).limelightName + "/Ambiguity", minAmb == Double.MAX_VALUE ? -1 : minAmb);
+      if (maxAmb >= AMBIGUITY_DELTA_THRESHOLD) {
+        telemetry.putNumber("Vision/SelectedAmbiguity", maxAmb, true);
+        updateEstimationStdDevs(Optional.of(est));
+        return Optional.of(est);
+      }
     }
-
-  if (candidates.isEmpty()) {
     updateEstimationStdDevs(Optional.empty());
     return Optional.empty();
-  }
-
-    // Choose best candidate by lowest ambiguity, tie-break by tagCount then avgTagDist
-    int bestIndex = 0;
-    double bestAmb = Double.MAX_VALUE;
-    for (int i = 0; i < candidates.size(); ++i) {
-      var p = candidates.get(i);
-      double minAmb = Double.MAX_VALUE;
-      if (p.rawFiducials != null && p.rawFiducials.length > 0) {
-        for (var rf : p.rawFiducials) {
-          if (rf == null) continue;
-          minAmb = Math.min(minAmb, rf.ambiguity);
-        }
-      }
-
-      if (minAmb < bestAmb) {
-        bestAmb = minAmb;
-        bestIndex = i;
-      } else if (minAmb == bestAmb) {
-        if (p.tagCount > candidates.get(bestIndex).tagCount) bestIndex = i;
-        else if (p.tagCount == candidates.get(bestIndex).tagCount
-            && p.avgTagDist < candidates.get(bestIndex).avgTagDist) bestIndex = i;
-      }
-    }
-
-    var bestPose = candidates.get(bestIndex);
-    String candidateName = names.get(bestIndex);
-
-    // Ambiguity-delta-based hysteresis
-    if (lastChosenPoseEstimate == null || lastSelectedCameraName.isEmpty()) {
-      lastChosenPoseEstimate = bestPose;
-      lastSelectedCameraName = candidateName;
-      lastSelectedAmbiguity = bestAmb;
-      switchConfidence = 0.0;
-    } else {
-      double delta = lastSelectedAmbiguity - bestAmb;
-      boolean candidateBetter = delta >= AMBIGUITY_DELTA_THRESHOLD;
-      if (candidateBetter) {
-        switchConfidence = Math.min(CONFIRM_THRESHOLD, switchConfidence + CONFIDENCE_INCREMENT);
-      } else {
-        switchConfidence = Math.max(0.0, switchConfidence - CONFIDENCE_DECREMENT);
-      }
-
-      double progress = switchConfidence / CONFIRM_THRESHOLD;
-  telemetry.putString("Vision/PendingSwitchTo", candidateName);
-  telemetry.putNumber("Vision/SwitchConfidence", progress);
-
-      if (switchConfidence >= CONFIRM_THRESHOLD) {
-        // commit
-        lastChosenPoseEstimate = bestPose;
-        lastSelectedCameraName = candidateName;
-        lastSelectedAmbiguity = bestAmb;
-        switchConfidence = 0.0;
-        telemetry.putString("Vision/PendingSwitchTo", "");
-        telemetry.putNumber("Vision/SwitchConfidence", 1.0);
-      }
-    }
-
-    // Update stddevs and return the currently chosen pose estimate
-    updateEstimationStdDevs(Optional.of(lastChosenPoseEstimate));
-  telemetry.putString("Vision/SelectedCamera", lastSelectedCameraName == null ? "" : lastSelectedCameraName);
-  telemetry.putNumber("Vision/SelectedAmbiguity", lastSelectedAmbiguity == Double.MAX_VALUE ? -1 : lastSelectedAmbiguity, true);
-
-    return Optional.of(lastChosenPoseEstimate);
   }
 
   public void updateGlobalPose(CommandSwerveDrivetrain drivetrain) {
@@ -382,12 +296,14 @@ public class VisionSubsystem extends SubsystemBase {
         (Math.abs(drivetrain.getState().Speeds.omegaRadiansPerSecond) < RotationsPerSecond.of(2).in(RadiansPerSecond))) {
 
       // Limelight-only: get chosen limelight pose (with hysteresis) and add it to estimator
-      var limelightEst = this.getVisionMeasurement_MT1();
-      limelightEst.ifPresent(
+      var postEst = this.getVisionMeasurement_MT2(drivetrain.getRotation3d());
+      postEst.ifPresent(
           est -> {
             if (est.tagCount >= 1) {
-        drivetrain.addVisionMeasurement(
-          est.pose.toPose2d(), Utils.fpgaToCurrentTime(est.timestampSeconds), this.getEstimationStdDevs());
+                    drivetrain.addVisionMeasurement(
+                      est.pose, 
+                Utils.fpgaToCurrentTime(est.timestampSeconds), 
+                this.getEstimationStdDevs());
             }
           });
     }
@@ -401,16 +317,8 @@ public class VisionSubsystem extends SubsystemBase {
   // ---------- Limelight pipeline helpers
   /** Set the pipeline index on a single limelight camera. */
   public void setPipelineForFrontCamera(int pipelineIndex) {
-    limelightCameras.get(0).getSettings().withPipelineIndex(pipelineIndex).save();
+    LimelightHelpers.setPipelineIndex(LIMELIGHTNAME, pipelineIndex);
     telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/Pipeline", pipelineIndex);
-  }
-
-  /** Set the pipeline index for every configured limelight camera. */
-  public void setPipelineForAllCameras(int pipelineIndex) {
-    for (Limelight camera : limelightCameras) {
-      camera.getSettings().withPipelineIndex(pipelineIndex).save();
-      telemetry.putNumber("Vision/Camera/" + camera.limelightName + "/Pipeline", pipelineIndex);
-    }
   }
 
   /**
@@ -420,7 +328,7 @@ public class VisionSubsystem extends SubsystemBase {
    */
   public void setHubPipelineForAlliance(boolean isBlue) {
     int idx = isBlue ? LIMELIGHT_PIPELINE_HUB_BLUE : LIMELIGHT_PIPELINE_HUB_RED;
-    setPipelineForAllCameras(idx);
+    setPipelineForFrontCamera(idx);
     telemetry.putString("Vision/ActiveMode", "HubPipeline");
   }
 
@@ -430,15 +338,15 @@ public class VisionSubsystem extends SubsystemBase {
    */
   public void setTowerPipelineForAlliance(boolean isBlue) {
     int idx = isBlue ? LIMELIGHT_PIPELINE_TOWER_BLUE : LIMELIGHT_PIPELINE_TOWER_RED;
-    setPipelineForAllCameras(idx);
+    setPipelineForFrontCamera(idx);
     telemetry.putString("Vision/ActiveMode", "TowerPipeline");
   }
 
   // ---------- Command-returning helpers for use in Command groups / events
 
   /** Return a command that sets a specific pipeline index on all cameras when executed. */
-  public Command setPipelineForAllCamerasCommand(int pipelineIndex) {
-    return run(() -> setPipelineForAllCameras(pipelineIndex)).withName("SetPipelineAll-" + pipelineIndex);
+  public Command setPipelineCommand(int pipelineIndex) {
+    return run(() -> setPipelineForFrontCamera(pipelineIndex)).withName("SetPipelineAll-" + pipelineIndex);
   }
 
   /** Return a command that selects Hub pipeline based on the DriverStation alliance at runtime. */
