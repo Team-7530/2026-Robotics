@@ -47,7 +47,7 @@ public class TurretSubsystem extends SubsystemBase {
   public static final Angle TURRET_MIN_DEG = Degrees.of(-90.0);
   public static final Angle TURRET_MAX_DEG = Degrees.of(90.0);
 
-  public static final double kTurretOffset = 0.0;
+  public static final double kTurretOffset = 11.2;
 
   public static final double kTurretChainRatio = 200.0 / 20.0; // 20:200 ratio (20 teeth on motor sprocket, 200 teeth on turret sprocket)
   public static final double kTurretGearboxRatio = 20.0; // 20:1
@@ -146,18 +146,21 @@ public class TurretSubsystem extends SubsystemBase {
   public Command setAngleCommand(Angle angle) {
     m_isTeleop = false;
     turretTargetAngle = Degrees.of(MathUtil.clamp(angle.in(Degrees), TURRET_MIN_DEG.in(Degrees), TURRET_MAX_DEG.in(Degrees)));
-    return m_turret.runTo(turretTargetAngle, Degrees.of(0.1)).withName("TurretSetAngleCommand");
+    return m_turret.runTo(turretTargetAngle, Degrees.of(0.1)).withName("TurretSetAngleCommand")
+      .withTimeout(1.0);
   }
 
   public Command setAngleCommand(Angle angle, Angle tolerance) {
     m_isTeleop = false;
     turretTargetAngle = Degrees.of(MathUtil.clamp(angle.in(Degrees), TURRET_MIN_DEG.in(Degrees), TURRET_MAX_DEG.in(Degrees)));
-    return m_turret.runTo(turretTargetAngle, tolerance).withName("TurretSetAngleWithToleranceCommand");
+    return m_turret.runTo(turretTargetAngle, tolerance).withName("TurretSetAngleWithToleranceCommand")
+      .withTimeout(1.0);
   }
 
   public Command setAngleCommand(Supplier<Angle> angleSupplier) {
     m_isTeleop = false;
-    return m_turret.setAngle(angleSupplier).withName("TurretSetAngleSupplierCommand");
+    return m_turret.setAngle(angleSupplier).withName("TurretSetAngleSupplierCommand")
+      .withTimeout(1.0);
   }
 
   public void setAngleDirect(Angle angle) {

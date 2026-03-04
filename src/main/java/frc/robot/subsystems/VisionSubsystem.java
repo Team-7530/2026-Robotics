@@ -110,7 +110,7 @@ public class VisionSubsystem extends SubsystemBase {
       List.of(
         Pair.of(
           LIMELIGHTNAME,
-          new Transform3d(new Translation3d(0.28, 0, 0.16), new Rotation3d(0, 0, 0)))
+          new Transform3d(new Translation3d(0.28, -0.221, 0.4064), new Rotation3d(0, -Math.PI/4.0, 0)))
       );
 
     // The standard deviations of our vision estimated poses, which affect correction rate
@@ -178,9 +178,9 @@ public class VisionSubsystem extends SubsystemBase {
     limelight1.getSettings()
       .withLimelightLEDMode(LEDMode.PipelineControl)
       .withCameraOffset(new Pose3d(Inches.of(11).in(Meters),
-                                    Inches.of(0).in(Meters),
+                                    Inches.of(8.7).in(Meters),
                                     Inches.of(6.3).in(Meters),
-                                    Rotation3d.kZero))
+                                    new Rotation3d(0, -Math.PI/4.0, 0)))
       .save();
     limelightCameras.add(limelight1);
     poseEstimators.add(limelight1.createPoseEstimator(EstimationMode.MEGATAG2));

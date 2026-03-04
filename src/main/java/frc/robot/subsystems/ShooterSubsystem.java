@@ -51,7 +51,7 @@ public class ShooterSubsystem extends SubsystemBase {
   public Command setFlywheelVelocityCommand(AngularVelocity velocity) {
     flywheelVelocity = velocity;
     if (m_isSpinup) {
-      return flywheel.flywheelStartCommand(flywheelVelocity)
+      return flywheel.flywheelStartCommand(() -> flywheelVelocity)
         .withName("setFlywheelVelocityCommand");
     }
     return Commands.none();
@@ -64,7 +64,7 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public Command shooterSpinupCommand() {
-    return flywheel.flywheelStartCommand(flywheelVelocity)
+    return flywheel.flywheelStartCommand(() -> flywheelVelocity)
       .alongWith(feeder.feederStartCommand())
       .withName("shooterSpinupCommand");
   }
