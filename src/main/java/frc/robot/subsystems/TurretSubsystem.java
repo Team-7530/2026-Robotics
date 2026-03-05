@@ -44,10 +44,10 @@ public class TurretSubsystem extends SubsystemBase {
   public static final int TURRET_ANALOG_ID = 0;
 
   // Turret limits in degrees (180-degree travel centered on 0)
-  public static final Angle TURRET_MIN_DEG = Degrees.of(-90.0);
-  public static final Angle TURRET_MAX_DEG = Degrees.of(90.0);
+  public static final Angle TURRET_MIN_DEG = Degrees.of(-80.0);
+  public static final Angle TURRET_MAX_DEG = Degrees.of(80.0);
 
-  public static final double kTurretOffset = 11.2;
+  public static final double kTurretOffset = 16.5;
 
   public static final double kTurretChainRatio = 200.0 / 20.0; // 20:200 ratio (20 teeth on motor sprocket, 200 teeth on turret sprocket)
   public static final double kTurretGearboxRatio = 20.0; // 20:1
@@ -101,6 +101,7 @@ public class TurretSubsystem extends SubsystemBase {
   PivotConfig m_turretconfig = new PivotConfig(m_turretSMC)
       .withStartingPosition(Degrees.of(0)) // Starting position of the Pivot
       .withWrapping(Degrees.of(-180), Degrees.of(180)) // Wrapping enabled bc the pivot can spin infinitely
+      .withSoftLimits(TURRET_MIN_DEG, TURRET_MAX_DEG) // Hard limit bc wiring prevents infinite spinning
       .withHardLimit(TURRET_MIN_DEG, TURRET_MAX_DEG) // Hard limit bc wiring prevents infinite spinning
       .withTelemetry("Turret", TelemetryVerbosity.HIGH) // Telemetry
       .withMOI(Meters.of(0.25), Pounds.of(4)) // MOI Calculation

@@ -97,7 +97,7 @@ import frc.lib.limelightvision.LimelightHelpers.PoseEstimate;
 import java.util.Optional;
 
 public class VisionSubsystem extends SubsystemBase {
-  public static final String LIMELIGHTNAME = "limelight";
+  public static final String LIMELIGHTNAME = "";
   public static final String LIMELIGHTURL = "limelight.local";
   
   // Cam - x = +toward front, 0 center, -toward rear in meters.
@@ -295,15 +295,27 @@ public class VisionSubsystem extends SubsystemBase {
         (Math.abs(drivetrain.getState().Speeds.vyMetersPerSecond) < 0.2) &&
         (Math.abs(drivetrain.getState().Speeds.omegaRadiansPerSecond) < RotationsPerSecond.of(2).in(RadiansPerSecond))) {
 
+        var pose = drivetrain.getState().Pose;
+      telemetry.putNumber("DriveTrain/PoseX", pose.getTranslation().getX());
+      telemetry.putNumber("DriveTrain/PoseY", pose.getTranslation().getY());
+      telemetry.putNumber("DriveTrain/PoseTheta", pose.getRotation().getDegrees());
+
+
       // Limelight-only: get chosen limelight pose (with hysteresis) and add it to estimator
-      var postEst = this.getVisionMeasurement_MT2(drivetrain.getRotation3d());
+      // var postEst = this.getVisionMeasurement_MT2(drivetrain.getRotation3d());
+      var postEst = this.getVisionMeasurement_MT1();
       postEst.ifPresent(
           est -> {
             if (est.tagCount >= 1) {
-                    drivetrain.addVisionMeasurement(
+              telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1PoseX", est.pose.getTranslation().getX());
+              telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1PoseY", est.pose.getTranslation().getY());
+              telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1TagCount", est.tagCount);
+                  drivetrain.addVisionMeasurement(
                       est.pose, 
                 Utils.fpgaToCurrentTime(est.timestampSeconds), 
                 this.getEstimationStdDevs());
+
+                drivetrain.resetPose(est.pose);
             }
           });
     }

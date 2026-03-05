@@ -181,6 +181,10 @@ public class Telemetry {
 
   field.setRobotPose(pose);
 
+  putNumber("DriveTrain/PoseX", pose.getX());
+  putNumber("DriveTrain/PoseY", pose.getY());
+  putNumber("DriveTrain/PoseTheta", pose.getRotation().getDegrees());
+
   /* Telemeterize the robot's general speeds */
   var currentTime = Utils.getCurrentTimeSeconds();
   var diffTime = currentTime - lastTime;
