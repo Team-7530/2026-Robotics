@@ -82,7 +82,6 @@ import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import frc.robot.Telemetry;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 
 // The original limelight library had a few bugs in its pose estimation code.
@@ -101,7 +100,7 @@ public class VisionSubsystem extends SubsystemBase {
   public static final String LIMELIGHTURL = "limelight.local";
   
   // Cam - x = +toward front, 0 center, -toward rear in meters.
-  //       y = +left of center, 0 center, -right of center in meters
+  //       y = -left of center, 0 center, +right of center in meters
   //       z = +up from base of robot in meters
   //    roll = rotate around front/rear in radians. PI = upsidedown
   //   pitch = tilt down/up along left/right axis. PI/4 = tilt down 45 degrees, -PI/4 = tilt up 45
@@ -115,9 +114,8 @@ public class VisionSubsystem extends SubsystemBase {
                         Degrees.of(0)));
 
   // The standard deviations of our vision estimated poses, which affect correction rate
-  // (Fake values. Experiment and determine estimation noise on an actual robot.)
-  public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(2, 2, 8);
-  public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.5, 0.5, 2);
+  public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(0.5, 0.5, Degrees.of(30).in(Radians));
+  public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.1, 0.1, Degrees.of(5).in(Radians));
 
   // ------------------------------------------------------------------
   // Limelight pipeline indices
@@ -251,14 +249,11 @@ public class VisionSubsystem extends SubsystemBase {
     return curStdDevs;
   }
 
-  public Optional<PoseEstimate> getVisionMeasurement_MT2(Rotation3d drivetrainRotation) {
+  public Optional<PoseEstimate> getVisionMeasurement_MT2(double yawDegrees) {
     // The MegaTag2 algorithm uses the robot's current orientation.  The
     // helpers expect yaw/pitch/roll in degrees and will apply the finished
     // values the next time we read one of the botpose entries.
-    double yawDeg = Math.toDegrees(drivetrainRotation.getZ());
-    double pitchDeg = Math.toDegrees(drivetrainRotation.getY());
-    double rollDeg = Math.toDegrees(drivetrainRotation.getX());
-    LimelightHelpers.SetRobotOrientation(LIMELIGHTNAME, yawDeg, 0, pitchDeg, 0, rollDeg, 0);
+    LimelightHelpers.SetRobotOrientation(LIMELIGHTNAME, yawDegrees, 0, 0, 0, 0, 0);
 
     PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(LIMELIGHTNAME);
     if (est.tagCount >= 1) {
@@ -302,7 +297,7 @@ public class VisionSubsystem extends SubsystemBase {
 
 
       // Limelight-only: get chosen limelight pose (with hysteresis) and add it to estimator
-      // var postEst = this.getVisionMeasurement_MT2(drivetrain.getRotation3d());
+      // var postEst = this.getVisionMeasurement_MT2(drivetrain.getPigeon2().getYaw());
       var postEst = this.getVisionMeasurement_MT1();
       postEst.ifPresent(
           est -> {
@@ -315,7 +310,7 @@ public class VisionSubsystem extends SubsystemBase {
                 Utils.fpgaToCurrentTime(est.timestampSeconds), 
                 this.getEstimationStdDevs());
 
-                drivetrain.resetPose(est.pose);
+                // drivetrain.resetPose(est.pose);
             }
           });
     }
@@ -328,53 +323,17 @@ public class VisionSubsystem extends SubsystemBase {
 
   // ---------- Limelight pipeline helpers
   /** Set the pipeline index on a single limelight camera. */
-  public void setPipelineForFrontCamera(int pipelineIndex) {
+  public void setPipeline(int pipelineIndex) {
     LimelightHelpers.setPipelineIndex(LIMELIGHTNAME, pipelineIndex);
     telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/Pipeline", pipelineIndex);
   }
 
-  /**
-   * Convenience helper: set the pipeline that filters HUB tags for the current alliance.
-   * Pass true for blue alliance, false for red. Indices are defined in
-   * {@link frc.robot.Constants.Vision}.
-   */
-  public void setHubPipelineForAlliance(boolean isBlue) {
-    int idx = isBlue ? LIMELIGHT_PIPELINE_HUB_BLUE : LIMELIGHT_PIPELINE_HUB_RED;
-    setPipelineForFrontCamera(idx);
-    telemetry.putString("Vision/ActiveMode", "HubPipeline");
-  }
-
-  /**
-   * Convenience helper: set the pipeline that filters Tower tags for the current alliance.
-   * Pass true for blue alliance, false for red.
-   */
-  public void setTowerPipelineForAlliance(boolean isBlue) {
-    int idx = isBlue ? LIMELIGHT_PIPELINE_TOWER_BLUE : LIMELIGHT_PIPELINE_TOWER_RED;
-    setPipelineForFrontCamera(idx);
-    telemetry.putString("Vision/ActiveMode", "TowerPipeline");
-  }
 
   // ---------- Command-returning helpers for use in Command groups / events
 
   /** Return a command that sets a specific pipeline index on all cameras when executed. */
   public Command setPipelineCommand(int pipelineIndex) {
-    return run(() -> setPipelineForFrontCamera(pipelineIndex)).withName("SetPipelineAll-" + pipelineIndex);
-  }
-
-  /** Return a command that selects Hub pipeline based on the DriverStation alliance at runtime. */
-  public Command setHubPipelineCommand() {
-    return run(
-            () ->
-        setHubPipelineForAlliance(DriverStation.getAlliance().get() == DriverStation.Alliance.Blue))
-        .withName("SetHubPipeline");
-  }
-
-  /** Return a command that selects Tower pipeline based on the DriverStation alliance at runtime. */
-  public Command setTowerPipelineCommand() {
-    return run(
-            () ->
-        setTowerPipelineForAlliance(DriverStation.getAlliance().get() == DriverStation.Alliance.Blue))
-        .withName("SetTowerPipeline");
+    return run(() -> setPipeline(pipelineIndex)).withName("SetPipelineAll-" + pipelineIndex);
   }
 
   // ----- Simulation

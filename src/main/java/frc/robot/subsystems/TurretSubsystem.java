@@ -64,7 +64,7 @@ public class TurretSubsystem extends SubsystemBase {
   public static final AngularAcceleration TURRET_kMaxA = DegreesPerSecondPerSecond.of(1440);
 
   public static final double kTurretTeleopSpeed = 0.8;
-
+  
   // TalonFX hardware + YAMS controller
   private final TalonFX m_turretMotor = new TalonFX(TURRET_MASTER_ID, kCANBus);
   @Logged
