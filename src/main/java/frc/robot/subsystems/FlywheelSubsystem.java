@@ -50,8 +50,8 @@ public class FlywheelSubsystem extends SubsystemBase {
   public static final double FLYWHEEL_kP = 0.1;
   public static final double FLYWHEEL_kI = 0.0;
   public static final double FLYWHEEL_kD = 0.0;
-  public static final AngularVelocity FLYWHEEL_kMaxV = RPM.of(6000.0);
-  public static final AngularAcceleration FLYWHEEL_kMaxA = RotationsPerSecondPerSecond.of(3000);
+  public static final AngularVelocity FLYWHEEL_kMaxV = RPM.of(8000.0);
+  public static final AngularAcceleration FLYWHEEL_kMaxA = RotationsPerSecondPerSecond.of(4000);
   
   private final Distance flywheelDiameter = Inches.of(4);
   private final Mass flywheelMass = Pounds.of(1);
@@ -126,6 +126,7 @@ public class FlywheelSubsystem extends SubsystemBase {
     }
   
     public Command setVelocity(AngularVelocity speed) {
+      telemetry.putNumber("Flywheel/flywheelVelocity", speed.in(RPM));
       return m_flywheel.setSpeed(speed).withName("FlywheelSetVelocityCommand");
     }
   

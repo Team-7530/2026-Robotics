@@ -114,7 +114,7 @@ public class VisionSubsystem extends SubsystemBase {
                         Degrees.of(0)));
 
   // The standard deviations of our vision estimated poses, which affect correction rate
-  public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(0.5, 0.5, Degrees.of(30).in(Radians));
+  public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(0.5, 0.5, Degrees.of(10).in(Radians));
   public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.1, 0.1, Degrees.of(5).in(Radians));
 
   // ------------------------------------------------------------------
@@ -290,10 +290,10 @@ public class VisionSubsystem extends SubsystemBase {
         (Math.abs(drivetrain.getState().Speeds.vyMetersPerSecond) < 0.2) &&
         (Math.abs(drivetrain.getState().Speeds.omegaRadiansPerSecond) < RotationsPerSecond.of(2).in(RadiansPerSecond))) {
 
-        var pose = drivetrain.getState().Pose;
-      telemetry.putNumber("DriveTrain/PoseX", pose.getTranslation().getX());
-      telemetry.putNumber("DriveTrain/PoseY", pose.getTranslation().getY());
-      telemetry.putNumber("DriveTrain/PoseTheta", pose.getRotation().getDegrees());
+        // var pose = drivetrain.getState().Pose;
+      // telemetry.putNumber("DriveTrain/PoseX", pose.getTranslation().getX());
+      // telemetry.putNumber("DriveTrain/PoseY", pose.getTranslation().getY());
+      // telemetry.putNumber("DriveTrain/PoseTheta", pose.getRotation().getDegrees());
 
 
       // Limelight-only: get chosen limelight pose (with hysteresis) and add it to estimator
@@ -307,7 +307,7 @@ public class VisionSubsystem extends SubsystemBase {
               telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1TagCount", est.tagCount);
                   drivetrain.addVisionMeasurement(
                       est.pose, 
-                Utils.fpgaToCurrentTime(est.timestampSeconds), 
+                est.timestampSeconds, 
                 this.getEstimationStdDevs());
 
                 // drivetrain.resetPose(est.pose);

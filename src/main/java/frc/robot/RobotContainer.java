@@ -125,10 +125,10 @@ public class RobotContainer {
   }
 
   private void configureOperatorControls() {
-    oi.getAButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(6000)));
-    oi.getBButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(6500)));
-    oi.getXButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(7000)));
-    oi.getYButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(7500)));
+    oi.getAButton().onTrue(shooter.shooterSpinupCommand(RPM.of(6000)));
+    oi.getBButton().onTrue(shooter.shooterSpinupCommand(RPM.of(6500)));
+    oi.getXButton().onTrue(shooter.shooterSpinupCommand(RPM.of(7000)));
+    oi.getYButton().onTrue(shooter.shooterSpinupCommand(RPM.of(7500)));
 
     oi.getLeftBumper()
       .onTrue(shooter.shooterSpinupCommand());
@@ -154,7 +154,7 @@ public class RobotContainer {
 
     // back button toggles continuous hub-aiming for testing; cancels immediately
     // when released by virtue of being a run-while-true command.
-    oi.getBackButton().onTrue(shooter.aimTurretAtHubCommand(drivetrain));
+    oi.getBackButton().whileTrue(shooter.aimTurretAtHubCommand(drivetrain));
 
     shooter.turret.setDefaultCommand(Commands.run(() -> shooter.turret.teleop(oi.getLeftThumbstickX()), shooter.turret));    
     rakeArm.setDefaultCommand(Commands.run(() -> rakeArm.teleop(-oi.getRightThumbstickY()), rakeArm));
@@ -291,7 +291,7 @@ public class RobotContainer {
   }
 
   private void configureAutoPaths() {
-    NamedCommands.registerCommand("aimRange", shooter.turret.setAngleCommand(Degrees.of(0)));
+    NamedCommands.registerCommand("aimRange", shooter.aimTurretAtHubCommand(drivetrain));
     NamedCommands.registerCommand("shoot", shooter.shooterSpinupCommand()/* .alongWith(shooter.shooterStartCommand())*/);
     NamedCommands.registerCommand("climb", Commands.runOnce(() -> System.out.println("Climb command executed")));
     NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));

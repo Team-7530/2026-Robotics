@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.Telemetry;
 
 /**
  * ShooterSubsystem controls a turret (absolute encoder + position control) and a two-motor
@@ -32,14 +33,17 @@ public class ShooterSubsystem extends SubsystemBase {
 
   private AngularVelocity flywheelVelocity = RPM.of(8000);
   private boolean m_isSpinup = false;
+  private Telemetry telemetry;
 
   private static final double TURRET_X_OFFSET = 0;
   private static final double TURRET_Y_OFFSET = 0;
-  private static final double HUB_OFFSET_X = 0;
-  private static final double HUB_OFFSET_Y = 0;
+  private static final double HUB_OFFSET_X = -0.4;
+  private static final double HUB_OFFSET_Y = -0.4;
       
-  public ShooterSubsystem(frc.robot.Telemetry telemetry) {
+  public ShooterSubsystem(frc.robot.Telemetry tele) {
+
     // inject telemetry into nested subsystems so they can publish centrally
+    this.telemetry = tele;
     this.turret = new TurretSubsystem(telemetry);
     this.flywheel = new FlywheelSubsystem(telemetry);
     this.feeder = new FeederSubsystem(telemetry);
@@ -125,7 +129,7 @@ public class ShooterSubsystem extends SubsystemBase {
       double turretAngle = fieldAngleToHub - robotHeading;
       turretAngle = ((turretAngle + 180) % 360 + 360) % 360 - 180;
 
-      return Degrees.of(turretAngle);
+      return Degrees.of(-turretAngle);
   }
 
 
@@ -143,7 +147,9 @@ public class ShooterSubsystem extends SubsystemBase {
   public Command shooterSpinupCommand(AngularVelocity velocity) {
     m_isSpinup = true;
     flywheelVelocity = velocity;
-    return this.shooterSpinupCommand();
+    return flywheel.flywheelStartCommand(() -> velocity)
+      .alongWith(feeder.feederStartCommand())
+      .withName("shooterSpinupCommand");
   }
 
   public Command shooterSpinupCommand() {
