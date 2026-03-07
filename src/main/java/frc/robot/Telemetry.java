@@ -173,36 +173,35 @@ public class Telemetry {
 
   /** Accept the swerve drive state and telemeterize it to the dashboard (Shuffleboard) and SignalLogger. */
   public void telemeterize(SwerveDriveState state) {
-  /* Telemeterize the pose */
-  var pose = state.Pose;
-  m_poseArray[0] = pose.getX();
-  m_poseArray[1] = pose.getY();
-  m_poseArray[2] = pose.getRotation().getDegrees();
+    /* Telemeterize the pose */
+    var pose = state.Pose;
+    m_poseArray[0] = pose.getX();
+    m_poseArray[1] = pose.getY();
+    m_poseArray[2] = pose.getRotation().getDegrees();
 
-  field.setRobotPose(pose);
+    field.setRobotPose(pose);
 
-  putNumber("DriveTrain/PoseX", pose.getX());
-  putNumber("DriveTrain/PoseY", pose.getY());
-  putNumber("DriveTrain/PoseTheta", pose.getRotation().getDegrees());
+    /* Telemeterize the robot's general speeds */
+    var currentTime = Utils.getCurrentTimeSeconds();
+    var diffTime = currentTime - lastTime;
+    lastTime = currentTime;
 
-  /* Telemeterize the robot's general speeds */
-  var currentTime = Utils.getCurrentTimeSeconds();
-  var diffTime = currentTime - lastTime;
-  lastTime = currentTime;
+    var distanceDiff = pose.minus(m_lastPose).getTranslation();
+    m_lastPose = pose;
 
-  var distanceDiff = pose.minus(m_lastPose).getTranslation();
-  m_lastPose = pose;
-
-  var velocities = distanceDiff.div(diffTime);
+    var velocities = distanceDiff.div(diffTime);
 
     speed.set(velocities.getNorm());
     velocityX.set(velocities.getX());
     velocityY.set(velocities.getY());
     odomFreq.set(1.0 / state.OdometryPeriod);
 
-  // also publish the drivetrain maximum speed; this is used on the
-  // competition layout so drivers know what the robot is currently allowed to do.
-  putNumber("DriveTrain/MaxSpeed", MaxSpeed);
+    // also publish the drivetrain maximum speed; this is used on the
+    // competition layout so drivers know what the robot is currently allowed to do.
+    putNumber("DriveTrain/MaxSpeed", MaxSpeed);
+    putNumber("DriveTrain/PoseX", m_poseArray[0]);
+    putNumber("DriveTrain/PoseY", m_poseArray[1]);
+    putNumber("DriveTrain/PoseTheta", m_poseArray[2]);
 
     /* Telemeterize the module's states */
     for (int i = 0; i < 4; ++i) {

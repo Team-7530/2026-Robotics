@@ -66,7 +66,6 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
-import com.ctre.phoenix6.Utils;
 // import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.math.Matrix;
@@ -96,7 +95,7 @@ import frc.lib.limelightvision.LimelightHelpers.PoseEstimate;
 import java.util.Optional;
 
 public class VisionSubsystem extends SubsystemBase {
-  public static final String LIMELIGHTNAME = "";
+  public static final String LIMELIGHTNAME = "limelight";
   public static final String LIMELIGHTURL = "limelight.local";
   
   // Cam - x = +toward front, 0 center, -toward rear in meters.
@@ -114,8 +113,8 @@ public class VisionSubsystem extends SubsystemBase {
                         Degrees.of(0)));
 
   // The standard deviations of our vision estimated poses, which affect correction rate
-  public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(0.5, 0.5, Degrees.of(10).in(Radians));
-  public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.1, 0.1, Degrees.of(5).in(Radians));
+  public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(0.7, 0.7, 9999999);
+  public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.5, 0.5, 9999999);
 
   // ------------------------------------------------------------------
   // Limelight pipeline indices
@@ -139,20 +138,14 @@ public class VisionSubsystem extends SubsystemBase {
   // 5. Test live in the UI and adjust detection thresholds or downscale as
   //    necessary before using from robot code.
 
-  // Pipeline indices (placeholders) - update these to the indices you configure
-  // on each Limelight. Use constants for clarity in code.
-  public static final int LIMELIGHT_PIPELINE_HUB_BLUE = 1;
-  public static final int LIMELIGHT_PIPELINE_HUB_RED = 2;
-  public static final int LIMELIGHT_PIPELINE_TOWER_BLUE = 3;
-  public static final int LIMELIGHT_PIPELINE_TOWER_RED = 4;
-
   private Matrix<N3, N1> curStdDevs;
 
   // Simulation debug field
   private Field2d simDebugField = null;
 
   // hysteresis parameters (ambiguity-delta-based)
-  private static final double AMBIGUITY_DELTA_THRESHOLD = 0.15; // new ambiguity must be this much lower
+  private static final double AMBIGUITY_DELTA_THRESHOLD = 0.7; // new ambiguity must be this much lower
+  private static final double DISTANCE_THRESHOLD = 3.0; // new distance must be lower than this in meters
 
   /* Cameras */
   public UsbCamera cam0;
@@ -206,37 +199,37 @@ public class VisionSubsystem extends SubsystemBase {
    * kSingleTagStdDevs for close/low-ambiguity single-tag sightings. Falls back to
    * scaled multi-tag stddevs based on average tag distance.
    */
-  private void updateEstimationStdDevs(Optional<PoseEstimate> estimatedPose) {
-    if (estimatedPose.isEmpty()) {
+  private Optional<PoseEstimate> updateEstimationStdDevs(PoseEstimate estimatedPose) {
+    if (estimatedPose == null) {
       curStdDevs = kSingleTagStdDevs;
-      return;
+      return Optional.empty();
     }
 
-    PoseEstimate est = estimatedPose.get();
-    if (est.tagCount == 0) {
+    if (estimatedPose.tagCount == 0) {
       curStdDevs = kSingleTagStdDevs;
-      return;
+      return Optional.empty();
     }
 
-    if (est.tagCount > 1) {
+    if (estimatedPose.tagCount > 1) {
       curStdDevs = kMultiTagStdDevs;
-      return;
+      return Optional.of(estimatedPose);
     }
 
     // Single tag: prefer single-tag stddevs if low ambiguity and close enough
     double amb = Double.MAX_VALUE;
-    double dist = est.avgTagDist;
-    if (est.rawFiducials != null && est.rawFiducials.length > 0) {
-      amb = est.rawFiducials[0].ambiguity;
-      dist = est.rawFiducials[0].distToCamera;
+    double dist = estimatedPose.avgTagDist;
+    if (estimatedPose.rawFiducials != null && estimatedPose.rawFiducials.length > 0) {
+      amb = estimatedPose.rawFiducials[0].ambiguity;
+      dist = estimatedPose.rawFiducials[0].distToCamera;
     }
 
-    if (amb <= 0.7 && dist <= 3.0) {
+    if (amb <= AMBIGUITY_DELTA_THRESHOLD && dist <= DISTANCE_THRESHOLD) {
       curStdDevs = kSingleTagStdDevs;
     } else {
       // Scale multi-tag stddevs by distance heuristic
-      curStdDevs = kMultiTagStdDevs.times(1 + (est.avgTagDist * est.avgTagDist / 30));
+      curStdDevs = kMultiTagStdDevs.times(1 + (estimatedPose.avgTagDist * estimatedPose.avgTagDist / 30));
     }
+    return Optional.of(estimatedPose);
   }
 
   /**
@@ -255,33 +248,11 @@ public class VisionSubsystem extends SubsystemBase {
     // values the next time we read one of the botpose entries.
     LimelightHelpers.SetRobotOrientation(LIMELIGHTNAME, yawDegrees, 0, 0, 0, 0, 0);
 
-    PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(LIMELIGHTNAME);
-    if (est.tagCount >= 1) {
-      curStdDevs = est.tagCount > 1 ? kMultiTagStdDevs : kSingleTagStdDevs;
-      return Optional.of(est);
-    }
-    // helpers return a non-null object even when no tags are visible; use
-    // the `tagCount` field to determine emptiness.
-    return Optional.empty();
+    return updateEstimationStdDevs(LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(LIMELIGHTNAME));
   }
 
   public Optional<PoseEstimate> getVisionMeasurement_MT1() {
-    PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue(LIMELIGHTNAME);
-    if (est.tagCount > 0) {
-      double maxAmb = 0.0;
-      for (var rf : est.rawFiducials) {
-        if (rf != null) {
-          maxAmb = Math.max(maxAmb, rf.ambiguity);
-        }
-      }
-      if (maxAmb >= AMBIGUITY_DELTA_THRESHOLD) {
-        telemetry.putNumber("Vision/SelectedAmbiguity", maxAmb, true);
-        updateEstimationStdDevs(Optional.of(est));
-        return Optional.of(est);
-      }
-    }
-    updateEstimationStdDevs(Optional.empty());
-    return Optional.empty();
+    return updateEstimationStdDevs(LimelightHelpers.getBotPoseEstimate_wpiBlue(LIMELIGHTNAME));
   }
 
   public void updateGlobalPose(CommandSwerveDrivetrain drivetrain) {
@@ -289,12 +260,6 @@ public class VisionSubsystem extends SubsystemBase {
         (Math.abs(drivetrain.getState().Speeds.vxMetersPerSecond) < 0.2) &&
         (Math.abs(drivetrain.getState().Speeds.vyMetersPerSecond) < 0.2) &&
         (Math.abs(drivetrain.getState().Speeds.omegaRadiansPerSecond) < RotationsPerSecond.of(2).in(RadiansPerSecond))) {
-
-        // var pose = drivetrain.getState().Pose;
-      // telemetry.putNumber("DriveTrain/PoseX", pose.getTranslation().getX());
-      // telemetry.putNumber("DriveTrain/PoseY", pose.getTranslation().getY());
-      // telemetry.putNumber("DriveTrain/PoseTheta", pose.getRotation().getDegrees());
-
 
       // Limelight-only: get chosen limelight pose (with hysteresis) and add it to estimator
       // var postEst = this.getVisionMeasurement_MT2(drivetrain.getPigeon2().getYaw());
@@ -305,12 +270,31 @@ public class VisionSubsystem extends SubsystemBase {
               telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1PoseX", est.pose.getTranslation().getX());
               telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1PoseY", est.pose.getTranslation().getY());
               telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1TagCount", est.tagCount);
-                  drivetrain.addVisionMeasurement(
+              drivetrain.addVisionMeasurement(
                       est.pose, 
-                est.timestampSeconds, 
-                this.getEstimationStdDevs());
+                      est.timestampSeconds, 
+                      this.getEstimationStdDevs());
 
                 // drivetrain.resetPose(est.pose);
+            }
+          });
+    }
+  }
+
+  public void resetGlobalPose(CommandSwerveDrivetrain drivetrain) {
+    if ((Math.abs(drivetrain.getState().Speeds.vxMetersPerSecond) < 0.2) &&
+        (Math.abs(drivetrain.getState().Speeds.vyMetersPerSecond) < 0.2) &&
+        (Math.abs(drivetrain.getState().Speeds.omegaRadiansPerSecond) < RotationsPerSecond.of(1).in(RadiansPerSecond))) {
+
+      var postEst = this.getVisionMeasurement_MT1();
+      postEst.ifPresent(
+          est -> {
+            telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/ResetTagCount", est.tagCount);
+            telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/ResetPoseX", est.pose.getTranslation().getX());
+            telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/ResetPoseY", est.pose.getTranslation().getY());
+
+            if (est.tagCount >= 1) {
+                drivetrain.resetPose(est.pose);
             }
           });
     }
@@ -319,6 +303,10 @@ public class VisionSubsystem extends SubsystemBase {
   public Command updateGlobalPoseCommand(CommandSwerveDrivetrain drivetrain) {
     // schedules a periodic pose-update; usually set as a default command
     return run(() -> this.updateGlobalPose(drivetrain)).withName("UpdateGlobalPoseCommand");
+  }
+
+  public Command resetGlobalPoseCommand(CommandSwerveDrivetrain drivetrain) {
+    return runOnce(() -> this.resetGlobalPose(drivetrain)).withName("ResetGlobalPoseCommand");
   }
 
   // ---------- Limelight pipeline helpers

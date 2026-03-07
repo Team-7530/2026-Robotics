@@ -54,7 +54,8 @@ public class RakeArmSubsystem extends SubsystemBase {
 
   public static final Angle kRakeArmPositionDeploy = Degrees.of(0);
   public static final Angle kRakeArmPositionRetract = Degrees.of(131.0);
-
+  public static final Angle kRakeArmPositionUp = Degrees.of(45.0);
+  
   public static final double kRakeArmTeleopSpeed = 0.2;
     
   private final TalonFX m_rakeArmMotor = new TalonFX(RAKEARMMOTOR_ID, kCANBus);
@@ -170,6 +171,10 @@ public class RakeArmSubsystem extends SubsystemBase {
       return m_rakeArm.setAngle(kRakeArmPositionRetract).withName("rakeArmRetractCommand").withTimeout(5.0);
   }
 
+  public Command rakeArmUpCommand() {
+      return m_rakeArm.setAngle(kRakeArmPositionUp).withName("rakeArmUpCommand").withTimeout(5.0);
+  }
+
   /** Stops motor and activates brakes */
   public Command rakeArmStopCommand() {
       return runOnce(this::rakeArmStop).withName("rakeArmStopCommand");
@@ -201,9 +206,9 @@ public class RakeArmSubsystem extends SubsystemBase {
   private void updateTelemetry() {
     m_rakeArm.updateTelemetry();
     try {
-      telemetry.putNumber("Rake Arm Position", this.getRakeArmPosition().in(Degrees), true);
+      telemetry.putNumber("RakeArm/PositionDeg", this.getRakeArmPosition().in(Degrees), true);
     } catch (Exception e) {
-      telemetry.putNumber("Rake Arm Position", 0.0, true);
+      telemetry.putNumber("RakeArm/PositionDeg", 0.0, true);
     }
   }
 }

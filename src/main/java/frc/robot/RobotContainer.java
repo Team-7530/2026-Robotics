@@ -54,7 +54,7 @@ public class RobotContainer {
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
   public final VisionSubsystem vision = new VisionSubsystem(logger);
   @Logged
-  public final ShooterSubsystem shooter = new ShooterSubsystem(logger);
+  public final ShooterSubsystem shooter = new ShooterSubsystem(logger, drivetrain);
   public final RakeArmSubsystem rakeArm = new RakeArmSubsystem(logger);
   public final RakeIntakeSubsystem rakeIntake = new RakeIntakeSubsystem(logger);
 
@@ -125,10 +125,10 @@ public class RobotContainer {
   }
 
   private void configureOperatorControls() {
-    oi.getAButton().onTrue(shooter.shooterSpinupCommand(RPM.of(6000)));
-    oi.getBButton().onTrue(shooter.shooterSpinupCommand(RPM.of(6500)));
-    oi.getXButton().onTrue(shooter.shooterSpinupCommand(RPM.of(7000)));
-    oi.getYButton().onTrue(shooter.shooterSpinupCommand(RPM.of(7500)));
+    oi.getAButton().onTrue(shooter.shooterSpinupCommand(RPM.of(2800)));
+    oi.getBButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3000)));
+    oi.getXButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3200)));
+    oi.getYButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3600)));
 
     oi.getLeftBumper()
       .onTrue(shooter.shooterSpinupCommand());
@@ -140,21 +140,21 @@ public class RobotContainer {
       .onFalse(shooter.shooterUnstuckCommand());
 
     oi.getRightTrigger()
-      .onTrue(rakeIntake.rakeIntakeStartCommand()).onFalse(rakeIntake.rakeIntakeStopCommand());
-
+      .onTrue(rakeIntake.rakeIntakeStartCommand())
+      .onFalse(rakeIntake.rakeIntakeStopCommand());
     
     oi.getPOVUp().onTrue(rakeArm.rakeArmRetractCommand());
     oi.getPOVDown().onTrue(rakeArm.rakeArmDeployCommand());
-    oi.getPOVLeft().onTrue(shooter.turret.setAngleCommand(Degrees.of(20)));
-    oi.getPOVRight().onTrue(shooter.turret.setAngleCommand(Degrees.of(0)));
+    oi.getPOVLeft().onTrue(shooter.turret.setAngleCommand(Degrees.of(0)));
+    oi.getPOVRight().onTrue(rakeArm.rakeArmUpCommand());
 
     oi.getStartButton().onTrue(shooter.turret.seedTurretPositionCommand());
 
-    oi.getRightThumbstickButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(8000)));
+    oi.getRightThumbstickButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(6000)));
 
     // back button toggles continuous hub-aiming for testing; cancels immediately
     // when released by virtue of being a run-while-true command.
-    oi.getBackButton().whileTrue(shooter.aimTurretAtHubCommand(drivetrain));
+    oi.getBackButton().whileTrue(shooter.targetHub2Command());
 
     shooter.turret.setDefaultCommand(Commands.run(() -> shooter.turret.teleop(oi.getLeftThumbstickX()), shooter.turret));    
     rakeArm.setDefaultCommand(Commands.run(() -> rakeArm.teleop(-oi.getRightThumbstickY()), rakeArm));
@@ -291,14 +291,20 @@ public class RobotContainer {
   }
 
   private void configureAutoPaths() {
-    NamedCommands.registerCommand("aimRange", shooter.aimTurretAtHubCommand(drivetrain));
-    NamedCommands.registerCommand("shoot", shooter.shooterSpinupCommand()/* .alongWith(shooter.shooterStartCommand())*/);
-    NamedCommands.registerCommand("climb", Commands.runOnce(() -> System.out.println("Climb command executed")));
-    NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
+    NamedCommands.registerCommand("aimRange", shooter.targetHub2Command());
+    NamedCommands.registerCommand("spinup", shooter.shooterSpinupCommand());
+    NamedCommands.registerCommand("shoot", shooter.shooterStartCommand());
     NamedCommands.registerCommand("collectorCommand", shooter.collector.collectorStartCommand());
     NamedCommands.registerCommand("rakeDeploy", rakeArm.rakeArmDeployCommand());
+    NamedCommands.registerCommand("rakeUp", rakeArm.rakeArmUpCommand());
     NamedCommands.registerCommand("rakeRetract", rakeArm.rakeArmRetractCommand());
-  // simple command class that repeatedly calls vision.updateGlobalPose; useful
+    NamedCommands.registerCommand("rakeIntake", rakeIntake.rakeIntakeStartCommand());
+    NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
+    NamedCommands.registerCommand("ResetPose", vision.resetGlobalPoseCommand(drivetrain));
+
+    NamedCommands.registerCommand("climb", Commands.runOnce(() -> System.out.println("Climb command executed")));
+
+    // simple command class that repeatedly calls vision.updateGlobalPose; useful
   // if you want to schedule the behaviour without making it the default.
     NamedCommands.registerCommand("UpdateStoppedPose",
       new UpdateGlobalPoseWhenStoppedCommand(vision, drivetrain));

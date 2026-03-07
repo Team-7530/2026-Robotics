@@ -46,12 +46,13 @@ public class FlywheelSubsystem extends SubsystemBase {
   public static final double kFlywheelGearboxRatio = 1.0; // 1:1
 
   // Flywheel control tuning (Velocity closed-loop)
-  public static final double FLYWHEEL_kS = 0.0;
-  public static final double FLYWHEEL_kP = 0.1;
+  public static final double FLYWHEEL_kS = 0.1;
+  public static final double FLYWHEEL_kV = 0.12;
+  public static final double FLYWHEEL_kP = 0.5;
   public static final double FLYWHEEL_kI = 0.0;
   public static final double FLYWHEEL_kD = 0.0;
-  public static final AngularVelocity FLYWHEEL_kMaxV = RPM.of(8000.0);
-  public static final AngularAcceleration FLYWHEEL_kMaxA = RotationsPerSecondPerSecond.of(4000);
+  public static final AngularVelocity FLYWHEEL_kMaxV = RotationsPerSecond.of(200.0);
+  public static final AngularAcceleration FLYWHEEL_kMaxA = RotationsPerSecondPerSecond.of(100);
   
   private final Distance flywheelDiameter = Inches.of(4);
   private final Mass flywheelMass = Pounds.of(1);
@@ -68,8 +69,8 @@ public class FlywheelSubsystem extends SubsystemBase {
         .withClosedLoopController(FLYWHEEL_kP, FLYWHEEL_kI, FLYWHEEL_kD, FLYWHEEL_kMaxV, FLYWHEEL_kMaxA)
         .withSimClosedLoopController(FLYWHEEL_kP, FLYWHEEL_kI, FLYWHEEL_kD, FLYWHEEL_kMaxV, FLYWHEEL_kMaxA)
         // Feedforward Constants
-        .withFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, 0, 0))
-        .withSimFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, 0, 0))
+        .withFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, FLYWHEEL_kV, 0))
+        .withSimFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, FLYWHEEL_kV, 0))
         // Telemetry name and verbosity level
         .withTelemetry("FlywheelMotor", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
         // Gearing from the motor rotor to final shaft.
@@ -126,7 +127,6 @@ public class FlywheelSubsystem extends SubsystemBase {
     }
   
     public Command setVelocity(AngularVelocity speed) {
-      telemetry.putNumber("Flywheel/flywheelVelocity", speed.in(RPM));
       return m_flywheel.setSpeed(speed).withName("FlywheelSetVelocityCommand");
     }
   
@@ -204,9 +204,11 @@ public class FlywheelSubsystem extends SubsystemBase {
   private void updateTelemetry() {
       m_flywheel.updateTelemetry();
       try {
-        telemetry.putNumber("Shooter/FlywheelRPM", this.getVelocity().in(RPM), true);
+        telemetry.putNumber("Flywheel/VelocityRPS", this.getVelocity().in(RotationsPerSecond), true);
+        telemetry.putNumber("Flywheel/VelocityRPM", this.getVelocity().in(RPM), true);
       } catch (Exception e) {
-        telemetry.putNumber("Shooter/FlywheelRPM", 0.0, true);
+        telemetry.putNumber("Flywheel/VelocityRPS", 0.0, true);
+        telemetry.putNumber("Flywheel/VelocityRPM", 0.0, true);
       }
   }
 }

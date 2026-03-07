@@ -2,6 +2,8 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
+import java.util.function.Supplier;
+
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -31,35 +33,80 @@ public class ShooterSubsystem extends SubsystemBase {
   public final FeederSubsystem feeder;
   public final CollectorSubsystem collector;
 
+  private final Telemetry telemetry;
+  private final CommandSwerveDrivetrain drivetrain;
+
+  private Translation2d hubPosition = new Translation2d();
+  private Translation2d currentTurretFieldPosition = new Translation2d();
+  private Angle currentAngleToHub = Degrees.of(0);
+  private Angle currentTurretAngleToHub = Degrees.of(0);
+  private Distance currentDistanceToHub = Meters.of(0);
+
+  private static final double TURRET_X_OFFSET = Inches.of(10).in(Meters);
+  private static final double TURRET_Y_OFFSET = 0;
+  private static final double HUB_OFFSET_X = 0;
+  private static final double HUB_OFFSET_Y = 0;
+
   private AngularVelocity flywheelVelocity = RPM.of(8000);
   private boolean m_isSpinup = false;
-  private Telemetry telemetry;
 
-  private static final double TURRET_X_OFFSET = 0;
-  private static final double TURRET_Y_OFFSET = 0;
-  private static final double HUB_OFFSET_X = -0.4;
-  private static final double HUB_OFFSET_Y = -0.4;
-      
-  public ShooterSubsystem(frc.robot.Telemetry tele) {
-
+  public ShooterSubsystem(Telemetry tele, CommandSwerveDrivetrain drivetrain) {
     // inject telemetry into nested subsystems so they can publish centrally
     this.telemetry = tele;
     this.turret = new TurretSubsystem(telemetry);
     this.flywheel = new FlywheelSubsystem(telemetry);
     this.feeder = new FeederSubsystem(telemetry);
     this.collector = new CollectorSubsystem(telemetry);
+
+    this.drivetrain = drivetrain;
   }
   
   @Override
   public void periodic() {
+    updateTargeting();
     updateTelemetry();
   }
 
-  private void updateTelemetry() {
+  private void updateTargeting() {
+    Pose2d robotPose = drivetrain.getState().Pose;
+
+    hubPosition = getHubPosition();
+    currentTurretFieldPosition = getTurretFieldPosition(robotPose);
+    currentAngleToHub = Radians.of(Math.atan2(hubPosition.getY() - currentTurretFieldPosition.getY(), 
+                                              hubPosition.getX() - currentTurretFieldPosition.getX()));
+
+    double turretAngle = currentAngleToHub.in(Degrees) - robotPose.getRotation().getDegrees();
+    currentTurretAngleToHub = Degrees.of(-(((turretAngle + 180) % 360 + 360) % 360 - 180));
+    currentDistanceToHub = Meters.of(currentTurretFieldPosition.getDistance(hubPosition));
   }
 
-  public double getVelocity() {
-    return this.flywheelVelocity.magnitude();
+  private void updateTelemetry() {
+    telemetry.putNumber("Shooter/FlywheelVelocityRPS", getFlywheelVelocity().in(RotationsPerSecond));
+    telemetry.putNumber("Shooter/FlywheelVelocityRPM", getFlywheelVelocity().in(RPM));
+
+    telemetry.putNumber("Shooter/HubFieldX", hubPosition.getX());
+    telemetry.putNumber("Shooter/HubFieldY", hubPosition.getY());
+    telemetry.putNumber("Shooter/TurretFieldX", currentTurretFieldPosition.getX());
+    telemetry.putNumber("Shooter/TurretFieldY", currentTurretFieldPosition.getY());
+    telemetry.putNumber("Shooter/AngleToHubDeg", currentAngleToHub.in(Degrees));
+    telemetry.putNumber("Shooter/TurretAngleToHubDeg", currentTurretAngleToHub.in(Degrees));
+    telemetry.putNumber("Shooter/DistanceToHubM", currentDistanceToHub.in(Meters));
+  }
+
+  @Logged
+  public AngularVelocity getFlywheelVelocity() {
+    return this.flywheelVelocity;
+  }
+
+  private void setFlywheelVelocityDirect(AngularVelocity velocity) {
+    this.flywheelVelocity = velocity;
+  }
+
+  public void setFlywheelVelocityOnDistance(Distance distance) {
+    double distanceMeters = distance.in(Meters);
+    // Example linear mapping: 2m -> 4000 RPM, 5m -> 8000 RPM
+    double rpm = 4000 + (distanceMeters - 2) * (4000 / 3);
+    this.setFlywheelVelocityDirect(RPM.of(rpm));
   }
 
   public Translation2d getTurretFieldPosition(Pose2d robotPose) {
@@ -132,65 +179,60 @@ public class ShooterSubsystem extends SubsystemBase {
       return Degrees.of(-turretAngle);
   }
 
+  private void setSpinup(boolean isSpinup) {
+    this.m_isSpinup = isSpinup;
+  }
+
+  private boolean isSpinup() {
+    return this.m_isSpinup;
+  }
 
   // -- Commands -----------------------------------------------------------
   // spin flywheel up to the given velocity
   public Command setFlywheelVelocityCommand(AngularVelocity velocity) {
-    flywheelVelocity = velocity;
-    if (m_isSpinup) {
-      return flywheel.flywheelStartCommand(() -> flywheelVelocity)
+    return Commands.runOnce(() -> setFlywheelVelocityDirect(velocity))
         .withName("setFlywheelVelocityCommand");
-    }
-    return Commands.none();
   }
 
-  public Command shooterSpinupCommand(AngularVelocity velocity) {
-    m_isSpinup = true;
-    flywheelVelocity = velocity;
-    return flywheel.flywheelStartCommand(() -> velocity)
-      .alongWith(feeder.feederStartCommand())
+  public Command setFlywheelVelocityCommand(Supplier<AngularVelocity> velocitySupplier) {
+    return Commands.runOnce(() -> setFlywheelVelocityDirect(velocitySupplier.get()))
+        .withName("setFlywheelVelocityCommand");
+  }
+
+  public Command shooterSpinupCommand(Supplier<AngularVelocity> velocitySupplier) {
+    return Commands.runOnce(() -> setSpinup(true))
+      .andThen(setFlywheelVelocityCommand(velocitySupplier))
+      .andThen(flywheel.flywheelStartCommand(velocitySupplier).alongWith(feeder.feederStartCommand()))
       .withName("shooterSpinupCommand");
   }
 
+  public Command shooterSpinupCommand(AngularVelocity velocity) {
+    return shooterSpinupCommand(() -> velocity);
+  }
+
   public Command shooterSpinupCommand() {
-    return flywheel.flywheelStartCommand(() -> flywheelVelocity)
-      .alongWith(feeder.feederStartCommand())
+    return Commands.runOnce(() -> setSpinup(true))
+      .andThen(flywheel.flywheelStartCommand(this::getFlywheelVelocity).alongWith(feeder.feederStartCommand()))
       .withName("shooterSpinupCommand");
   }
 
   public Command shooterStopCommand() {
-    m_isSpinup = false;
-  return flywheel.flywheelStopCommand()
-    .alongWith(feeder.feederStopCommand())
-    .alongWith(collector.collectorStopCommand())
+  return runOnce(() -> setSpinup(false))
+    .andThen(flywheel.flywheelStopCommand().alongWith(feeder.feederStopCommand().alongWith(collector.collectorStopCommand())))
     .withName("shooterStopCommand");
   }
   
   public Command shooterStartCommand() {
     // start collector wheel to feed balls
-    if (!m_isSpinup) {
-      return collector.collectorStartCommand()
+    return feeder.feederStartCommand().alongWith(collector.collectorStartCommand().onlyIf(this::isSpinup))
         .withName("shooterStartCommand");
-    }
-    return Commands.none();
   }
 
   public Command shooterUnstuckCommand() {
     // reverse collector briefly to clear jams
-    if (m_isSpinup) {
-      // if we're trying to shoot, run the collector unstuck command in parallel with the feeder to minimize downtime
-      return collector.collectorUnstuckCommand()
-        .alongWith(feeder.feederUnstuckCommand())
+      return collector.collectorUnstuckCommand().alongWith(feeder.feederUnstuckCommand())
         .withName("shooterUnstuckCommand")
-        .withTimeout(1.0)
-        .andThen(feeder.feederStartCommand())
-        .alongWith(collector.collectorStartCommand());
-    }
-    return collector.collectorUnstuckCommand()
-        .alongWith(feeder.feederUnstuckCommand())
-        .withName("shooterUnstuckCommand")
-        .withTimeout(1.0)
-        .andThen(this.shooterStopCommand());
+        .withTimeout(1.0);
   }
 
   public Command aimTurretAtHubCommand(CommandSwerveDrivetrain drivetrain) {
@@ -199,7 +241,34 @@ public class ShooterSubsystem extends SubsystemBase {
       Angle turretAngle = getTurretAngleToHub(robotPose);
       turret.setAngleDirect(turretAngle);
     }, turret)
-      .withName("AimTurretAtHubCommand")
-      .withTimeout(2.0);
+      .withName("AimTurretAtHubCommand");
+  }
+
+  public Command setFlywheelAtHubCommand(CommandSwerveDrivetrain drivetrain) {
+    return Commands.run(() -> {
+      Pose2d robotPose = drivetrain.getState().Pose;
+      Distance distance = getDistanceToHub(robotPose);
+      this.setFlywheelVelocityOnDistance(distance);
+    }, flywheel)
+      .withName("SetFlywheelAtHubCommand");
+  }
+
+  public Command targetHubCommand(CommandSwerveDrivetrain drivetrain) {
+    return Commands.run(() -> {
+      Pose2d robotPose = drivetrain.getState().Pose;
+      Angle turretAngle = getTurretAngleToHub(robotPose);
+      Distance distance = getDistanceToHub(robotPose);
+      turret.setAngleDirect(turretAngle);
+      this.setFlywheelVelocityOnDistance(distance);
+    }, turret)
+      .withName("targetHubCommand");
+  }
+
+  public Command targetHub2Command() {
+    return Commands.run(() -> {
+      turret.setAngleDirect(currentTurretAngleToHub);
+      this.setFlywheelVelocityOnDistance(currentDistanceToHub);
+    }, turret)
+      .withName("targetHubCommand");
   }
 }

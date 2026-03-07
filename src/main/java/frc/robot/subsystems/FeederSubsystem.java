@@ -198,9 +198,9 @@ public class FeederSubsystem extends SubsystemBase {
   {
     m_feeder.updateTelemetry();
     try {
-      telemetry.putNumber("FeederIntake RPS", getVelocity().in(RotationsPerSecond), true);
+      telemetry.putNumber("Feeder/VelocityRPS", getVelocity().in(RotationsPerSecond), true);
     } catch (Exception e) {
-      telemetry.putNumber("FeederIntake RPS", 0.0, true);
+      telemetry.putNumber("Feeder/VelocityRPS", 0.0, true);
     }
   }
 

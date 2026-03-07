@@ -113,6 +113,7 @@ public class TurretSubsystem extends SubsystemBase {
   private boolean m_isTeleop = false;
   @Logged
   private Angle turretTargetAngle = Degrees.of(0.0);
+  private Angle potentiometerAngle = Degrees.of(0.0);
 
   private final Telemetry telemetry;
 
@@ -123,10 +124,8 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   private void seedTurretPosition() {
-    Angle potAngle = Degrees.of(-m_turretPotentiometer.get() + kTurretOffset);
-    m_turretSMC.setEncoderPosition(potAngle);
-
-    telemetry.putNumber("Turret/SeededTurretDeg", potAngle.in(Degrees), true);
+    this.potentiometerAngle = Degrees.of(-m_turretPotentiometer.get() + kTurretOffset);
+    m_turretSMC.setEncoderPosition(this.potentiometerAngle);
   }
 
   @Override
@@ -229,12 +228,14 @@ public class TurretSubsystem extends SubsystemBase {
       telemetry.putNumber("Turret/TurretTargetAngleDeg", turretTargetAngle.in(Degrees), true);
       telemetry.putNumber("Turret/TurretRotorPos", m_turretSMC.getRotorPosition().in(Rotations), true);
       telemetry.putNumber("Turret/TurretPotentiometer", -m_turretPotentiometer.get(), true);
+      telemetry.putNumber("Turret/SeededTurretDeg", this.potentiometerAngle.in(Degrees), true);
     } catch (Exception e) {
       telemetry.putNumber("Turret/TurretAngleDeg", 0.0);
       // the rest of the values are useful only for debugging/tuning
       telemetry.putNumber("Turret/TurretTargetAngleDeg", 0.0, true);
       telemetry.putNumber("Turret/TurretRotorPos", 0.0, true);
       telemetry.putNumber("Turret/TurretPotentiometer", 0.0, true);
+      telemetry.putNumber("Turret/SeededTurretDeg", 0.0, true);
     }
   }
 

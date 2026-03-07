@@ -197,9 +197,9 @@ public class RakeIntakeSubsystem extends SubsystemBase {
   private void updateTelemetry() {
     m_rakeIntake.updateTelemetry();
     try {
-      telemetry.putNumber("RakeIntake RPS", getVelocity().in(RotationsPerSecond), true);
+      telemetry.putNumber("RakeIntake/VelocityRPS", getVelocity().in(RotationsPerSecond), true);
     } catch (Exception e) {
-      telemetry.putNumber("RakeIntake RPS", 0.0, true);
+      telemetry.putNumber("RakeIntake/VelocityRPS", 0.0, true);
     }
   }
 
