@@ -11,9 +11,34 @@
           }
         },
         {
+          "type": "parallel",
+          "data": {
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "rakeUp"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "aimRange"
+                }
+              }
+            ]
+          }
+        },
+        {
           "type": "named",
           "data": {
-            "name": "aimRange"
+            "name": "spinup"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 0.2
           }
         },
         {
@@ -23,9 +48,27 @@
           }
         },
         {
+          "type": "wait",
+          "data": {
+            "waitTime": 5.0
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "rakeDeploy"
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "LeftShoot_Center"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "rakeIntake"
           }
         }
       ]

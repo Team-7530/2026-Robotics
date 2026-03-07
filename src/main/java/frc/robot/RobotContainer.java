@@ -294,24 +294,16 @@ public class RobotContainer {
     NamedCommands.registerCommand("aimRange", shooter.targetHub2Command());
     NamedCommands.registerCommand("spinup", shooter.shooterSpinupCommand());
     NamedCommands.registerCommand("shoot", shooter.shooterStartCommand());
-    NamedCommands.registerCommand("collectorCommand", shooter.collector.collectorStartCommand());
+    NamedCommands.registerCommand("stopShoot", shooter.shooterStopCommand());
     NamedCommands.registerCommand("rakeDeploy", rakeArm.rakeArmDeployCommand());
     NamedCommands.registerCommand("rakeUp", rakeArm.rakeArmUpCommand());
     NamedCommands.registerCommand("rakeRetract", rakeArm.rakeArmRetractCommand());
     NamedCommands.registerCommand("rakeIntake", rakeIntake.rakeIntakeStartCommand());
+    NamedCommands.registerCommand("rakeIntakeStop", rakeIntake.rakeIntakeStopCommand());
     NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
     NamedCommands.registerCommand("ResetPose", vision.resetGlobalPoseCommand(drivetrain));
 
     NamedCommands.registerCommand("climb", Commands.runOnce(() -> System.out.println("Climb command executed")));
-
-    // simple command class that repeatedly calls vision.updateGlobalPose; useful
-  // if you want to schedule the behaviour without making it the default.
-    NamedCommands.registerCommand("UpdateStoppedPose",
-      new UpdateGlobalPoseWhenStoppedCommand(vision, drivetrain));
-
-  // aim at the alliance hub using the latest vision/odometry pose
-    NamedCommands.registerCommand("AimAtHub",
-      shooter.aimTurretAtHubCommand(drivetrain));
   }
 
   private void configureTelemetry() {

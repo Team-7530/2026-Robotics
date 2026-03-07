@@ -11,28 +11,52 @@
           }
         },
         {
-          "type": "named",
-          "data": {
-            "name": "aimRange"
-          }
-        },
-        {
           "type": "parallel",
           "data": {
             "commands": [
               {
                 "type": "named",
                 "data": {
-                  "name": "shoot"
+                  "name": "aimRange"
                 }
               },
               {
                 "type": "named",
                 "data": {
-                  "name": "collectorCommand"
+                  "name": "rakeUp"
                 }
               }
             ]
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "spinup"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 0.2
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "shoot"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 5.0
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "stopShoot"
           }
         }
       ]
