@@ -54,7 +54,7 @@ public class RakeArmSubsystem extends SubsystemBase {
 
   public static final Angle kRakeArmPositionDeploy = Degrees.of(0);
   public static final Angle kRakeArmPositionRetract = Degrees.of(131.0);
-  public static final Angle kRakeArmPositionUp = Degrees.of(45.0);
+  public static final Angle kRakeArmPositionUp = Degrees.of(90.0);
   
   public static final double kRakeArmTeleopSpeed = 0.2;
     

@@ -125,7 +125,8 @@ public class RobotContainer {
   }
 
   private void configureOperatorControls() {
-    oi.getAButton().onTrue(shooter.shooterSpinupCommand(RPM.of(2950)));
+    //oi.getAButton().onTrue(shooter.shooterSpinupCommand(RPM.of(2950)));
+    oi.getAButton().whileTrue(shooter.targetHub2Command());
     oi.getBButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3000)));
     oi.getXButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3400)));
     oi.getYButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3600)));
@@ -155,7 +156,7 @@ public class RobotContainer {
 
     // back button toggles continuous hub-aiming for testing; cancels immediately
     // when released by virtue of being a run-while-true command.
-    oi.getBackButton().whileTrue(shooter.targetHub2Command());
+   
 
     shooter.turret.setDefaultCommand(Commands.run(() -> shooter.turret.teleop(oi.getLeftThumbstickX()), shooter.turret));    
     rakeArm.setDefaultCommand(Commands.run(() -> rakeArm.teleop(-oi.getRightThumbstickY()), rakeArm));
