@@ -156,7 +156,9 @@ public class FeederSubsystem extends SubsystemBase {
 
   /** Sets motors to constants intake speed */
   public Command feederStartCommand() {
-    return setVelocity(feederVelocity).withName("FeederStartCommand");
+    return setVelocity(feederVelocity)
+    .withName("FeederStartCommand")
+    .withTimeout(1.0);
   }
 
   public Command feederStopCommand() {
@@ -198,9 +200,9 @@ public class FeederSubsystem extends SubsystemBase {
   {
     m_feeder.updateTelemetry();
     try {
-      telemetry.putNumber("Feeder/VelocityRPS", getVelocity().in(RotationsPerSecond), true);
+      telemetry.putNumber("Feeder/VelocityRPM", getVelocity().in(RPM), true);
     } catch (Exception e) {
-      telemetry.putNumber("Feeder/VelocityRPS", 0.0, true);
+      telemetry.putNumber("Feeder/VelocityRPM", 0.0, true);
     }
   }
 

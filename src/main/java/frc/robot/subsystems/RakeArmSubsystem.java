@@ -164,15 +164,15 @@ public class RakeArmSubsystem extends SubsystemBase {
 
   /** Sets motors to constants intake speed */
   public Command rakeArmDeployCommand() {
-      return m_rakeArm.setAngle(kRakeArmPositionDeploy).withName("rakeArmDeployCommand").withTimeout(5.0);
+      return m_rakeArm.setAngle(kRakeArmPositionDeploy).withName("rakeArmDeployCommand").withTimeout(1.0);
   }
 
   public Command rakeArmRetractCommand() {
-      return m_rakeArm.setAngle(kRakeArmPositionRetract).withName("rakeArmRetractCommand").withTimeout(5.0);
+      return m_rakeArm.setAngle(kRakeArmPositionRetract).withName("rakeArmRetractCommand").withTimeout(1.0);
   }
 
   public Command rakeArmUpCommand() {
-      return m_rakeArm.setAngle(kRakeArmPositionUp).withName("rakeArmUpCommand").withTimeout(5.0);
+      return m_rakeArm.setAngle(kRakeArmPositionUp).withName("rakeArmUpCommand").withTimeout(1.0);
   }
 
   /** Stops motor and activates brakes */

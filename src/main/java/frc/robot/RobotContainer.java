@@ -125,9 +125,9 @@ public class RobotContainer {
   }
 
   private void configureOperatorControls() {
-    oi.getAButton().onTrue(shooter.shooterSpinupCommand(RPM.of(2800)));
+    oi.getAButton().onTrue(shooter.shooterSpinupCommand(RPM.of(2950)));
     oi.getBButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3000)));
-    oi.getXButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3200)));
+    oi.getXButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3400)));
     oi.getYButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3600)));
 
     oi.getLeftBumper()
@@ -150,7 +150,8 @@ public class RobotContainer {
 
     oi.getStartButton().onTrue(shooter.turret.seedTurretPositionCommand());
 
-    oi.getRightThumbstickButton().onTrue(shooter.setFlywheelVelocityCommand(RPM.of(6000)));
+    oi.getLeftThumbstickButton().onTrue(vision.updateGlobalPoseCommand(drivetrain));
+    oi.getRightThumbstickButton().onTrue(vision.resetGlobalPoseCommand(drivetrain));
 
     // back button toggles continuous hub-aiming for testing; cancels immediately
     // when released by virtue of being a run-while-true command.
@@ -291,7 +292,7 @@ public class RobotContainer {
   }
 
   private void configureAutoPaths() {
-    NamedCommands.registerCommand("aimRange", shooter.targetHub2Command());
+    NamedCommands.registerCommand("aimRange", shooter.targetHub3Command());
     NamedCommands.registerCommand("spinup", shooter.shooterSpinupCommand());
     NamedCommands.registerCommand("shoot", shooter.shooterStartCommand());
     NamedCommands.registerCommand("stopShoot", shooter.shooterStopCommand());

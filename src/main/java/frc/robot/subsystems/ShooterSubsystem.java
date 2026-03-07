@@ -42,7 +42,7 @@ public class ShooterSubsystem extends SubsystemBase {
   private Angle currentTurretAngleToHub = Degrees.of(0);
   private Distance currentDistanceToHub = Meters.of(0);
 
-  private static final double TURRET_X_OFFSET = Inches.of(10).in(Meters);
+  private static final double TURRET_X_OFFSET = 0;// Inches.of(8).in(Meters);
   private static final double TURRET_Y_OFFSET = 0;
   private static final double HUB_OFFSET_X = 0;
   private static final double HUB_OFFSET_Y = 0;
@@ -81,7 +81,6 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   private void updateTelemetry() {
-    telemetry.putNumber("Shooter/FlywheelVelocityRPS", getFlywheelVelocity().in(RotationsPerSecond));
     telemetry.putNumber("Shooter/FlywheelVelocityRPM", getFlywheelVelocity().in(RPM));
 
     telemetry.putNumber("Shooter/HubFieldX", hubPosition.getX());
@@ -105,7 +104,9 @@ public class ShooterSubsystem extends SubsystemBase {
   public void setFlywheelVelocityOnDistance(Distance distance) {
     double distanceMeters = distance.in(Meters);
     // Example linear mapping: 2m -> 4000 RPM, 5m -> 8000 RPM
-    double rpm = 4000 + (distanceMeters - 2) * (4000 / 3);
+    double rpm = 3000.0;
+    if (distanceMeters > 3.0)
+      rpm += (distanceMeters - 3.0) * (400 / 1.65);
     this.setFlywheelVelocityDirect(RPM.of(rpm));
   }
 
@@ -203,6 +204,7 @@ public class ShooterSubsystem extends SubsystemBase {
     return Commands.runOnce(() -> setSpinup(true))
       .andThen(setFlywheelVelocityCommand(velocitySupplier))
       .andThen(flywheel.flywheelStartCommand(velocitySupplier).alongWith(feeder.feederStartCommand()))
+      .withTimeout(0.2)
       .withName("shooterSpinupCommand");
   }
 
@@ -213,18 +215,21 @@ public class ShooterSubsystem extends SubsystemBase {
   public Command shooterSpinupCommand() {
     return Commands.runOnce(() -> setSpinup(true))
       .andThen(flywheel.flywheelStartCommand(this::getFlywheelVelocity).alongWith(feeder.feederStartCommand()))
+      .withTimeout(0.2)
       .withName("shooterSpinupCommand");
   }
 
   public Command shooterStopCommand() {
   return runOnce(() -> setSpinup(false))
     .andThen(flywheel.flywheelStopCommand().alongWith(feeder.feederStopCommand().alongWith(collector.collectorStopCommand())))
+    .withTimeout(0.2)
     .withName("shooterStopCommand");
   }
   
   public Command shooterStartCommand() {
     // start collector wheel to feed balls
     return feeder.feederStartCommand().alongWith(collector.collectorStartCommand().onlyIf(this::isSpinup))
+      .withTimeout(0.2)
         .withName("shooterStartCommand");
   }
 
@@ -262,6 +267,14 @@ public class ShooterSubsystem extends SubsystemBase {
       this.setFlywheelVelocityOnDistance(distance);
     }, turret)
       .withName("targetHubCommand");
+  }
+
+  public Command targetHub3Command() {
+    return Commands.runOnce(() -> {
+      turret.setAngleDirect(currentTurretAngleToHub);
+      this.setFlywheelVelocityOnDistance(currentDistanceToHub);
+    }, turret)
+      .withName("targetHub3Command");
   }
 
   public Command targetHub2Command() {

@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Right Shoot"
+            "pathName": "Left Shoot"
           }
         },
         {
@@ -47,9 +47,57 @@
           }
         },
         {
+          "type": "path",
+          "data": {
+            "pathName": "Left to Depot"
+          }
+        },
+        {
           "type": "named",
           "data": {
             "name": "rakeDeploy"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "rakeIntake"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Left to Collect"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "aimRange"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "spinup"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "shoot"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 0.0
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "rakeUp"
           }
         }
       ]

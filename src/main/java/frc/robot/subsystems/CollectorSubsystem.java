@@ -198,9 +198,9 @@ public class CollectorSubsystem extends SubsystemBase {
   {
     m_collector.updateTelemetry();
     try {
-      telemetry.putNumber("Collector/VelocityRPS", getVelocity().in(RotationsPerSecond));
+      telemetry.putNumber("Collector/VelocityRPM", getVelocity().in(RPM));
     } catch (Exception e) {
-      telemetry.putNumber("Collector/VelocityRPS", 0.0, true);
+      telemetry.putNumber("Collector/VelocityRPM", 0.0, true);
     }
   }
 

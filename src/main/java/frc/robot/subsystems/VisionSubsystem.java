@@ -256,7 +256,7 @@ public class VisionSubsystem extends SubsystemBase {
   }
 
   public void updateGlobalPose(CommandSwerveDrivetrain drivetrain) {
-    if ((RobotState.isAutonomous() || RobotState.isTest()) &&
+    if ((/*RobotState.isAutonomous() || */ RobotState.isTest()) &&
         (Math.abs(drivetrain.getState().Speeds.vxMetersPerSecond) < 0.2) &&
         (Math.abs(drivetrain.getState().Speeds.vyMetersPerSecond) < 0.2) &&
         (Math.abs(drivetrain.getState().Speeds.omegaRadiansPerSecond) < RotationsPerSecond.of(2).in(RadiansPerSecond))) {

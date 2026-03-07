@@ -155,19 +155,23 @@ public class RakeIntakeSubsystem extends SubsystemBase {
 
   /** Sets motors to constants intake speed */
   public Command rakeIntakeStartCommand() {
-    return setVelocity(rakeIntakeVelocity).withName("RakeIntakeStartCommand");
+    return setVelocity(rakeIntakeVelocity)
+    .withName("RakeIntakeStartCommand")
+    .withTimeout(1.0);
   }
 
   public Command rakeIntakeStopCommand() {
     // immediate stop command
-    return runOnce(this::rakeIntakeStop).withName("RakeIntakeStopCommand");
+    return runOnce(this::rakeIntakeStop)
+    .withName("RakeIntakeStopCommand")
+    .withTimeout(1.0);
   }
 
   public Command rakeIntakeUnstuckCommand() {
     // spin backward to clear jams
     return setVelocity(rakeIntakeUnstuckVelocity)
       .withName("RakeIntakeUnstuckCommand")
-      .withTimeout(5.0)
+      .withTimeout(2.0)
       .finallyDo(interrupted -> rakeIntakeStop());
   }
 
@@ -197,9 +201,9 @@ public class RakeIntakeSubsystem extends SubsystemBase {
   private void updateTelemetry() {
     m_rakeIntake.updateTelemetry();
     try {
-      telemetry.putNumber("RakeIntake/VelocityRPS", getVelocity().in(RotationsPerSecond), true);
+      telemetry.putNumber("RakeIntake/VelocityRPM", getVelocity().in(RPM), true);
     } catch (Exception e) {
-      telemetry.putNumber("RakeIntake/VelocityRPS", 0.0, true);
+      telemetry.putNumber("RakeIntake/VelocityRPM", 0.0, true);
     }
   }
 

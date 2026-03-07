@@ -204,10 +204,8 @@ public class FlywheelSubsystem extends SubsystemBase {
   private void updateTelemetry() {
       m_flywheel.updateTelemetry();
       try {
-        telemetry.putNumber("Flywheel/VelocityRPS", this.getVelocity().in(RotationsPerSecond), true);
         telemetry.putNumber("Flywheel/VelocityRPM", this.getVelocity().in(RPM), true);
       } catch (Exception e) {
-        telemetry.putNumber("Flywheel/VelocityRPS", 0.0, true);
         telemetry.putNumber("Flywheel/VelocityRPM", 0.0, true);
       }
   }
