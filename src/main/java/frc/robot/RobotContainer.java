@@ -126,7 +126,7 @@ public class RobotContainer {
 
   private void configureOperatorControls() {
     //oi.getAButton().onTrue(shooter.shooterSpinupCommand(RPM.of(2950)));
-    oi.getAButton().whileTrue(shooter.targetHub2Command());
+    oi.getAButton().whileTrue(shooter.targetHubCommand());
     oi.getBButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3000)));
     oi.getXButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3400)));
     oi.getYButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3600)));
@@ -211,38 +211,9 @@ public class RobotContainer {
   }
 
   private void configureDriveTestingControls() {
-    // // Run SysId routines when holding back/start and X/Y.
-    // // Note that each routine should be run exactly once in a single log.
-    // oi.getStartButton()
-    //     .and(oi.getYButton())
-    //     .whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
-    // oi.getStartButton()
-    //     .and(oi.getXButton())
-    //     .whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
-    // oi.getBackButton().and(oi.getYButton()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
-    // oi.getBackButton().and(oi.getXButton()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
-
-    // // Run test routines (forward/back at .5 m/s) when holding start and A/B.
-    // oi.getStartButton()
-    //     .and(oi.getAButton())
-    //     .whileTrue(
-    //         drivetrain.applyRequest(() -> forwardStraight.withVelocityX(0.5).withVelocityY(0)));
-    // oi.getStartButton()
-    //     .and(oi.getBButton())
-    //     .whileTrue(
-    //         drivetrain.applyRequest(() -> forwardStraight.withVelocityX(-0.5).withVelocityY(0)));
-
-    // // Run test pose routines when holding back and A/B.
-    // oi.getBackButton()
-    //     .and(oi.getAButton())
-    //     .whileTrue(
-    //         new PathOnTheFlyCommand(
-    //             drivetrain, new Pose2d(16.24, 0.8, Rotation2d.fromDegrees(-60))));
-    // oi.getBackButton()
-    //     .and(oi.getBButton())
-    //     .whileTrue(
-    //         new PathOnTheFlyCommand(
-    //             drivetrain, new Pose2d(13.85, 2.67, Rotation2d.fromDegrees(124))));
+    // Test controller bindings for tuning are defined in TestControllerBindings.java
+    // Uncomment TestControllerBindings.configure(oi, drivetrain) call to enable sysId,
+    // drive tests, or PathPlanner pose navigation tests.
 
     // simple 10-foot forward/back commands on the test controller; the goal
     // pose is computed from the current drivetrain odometry whenever the
@@ -293,7 +264,7 @@ public class RobotContainer {
   }
 
   private void configureAutoPaths() {
-    NamedCommands.registerCommand("aimRange", shooter.targetHub3Command());
+    NamedCommands.registerCommand("aimRange", shooter.targetHubOnceCommand());
     NamedCommands.registerCommand("spinup", shooter.shooterSpinupCommand());
     NamedCommands.registerCommand("shoot", shooter.shooterStartCommand());
     NamedCommands.registerCommand("stopShoot", shooter.shooterStopCommand());

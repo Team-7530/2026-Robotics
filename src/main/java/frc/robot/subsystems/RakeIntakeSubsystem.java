@@ -26,7 +26,6 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
-import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -144,27 +143,17 @@ public class RakeIntakeSubsystem extends SubsystemBase {
     return m_rakeIntake.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
   }
 
-  public Command setRPM(LinearVelocity speed) {
-    return m_rakeIntake.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
-  }
-
-  public void setRPMDirect(LinearVelocity speed) {
-    // directly set the motor velocity on the master based on linear speed -> rotational
-    m_rakeIntakeSMC.setVelocity(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
-  }
-
   /** Sets motors to constants intake speed */
   public Command rakeIntakeStartCommand() {
     return setVelocity(rakeIntakeVelocity)
     .withName("RakeIntakeStartCommand")
-    .withTimeout(1.0);
+    .withTimeout(0.2);
   }
 
   public Command rakeIntakeStopCommand() {
     // immediate stop command
     return runOnce(this::rakeIntakeStop)
-    .withName("RakeIntakeStopCommand")
-    .withTimeout(1.0);
+    .withName("RakeIntakeStopCommand");
   }
 
   public Command rakeIntakeUnstuckCommand() {

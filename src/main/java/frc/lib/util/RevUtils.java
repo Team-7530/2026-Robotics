@@ -48,14 +48,6 @@ public class RevUtils {
     }
   }
 
-  // public static IdleMode neutralModeToIdleMode(
-  //     final NeutralModeValue neutralModeValue) {
-  //   return switch (neutralModeValue) {
-  //     case Coast -> SparkMax.IdleMode.kCoast;
-  //     case Brake -> SparkMax.IdleMode.kBrake;
-  //   };
-  // }
-
   public static boolean invertedValueToBoolean(final InvertedValue neutralModeValue) {
     return switch (neutralModeValue) {
       case CounterClockwise_Positive -> false;

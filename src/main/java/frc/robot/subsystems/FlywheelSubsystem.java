@@ -26,7 +26,6 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
-import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -146,23 +145,18 @@ public class FlywheelSubsystem extends SubsystemBase {
       return m_flywheel.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
     }
   
-    public Command setRPM(LinearVelocity speed) {
-      return m_flywheel.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters))).withName("FlywheelSetRPMCommand");
-    }
-  
-    public void setRPMDirect(LinearVelocity speed) {
-      // directly set the motor velocity on the master based on linear speed -> rotational
-      m_flywheelSMC.setVelocity(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
-    }
-  
     /** Sets motors to constants intake speed */
     public Command flywheelStartCommand(AngularVelocity velocity) {
-      return setVelocity(velocity).withName("FlywheelStartCommand");
+      return setVelocity(velocity)
+        .withName("FlywheelStartCommand")
+        .withTimeout(0.2);
     }
  
     /** Sets motors to constants intake speed */
     public Command flywheelStartCommand(Supplier<AngularVelocity> velocity) {
-      return setVelocity(velocity).withName("FlywheelStartCommand");
+      return setVelocity(velocity)
+        .withName("FlywheelStartCommand")
+        .withTimeout(0.2);
     }
     public Command flywheelStopCommand() {
       return runOnce(this::flywheelStop).withName("FlywheelStopCommand");
@@ -174,7 +168,7 @@ public class FlywheelSubsystem extends SubsystemBase {
     public Command flywheelUnstuckCommand() {
       return setDutyCycle(-0.2)
           .withName("FlywheelUnstuckCommand")
-          .withTimeout(1.0)
+          .withTimeout(0.5)
           .finallyDo(interrupted -> flywheelStop());
     }
 

@@ -166,14 +166,8 @@ public class VisionSubsystem extends SubsystemBase {
     Math.toDegrees(LIMELIGHTPOSE.getRotation().getZ()));
   LimelightHelpers.setLEDMode_PipelineControl(LIMELIGHTNAME);
 
-  // there is no longer an object to construct for pose estimation; the
-  // helpers read directly from NetworkTables when requested.
-
-    if (RobotBase.isReal()) {
-      // cam0 = CameraServer.startAutomaticCapture();
-      // cam0.setResolution(240, 160);
-      // cam0.setFPS(15);
-    }
+  // Pose estimation is now handled by LimelightHelpers, which reads directly
+  // from NetworkTables when requested. No persistent estimator object needed.
 
     if (RobotBase.isSimulation()) {
       // Provide a Field2d for visualizing limelight estimations and tags in simulation.

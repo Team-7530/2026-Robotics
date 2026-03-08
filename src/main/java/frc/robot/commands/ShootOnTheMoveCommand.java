@@ -120,7 +120,7 @@ public class ShootOnTheMoveCommand extends Command
 
     // 7. SET OUTPUTS
     shooterSubsystem.turret.setAngleDirect(Degrees.of(turretAngle));
-    shooterSubsystem.flywheel.setRPMDirect(MetersPerSecond.of(totalExitVelocity));
+    shooterSubsystem.flywheel.setVelocity(RPM.of(totalExitVelocity));
   }
 
   @Override

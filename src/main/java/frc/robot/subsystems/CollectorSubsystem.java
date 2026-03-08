@@ -26,7 +26,6 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
-import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -144,31 +143,26 @@ public class CollectorSubsystem extends SubsystemBase {
     return m_collector.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
   }
 
-  public Command setRPM(LinearVelocity speed) {
-    // convert linear speed to rotational for cases where units matter
-    return m_collector.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters))).withName("CollectorSetRPMCommand");
-  }
-
-  public void setRPMDirect(LinearVelocity speed) {
-    // directly set the motor velocity on the master based on linear speed -> rotational
-    m_collectorSMC.setVelocity(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
-  }
-
   /** Sets motors to constants intake speed */
   public Command collectorStartCommand() {
-    return setVelocity(collectorVelocity).withName("CollectorStartCommand");
+    return setVelocity(collectorVelocity)
+      .withName("CollectorStartCommand")
+      .withTimeout(0.2);
   }
 
   public Command collectorStopCommand() {
     // quick stop command
-    return runOnce(this::collectorStop).withName("CollectorStopCommand");
+    return runOnce(this::collectorStop)
+      .withName("CollectorStopCommand");
   }
 
   public Command collectorUnstuckCommand() {
-    // reverse velocity briefly to eject jams
-      return setVelocity(collectorUnstuckVelocity)
-        .withName("CollectorUnstuckCommand")    
-        .withTimeout(1.0);
+    // reverse velocity briefly to eject jams (500ms), then guarantee a stop
+    // via finallyDo (even if interrupted)
+    return setVelocity(collectorUnstuckVelocity)
+      .withName("CollectorUnstuckCommand")    
+      .withTimeout(0.5)
+      .finallyDo(interrupted -> collectorStop());
   }
 
   /** Stops the collector motor immediately (open-loop stop). */

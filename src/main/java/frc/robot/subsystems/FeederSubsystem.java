@@ -26,7 +26,6 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
-import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -144,16 +143,6 @@ public class FeederSubsystem extends SubsystemBase {
     return m_feeder.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
   }
 
-  public Command setRPM(LinearVelocity speed) {
-    // helper converting linear to angular speed
-    return m_feeder.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters))).withName("FeederSetRPMCommand");
-  }
-
-  public void setRPMDirect(LinearVelocity speed) {
-    // directly set the motor velocity on the master based on linear speed -> rotational
-    m_feederSMC.setVelocity(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
-  }
-
   /** Sets motors to constants intake speed */
   public Command feederStartCommand() {
     return setVelocity(feederVelocity)
@@ -167,10 +156,12 @@ public class FeederSubsystem extends SubsystemBase {
   }
 
   public Command feederUnstuckCommand() {
-    // run the velocity control in reverse to clear jams (negative RPM)
+    // run the velocity control in reverse to clear jams (negative RPM) for 500 ms,
+    // then guarantee a stop via finallyDo (even if interrupted)
     return setVelocity(feederUnstuckVelocity)
       .withName("FeederUnstuckCommand")
-      .withTimeout(1.0);
+      .withTimeout(0.5)
+      .finallyDo(interrupted -> feederStop());
   }
 
   /** Stops the feeder motor immediately (open-loop stop). */

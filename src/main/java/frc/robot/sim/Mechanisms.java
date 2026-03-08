@@ -44,11 +44,13 @@ public class Mechanisms {
      */
     public void update(
             double leftArmDeg, double turretDeg) {
+        // ARCHIVED: Left arm visualization disabled during 2026 season.
+        // If arm mechanism is re-enabled in the future, uncomment these lines:
         // leftArmRoot.setAngle(leftArmDeg);
-        leftRakeBase.setAngle(leftArmDeg);
         // leftRakeSeg1.setAngle(leftRake2Deg);
         // leftRakeSeg2.setAngle(leftRake2Deg);
-
+        
+        leftRakeBase.setAngle(leftArmDeg);
         turretBase.setAngle(turretDeg);
         turretShaft.setAngle(turretDeg);
 
