@@ -51,24 +51,6 @@ public class Telemetry {
     }
   }
 
-  /**
-   * Enable or disable emission of parameters marked as debug.  During a
-   * match this should normally be left false to reduce CPU/NT traffic; in
-   * test or tuning modes you can flip it on.
-   */
-  public void setDebugMode(boolean debug) {
-    // m_debugMode is final, so we can't reassign it; in practice callers
-    // should choose the correct value at construction time.  If runtime
-    // toggling is required we could remove the final modifier and update
-    // accordingly, but for now we just document that limitation.
-    //
-    // For example, you might create the telemetry object with
-    //   new Telemetry(maxSpeed, DriverStation.isTest())
-    // or read a dashboard switch and rebuild the object.
-    //
-    // This method exists as a no-op placeholder to keep the API stable.
-  }
-
   /** Update the configured drivetrain max speed in m/s for telemetry scaling and display. */
   public void setMaxSpeed(double maxSpeed) {
     m_maxSpeed = maxSpeed;

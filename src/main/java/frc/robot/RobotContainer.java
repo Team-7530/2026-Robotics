@@ -66,11 +66,6 @@ public class RobotContainer {
     return instance;
   }
 
-  @Deprecated(forRemoval = false)
-  public static RobotContainer GetInstance() {
-    return getInstance();
-  }
-
   /** Return the shared Telemetry instance used by the robot. */
   public Telemetry getTelemetry() {
     return logger;

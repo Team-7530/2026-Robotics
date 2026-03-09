@@ -67,7 +67,7 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.*;
 
 // import edu.wpi.first.cameraserver.CameraServer;
-import edu.wpi.first.cscore.UsbCamera;
+// import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -153,7 +153,7 @@ public class VisionSubsystem extends SubsystemBase {
   private static final double MIN_VISION_TIMESTAMP_DELTA_SEC = 1e-4;
 
   /* Cameras */
-  public UsbCamera cam0;
+  // public UsbCamera cam0;
 
   private final Telemetry telemetry;
   private double lastAcceptedVisionTimestampSeconds = Double.NEGATIVE_INFINITY;
@@ -318,7 +318,7 @@ public class VisionSubsystem extends SubsystemBase {
     if (isDrivetrainSlowEnough(drivetrain)) {
 
       var postEst = this.getVisionMeasurement_MT1();
-      postEst.filter(this::isReliableVisionEstimate).ifPresent(
+      postEst.filter(this::isReliableVisionEstimate).filter(this::isFreshVisionEstimate).ifPresent(
           est -> {
             telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/ResetTagCount", est.tagCount);
             telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/ResetPoseX", est.pose.getTranslation().getX());
