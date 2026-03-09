@@ -105,7 +105,7 @@ public class DualJoystickXboxOI extends DualJoysticksOI {
 
   @Override
   public Trigger getRightThumbstickButton() {
-    return new Trigger(() -> operator.getLeftStickButton());
+    return new Trigger(() -> operator.getRightStickButton());
   }
 
   @Override

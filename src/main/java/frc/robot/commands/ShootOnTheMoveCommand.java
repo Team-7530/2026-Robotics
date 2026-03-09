@@ -8,6 +8,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.subsystems.ShooterSubsystem;
 import java.util.List;
 import java.util.function.Supplier;
@@ -17,6 +18,7 @@ import java.util.function.Supplier;
  */
 public class ShootOnTheMoveCommand extends Command
 {
+  private static final double SHOOTER_WHEEL_DIAMETER_METERS = Inches.of(4).in(Meters);
 
   // Subsystems
   private final ShooterSubsystem   shooterSubsystem;
@@ -34,16 +36,16 @@ public class ShootOnTheMoveCommand extends Command
    */
   private final Pose2d                  goalPose;
 
-  // Tuned Constants
-  double totalExitVelocity = 15.0; // m/s
   /**
    * Time in seconds between when the robot is told to move and when the shooter actually shoots.
    */
-  private final double                     latency      = 0.15;
+  private final double latency = 0.15;
   /**
    * Maps Distance to RPM
    */
   private final InterpolatingDoubleTreeMap shooterTable = new InterpolatingDoubleTreeMap();
+  private double targetFlywheelRpm = 0.0;
+  private Command flywheelVelocityCommand;
 
   /**
    * Shoot on the move command to always have the turret ready to fire.
@@ -71,13 +73,18 @@ public class ShootOnTheMoveCommand extends Command
     )
     {shooterTable.put(entry.getFirst().in(Meters), entry.getSecond().in(RPM));}
 
+    addRequirements(shooterSubsystem.turret);
     setName("Shoot on the move");
   }
 
   @Override
   public void initialize()
   {
-
+    flywheelVelocityCommand =
+        shooterSubsystem.flywheel
+            .setVelocity(() -> RPM.of(targetFlywheelRpm))
+            .withName("ShootOnTheMoveFlywheelVelocity");
+    CommandScheduler.getInstance().schedule(flywheelVelocityCommand);
   }
 
   @Override
@@ -101,26 +108,20 @@ public class ShootOnTheMoveCommand extends Command
     double        dist         = targetVec.getNorm();
 
     // 3. CALCULATE IDEAL SHOT (Stationary)
-    // Note: This returns HORIZONTAL velocity component
-    double idealHorizontalSpeed = shooterTable.get(dist);
+    // Convert tuned flywheel RPM values to equivalent wheel-edge linear speed.
+    double idealHorizontalSpeed = rpmToLinearSpeedMetersPerSecond(shooterTable.get(dist));
 
     // 4. VECTOR SUBTRACTION
     Translation2d robotVelVec = new Translation2d(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
     Translation2d shotVec     = targetVec.div(dist).times(idealHorizontalSpeed).minus(robotVelVec);
 
     // 5. CONVERT TO CONTROLS
-    double turretAngle        = shotVec.getAngle().getDegrees();
-    // double newHorizontalSpeed = shotVec.getNorm();
-
-    // 6. SOLVE FOR NEW PITCH/RPM
-    // Assuming constant total exit velocity, variable hood:
-    // Clamp to avoid domain errors if we need more speed than possible
-    // double ratio    = Math.min(newHorizontalSpeed / totalExitVelocity, 1.0);
-    // double newPitch = Math.acos(ratio);
+    double turretAngle = shotVec.getAngle().getDegrees();
+    double newHorizontalSpeed = shotVec.getNorm();
+    targetFlywheelRpm = linearSpeedToRpm(newHorizontalSpeed);
 
     // 7. SET OUTPUTS
     shooterSubsystem.turret.setAngleDirect(Degrees.of(turretAngle));
-    shooterSubsystem.flywheel.setVelocity(RPM.of(totalExitVelocity));
   }
 
   @Override
@@ -136,6 +137,17 @@ public class ShootOnTheMoveCommand extends Command
   @Override
   public void end(boolean interrupted)
   {
+    if (flywheelVelocityCommand != null) {
+      flywheelVelocityCommand.cancel();
+      flywheelVelocityCommand = null;
+    }
+  }
 
+  private static double rpmToLinearSpeedMetersPerSecond(double rpm) {
+    return (rpm / 60.0) * (Math.PI * SHOOTER_WHEEL_DIAMETER_METERS);
+  }
+
+  private static double linearSpeedToRpm(double linearSpeedMetersPerSecond) {
+    return (linearSpeedMetersPerSecond / (Math.PI * SHOOTER_WHEEL_DIAMETER_METERS)) * 60.0;
   }
 }

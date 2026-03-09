@@ -76,7 +76,7 @@ public class OISelector {
       }
     } else if (joyList.size() > 0) {
       DriverStation.reportWarning(singleJoystickOperatorInterfaces, false);
-      return new SingleHandheldOI(joyList.get(0));
+      return new SingleJoystickOI(joyList.get(0));
     } else if (xboxList.size() > 2) {
       DriverStation.reportWarning(dualXBoxOperatorInterfaces + testOperatorInterfaces, false);
       return new DualHandheldOI(xboxList.get(0), xboxList.get(1), xboxList.get(2));

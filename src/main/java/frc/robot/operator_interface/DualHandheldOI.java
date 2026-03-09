@@ -105,7 +105,7 @@ public class DualHandheldOI extends SingleHandheldOI {
 
   @Override
   public Trigger getRightThumbstickButton() {
-    return new Trigger(() -> operator.getLeftStickButton());
+    return new Trigger(() -> operator.getRightStickButton());
   }
 
   @Override
