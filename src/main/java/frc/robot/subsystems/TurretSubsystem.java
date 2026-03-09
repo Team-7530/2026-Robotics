@@ -144,22 +144,30 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   public Command setAngleCommand(Angle angle) {
-    m_isTeleop = false;
-    turretTargetAngle = Degrees.of(MathUtil.clamp(angle.in(Degrees), TURRET_MIN_DEG.in(Degrees), TURRET_MAX_DEG.in(Degrees)));
-    return m_turret.runTo(turretTargetAngle, Degrees.of(0.1)).withName("TurretSetAngleCommand")
+    Angle clampedAngle = clampToTurretLimits(angle);
+    return runOnce(() -> {
+      m_isTeleop = false;
+      turretTargetAngle = clampedAngle;
+    }).andThen(m_turret.runTo(clampedAngle, Degrees.of(0.1))).withName("TurretSetAngleCommand")
       .withTimeout(1.0);
   }
 
   public Command setAngleCommand(Angle angle, Angle tolerance) {
-    m_isTeleop = false;
-    turretTargetAngle = Degrees.of(MathUtil.clamp(angle.in(Degrees), TURRET_MIN_DEG.in(Degrees), TURRET_MAX_DEG.in(Degrees)));
-    return m_turret.runTo(turretTargetAngle, tolerance).withName("TurretSetAngleWithToleranceCommand")
+    Angle clampedAngle = clampToTurretLimits(angle);
+    return runOnce(() -> {
+      m_isTeleop = false;
+      turretTargetAngle = clampedAngle;
+    }).andThen(m_turret.runTo(clampedAngle, tolerance)).withName("TurretSetAngleWithToleranceCommand")
       .withTimeout(1.0);
   }
 
   public Command setAngleCommand(Supplier<Angle> angleSupplier) {
-    m_isTeleop = false;
-    return m_turret.setAngle(angleSupplier).withName("TurretSetAngleSupplierCommand")
+    return runOnce(() -> m_isTeleop = false)
+      .andThen(m_turret.setAngle(() -> {
+        Angle clampedAngle = clampToTurretLimits(angleSupplier.get());
+        turretTargetAngle = clampedAngle;
+        return clampedAngle;
+      })).withName("TurretSetAngleSupplierCommand")
       .withTimeout(1.0);
   }
 
@@ -171,14 +179,16 @@ public class TurretSubsystem extends SubsystemBase {
 
   public Command setDutyCycleCommand(Supplier<Double> dutyCycleSupplier) {
     // command to run turret at a variable duty cycle (open-loop)
-    turretTargetAngle = Degrees.of(0.0);
-    return m_turret.set(dutyCycleSupplier).withName("TurretSetDutyCycleCommand");
+    return runOnce(() -> turretTargetAngle = Degrees.of(0.0))
+      .andThen(m_turret.set(dutyCycleSupplier))
+      .withName("TurretSetDutyCycleCommand");
   }
 
   public Command setDutyCycleCommand(double dutyCycle) {
     // open-loop control with a constant duty value
-    turretTargetAngle = Degrees.of(0.0);
-    return m_turret.set(dutyCycle).withName("TurretSetDutyCycleCommand");
+    return runOnce(() -> turretTargetAngle = Degrees.of(0.0))
+      .andThen(m_turret.set(dutyCycle))
+      .withName("TurretSetDutyCycleCommand");
   }
 
   public void setDutyCycleDirect(double dutyCycle) {
@@ -238,6 +248,11 @@ public class TurretSubsystem extends SubsystemBase {
 
   private static double finiteOrZero(double value) {
     return Double.isFinite(value) ? value : 0.0;
+  }
+
+  private static Angle clampToTurretLimits(Angle angle) {
+    return Degrees.of(
+        MathUtil.clamp(angle.in(Degrees), TURRET_MIN_DEG.in(Degrees), TURRET_MAX_DEG.in(Degrees)));
   }
 
 }

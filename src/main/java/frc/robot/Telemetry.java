@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Telemetry {
-  private final double MaxSpeed;
+  private double m_maxSpeed;
   /** if true, debug values (marked by callers) will be published; otherwise
    * they are suppressed to save bandwidth/CPU during competition runs. */
   private final boolean m_debugMode;
@@ -40,7 +40,7 @@ public class Telemetry {
    * @param debugMode whether to emit debug telemetry entries
    */
   public Telemetry(double maxSpeed, boolean debugMode) {
-    MaxSpeed = maxSpeed;
+    m_maxSpeed = maxSpeed;
     m_debugMode = debugMode;
     SignalLogger.start();
     // SignalLogger.stop();
@@ -67,6 +67,11 @@ public class Telemetry {
     // or read a dashboard switch and rebuild the object.
     //
     // This method exists as a no-op placeholder to keep the API stable.
+  }
+
+  /** Update the configured drivetrain max speed in m/s for telemetry scaling and display. */
+  public void setMaxSpeed(double maxSpeed) {
+    m_maxSpeed = maxSpeed;
   }
 
   /* Convenience helpers so subsystems stop calling SmartDashboard directly */
@@ -201,16 +206,17 @@ public class Telemetry {
 
     // also publish the drivetrain maximum speed; this is used on the
     // competition layout so drivers know what the robot is currently allowed to do.
-    putNumber("DriveTrain/MaxSpeed", MaxSpeed);
+    putNumber("DriveTrain/MaxSpeed", m_maxSpeed);
     putNumber("DriveTrain/PoseX", m_poseArray[0]);
     putNumber("DriveTrain/PoseY", m_poseArray[1]);
     putNumber("DriveTrain/PoseTheta", m_poseArray[2]);
 
     /* Telemeterize the module's states */
+    double moduleSpeedDenominator = Math.max(1e-6, 2.0 * m_maxSpeed);
     for (int i = 0; i < 4; ++i) {
       m_moduleSpeeds[i].setAngle(state.ModuleStates[i].angle);
       m_moduleDirections[i].setAngle(state.ModuleStates[i].angle);
-      m_moduleSpeeds[i].setLength(state.ModuleStates[i].speedMetersPerSecond / (2 * MaxSpeed));
+      m_moduleSpeeds[i].setLength(state.ModuleStates[i].speedMetersPerSecond / moduleSpeedDenominator);
     }
 
     SignalLogger.writeDoubleArray("odometry", m_poseArray);

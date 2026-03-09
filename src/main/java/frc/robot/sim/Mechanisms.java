@@ -55,8 +55,8 @@ public class Mechanisms {
         turretShaft.setAngle(turretDeg);
 
                 // publish the mechanism drawing through the centralized telemetry system
-                if (frc.robot.RobotContainer.GetInstance() != null) {
-                    frc.robot.RobotContainer.GetInstance()
+                if (frc.robot.RobotContainer.getInstance() != null) {
+                    frc.robot.RobotContainer.getInstance()
                             .getTelemetry()
                             .putData("mech2d", mech);
                 }

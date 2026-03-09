@@ -150,11 +150,13 @@ public class VisionSubsystem extends SubsystemBase {
       RotationsPerSecond.of(0.5).in(RadiansPerSecond);
   private static final double SINGLE_TAG_MAX_AMBIGUITY = 0.25;
   private static final double SINGLE_TAG_MAX_DISTANCE_METERS = 2.5;
+  private static final double MIN_VISION_TIMESTAMP_DELTA_SEC = 1e-4;
 
   /* Cameras */
   public UsbCamera cam0;
 
   private final Telemetry telemetry;
+  private double lastAcceptedVisionTimestampSeconds = Double.NEGATIVE_INFINITY;
 
   public VisionSubsystem(Telemetry telemetry) {
     this.telemetry = telemetry;
@@ -287,17 +289,23 @@ public class VisionSubsystem extends SubsystemBase {
     return minAmbiguity <= SINGLE_TAG_MAX_AMBIGUITY && minDistance <= SINGLE_TAG_MAX_DISTANCE_METERS;
   }
 
+  private boolean isFreshVisionEstimate(PoseEstimate est) {
+    return Double.isFinite(est.timestampSeconds)
+        && est.timestampSeconds > (lastAcceptedVisionTimestampSeconds + MIN_VISION_TIMESTAMP_DELTA_SEC);
+  }
+
   public void updateGlobalPose(CommandSwerveDrivetrain drivetrain) {
     if (isDrivetrainSlowEnough(drivetrain)) {
 
       // Limelight-only: get chosen limelight pose (with hysteresis) and add it to estimator
       // var postEst = this.getVisionMeasurement_MT2(drivetrain.getPigeon2().getYaw());
       var postEst = this.getVisionMeasurement_MT1();
-      postEst.filter(this::isReliableVisionEstimate).ifPresent(
+      postEst.filter(this::isReliableVisionEstimate).filter(this::isFreshVisionEstimate).ifPresent(
           est -> {
             telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1PoseX", est.pose.getTranslation().getX());
             telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1PoseY", est.pose.getTranslation().getY());
             telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1TagCount", est.tagCount);
+            lastAcceptedVisionTimestampSeconds = est.timestampSeconds;
             drivetrain.addVisionMeasurement(
                     est.pose, 
                     est.timestampSeconds, 

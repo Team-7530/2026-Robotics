@@ -8,7 +8,7 @@ import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 
 public class PathOnTheFlyCommand extends SequentialCommandGroup {
-  // Example command kept for tuning/reference. Not used by production auto paths.
+  // Command kept for only tuning/reference. Not used by production auto paths.
 
   /** Creates a new driveToPose. */
 

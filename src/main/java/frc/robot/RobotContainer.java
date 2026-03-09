@@ -14,7 +14,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj2.command.Commands;
 
 import frc.robot.Constants.DriveTrainConstants;
@@ -62,8 +62,13 @@ public class RobotContainer {
   private SendableChooser<Command> autoChooser;
   private Command autonomousCommand;
 
-  public static RobotContainer GetInstance() {
+  public static RobotContainer getInstance() {
     return instance;
+  }
+
+  @Deprecated(forRemoval = false)
+  public static RobotContainer GetInstance() {
+    return getInstance();
   }
 
   /** Return the shared Telemetry instance used by the robot. */
@@ -79,6 +84,7 @@ public class RobotContainer {
     LiveWindow.disableAllTelemetry();
 
     drivetrain.setMaxSpeeds(DriveTrainConstants.cruiseSpeed);
+    logger.setMaxSpeed(DriveTrainConstants.cruiseSpeed.vxMetersPerSecond);
     configureAutoPaths();
     configureAutoCommands();
     configureTelemetry();
@@ -114,12 +120,12 @@ public class RobotContainer {
     oi.getXStanceButton().whileTrue(drivetrain.setXStanceCommand());
 
     oi.driveScalingUp()
-        .onTrue(drivetrain.setMaxSpeedsCommand(DriveTrainConstants.maxSpeed));
+        .onTrue(setDriveMaxSpeedsCommand(DriveTrainConstants.maxSpeed));
     oi.driveScalingDown()
-        .onTrue(drivetrain.setMaxSpeedsCommand(DriveTrainConstants.cruiseSpeed));
+        .onTrue(setDriveMaxSpeedsCommand(DriveTrainConstants.cruiseSpeed));
     oi.driveScalingSlow()
-        .onTrue(drivetrain.setMaxSpeedsCommand(DriveTrainConstants.slowSpeed))
-        .onFalse(drivetrain.setMaxSpeedsCommand(DriveTrainConstants.cruiseSpeed));
+        .onTrue(setDriveMaxSpeedsCommand(DriveTrainConstants.slowSpeed))
+        .onFalse(setDriveMaxSpeedsCommand(DriveTrainConstants.cruiseSpeed));
 
     drivetrain.setDefaultCommand(new SwerveTeleopCommand(drivetrain, oi));
   }
@@ -163,80 +169,58 @@ public class RobotContainer {
   }
 
   private void configureTestingControls() {
+    OperatorInterface testOI = oi.getTestOI();
+
     // Testing controls: only activate these when neither modifier button is held
     // (Start/Back are used as sysid modifiers below).
-    oi.getTestOI().getAButton()
-      .and(oi.getTestOI().getStartButton().negate())
-      .and(oi.getTestOI().getBackButton().negate())
+    testOI.getAButton()
+      .and(testOI.getStartButton().negate())
+      .and(testOI.getBackButton().negate())
       .onTrue(shooter.flywheel.flywheelStopCommand());
-    oi.getTestOI().getBButton()
-      .and(oi.getTestOI().getStartButton().negate())
-      .and(oi.getTestOI().getBackButton().negate())
+    testOI.getBButton()
+      .and(testOI.getStartButton().negate())
+      .and(testOI.getBackButton().negate())
       .onTrue(shooter.collector.collectorStopCommand());
-    oi.getTestOI().getXButton()
-      .and(oi.getTestOI().getStartButton().negate())
-      .and(oi.getTestOI().getBackButton().negate())
+    testOI.getXButton()
+      .and(testOI.getStartButton().negate())
+      .and(testOI.getBackButton().negate())
       .onTrue(shooter.collector.collectorUnstuckCommand());
-    oi.getTestOI().getYButton()
-      .and(oi.getTestOI().getStartButton().negate())
-      .and(oi.getTestOI().getBackButton().negate())
+    testOI.getYButton()
+      .and(testOI.getStartButton().negate())
+      .and(testOI.getBackButton().negate())
       .onTrue(shooter.feeder.feederUnstuckCommand());
 
     // sysID helpers bound to the test controller.  hold Start or Back together
     // with a face button to exercise each mechanism's built-in sysid routine.
     // these commands are short-lived (they run until the button is released)
     // and log data to SignalLogger for later analysis.
-    oi.getTestOI().getStartButton()
-      .and(oi.getTestOI().getAButton())
+    testOI.getStartButton()
+      .and(testOI.getAButton())
       .whileTrue(shooter.turret.sysIdCommand());
-    oi.getTestOI().getStartButton()
-      .and(oi.getTestOI().getBButton())
+    testOI.getStartButton()
+      .and(testOI.getBButton())
       .whileTrue(rakeArm.sysIdCommand());
-    oi.getTestOI().getStartButton()
-      .and(oi.getTestOI().getXButton())
+    testOI.getStartButton()
+      .and(testOI.getXButton())
       .whileTrue(shooter.flywheel.sysIdCommand());
-    oi.getTestOI().getStartButton()
-      .and(oi.getTestOI().getYButton())
+    testOI.getStartButton()
+      .and(testOI.getYButton())
       .whileTrue(shooter.feeder.sysIdCommand());
 
-    oi.getTestOI().getBackButton()
-      .and(oi.getTestOI().getAButton())
+    testOI.getBackButton()
+      .and(testOI.getAButton())
       .whileTrue(shooter.collector.sysIdCommand());
-    oi.getTestOI().getBackButton()
-      .and(oi.getTestOI().getBButton())
+    testOI.getBackButton()
+      .and(testOI.getBButton())
       .whileTrue(rakeIntake.sysIdCommand());
 
-    rakeIntake.setDefaultCommand(Commands.run(() -> rakeIntake.teleop(-oi.getTestOI().getLeftThumbstickX()), rakeIntake));
-    shooter.flywheel.setDefaultCommand(Commands.run(() -> shooter.flywheel.teleop(-oi.getTestOI().getRightThumbstickY()), shooter.flywheel));
+    rakeIntake.setDefaultCommand(Commands.run(() -> rakeIntake.teleop(-testOI.getLeftThumbstickX()), rakeIntake));
+    shooter.flywheel.setDefaultCommand(Commands.run(() -> shooter.flywheel.teleop(-testOI.getRightThumbstickY()), shooter.flywheel));
   }
 
   private void configureDriveTestingControls() {
-    // Test controller bindings for tuning are defined in TestControllerBindings.java
-    // Uncomment TestControllerBindings.configure(oi, drivetrain) call to enable sysId,
-    // drive tests, or PathPlanner pose navigation tests.
-
-    // simple 10-foot forward/back commands on the test controller; the goal
-    // pose is computed from the current drivetrain odometry whenever the
-    // button is pressed.  Useful to verify wheel/gyro calibration quickly.
-    oi.getTestOI().getPOVUp().onTrue(
-        Commands.runOnce(() -> {
-          Pose2d start = drivetrain.getState().Pose;
-      Pose2d goal = new Pose2d(
-        start.getX() + Feet.of(10).in(Meters),
-        start.getY(),
-        start.getRotation());
-          CommandScheduler.getInstance().schedule(new PathOnTheFlyCommand(drivetrain, goal));
-        }));
-
-    oi.getTestOI().getPOVDown().onTrue(
-        Commands.runOnce(() -> {
-          Pose2d start = drivetrain.getState().Pose;
-      Pose2d goal = new Pose2d(
-        start.getX() - Feet.of(10).in(Meters),
-        start.getY(),
-        start.getRotation());
-          CommandScheduler.getInstance().schedule(new PathOnTheFlyCommand(drivetrain, goal));
-        }));
+    // Example PathOnTheFly bindings are intentionally disabled. If needed for tuning,
+    // re-enable them temporarily in this method.
   }
 
   /**
@@ -283,6 +267,13 @@ public class RobotContainer {
     logger.putData("AutoChooser", autoChooser);
     logger.putData("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
     logger.putData("AimAtHub", shooter.aimTurretAtHubCommand(drivetrain));
+  }
+
+  private Command setDriveMaxSpeedsCommand(ChassisSpeeds speeds) {
+    return Commands.runOnce(() -> {
+      drivetrain.setMaxSpeeds(speeds);
+      logger.setMaxSpeed(speeds.vxMetersPerSecond);
+    }).withName("SetDriveMaxSpeeds");
   }
 
   public void robotPeriodic() {}
