@@ -4,6 +4,7 @@ import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -189,12 +190,14 @@ public class Telemetry {
     var distanceDiff = pose.minus(m_lastPose).getTranslation();
     m_lastPose = pose;
 
-    var velocities = distanceDiff.div(diffTime);
+    var velocities = diffTime > 1e-6 ? distanceDiff.div(diffTime) : new Translation2d();
 
     speed.set(velocities.getNorm());
     velocityX.set(velocities.getX());
     velocityY.set(velocities.getY());
-    odomFreq.set(1.0 / state.OdometryPeriod);
+    if (state.OdometryPeriod > 1e-6) {
+      odomFreq.set(1.0 / state.OdometryPeriod);
+    }
 
     // also publish the drivetrain maximum speed; this is used on the
     // competition layout so drivers know what the robot is currently allowed to do.

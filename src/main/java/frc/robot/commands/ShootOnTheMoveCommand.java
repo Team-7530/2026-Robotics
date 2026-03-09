@@ -14,8 +14,12 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * Largely written by Eeshwar based off their blog at https://blog.eeshwark.com/robotblog/shooting-on-the-fly
+ * Example command for experimentation. Not used in current robot command bindings.
+ *
+ * <p>Largely written by Eeshwar based off their blog at
+ * https://blog.eeshwark.com/robotblog/shooting-on-the-fly
  */
+@Deprecated(forRemoval = false)
 public class ShootOnTheMoveCommand extends Command
 {
   private static final double SHOOTER_WHEEL_DIAMETER_METERS = Inches.of(4).in(Meters);
@@ -106,14 +110,22 @@ public class ShootOnTheMoveCommand extends Command
     Translation2d goalLocation = goalPose.getTranslation();
     Translation2d targetVec    = goalLocation.minus(futurePos);
     double        dist         = targetVec.getNorm();
+    double        safeDist     = Math.max(dist, 1e-6);
 
     // 3. CALCULATE IDEAL SHOT (Stationary)
     // Convert tuned flywheel RPM values to equivalent wheel-edge linear speed.
-    double idealHorizontalSpeed = rpmToLinearSpeedMetersPerSecond(shooterTable.get(dist));
+    double tunedRpm = shooterTable.get(safeDist);
+    if (!Double.isFinite(tunedRpm)) {
+      return;
+    }
+    double idealHorizontalSpeed = rpmToLinearSpeedMetersPerSecond(tunedRpm);
 
     // 4. VECTOR SUBTRACTION
     Translation2d robotVelVec = new Translation2d(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
-    Translation2d shotVec     = targetVec.div(dist).times(idealHorizontalSpeed).minus(robotVelVec);
+    Translation2d shotVec     = targetVec.div(safeDist).times(idealHorizontalSpeed).minus(robotVelVec);
+    if (!Double.isFinite(shotVec.getX()) || !Double.isFinite(shotVec.getY())) {
+      return;
+    }
 
     // 5. CONVERT TO CONTROLS
     double turretAngle = shotVec.getAngle().getDegrees();

@@ -275,8 +275,6 @@ public class RobotContainer {
     NamedCommands.registerCommand("rakeIntakeStop", rakeIntake.rakeIntakeStopCommand());
     NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
     NamedCommands.registerCommand("ResetPose", vision.resetGlobalPoseCommand(drivetrain));
-
-    NamedCommands.registerCommand("climb", Commands.runOnce(() -> System.out.println("Climb command executed")));
   }
 
   private void configureTelemetry() {

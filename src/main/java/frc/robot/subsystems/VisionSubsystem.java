@@ -76,7 +76,6 @@ import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.wpilibj.RobotState;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import frc.robot.Telemetry;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -144,8 +143,13 @@ public class VisionSubsystem extends SubsystemBase {
   private Field2d simDebugField = null;
 
   // hysteresis parameters (ambiguity-delta-based)
-  private static final double AMBIGUITY_DELTA_THRESHOLD = 0.7; // new ambiguity must be this much lower
-  private static final double DISTANCE_THRESHOLD = 3.0; // new distance must be lower than this in meters
+  private static final double AMBIGUITY_DELTA_THRESHOLD = 0.35;
+  private static final double DISTANCE_THRESHOLD = 2.5;
+  private static final double POSE_UPDATE_MAX_TRANSLATION_SPEED_MPS = 0.15;
+  private static final double POSE_UPDATE_MAX_ROTATION_SPEED_RAD_PER_SEC =
+      RotationsPerSecond.of(0.5).in(RadiansPerSecond);
+  private static final double SINGLE_TAG_MAX_AMBIGUITY = 0.25;
+  private static final double SINGLE_TAG_MAX_DISTANCE_METERS = 2.5;
 
   /* Cameras */
   public UsbCamera cam0;
@@ -249,47 +253,69 @@ public class VisionSubsystem extends SubsystemBase {
     return updateEstimationStdDevs(LimelightHelpers.getBotPoseEstimate_wpiBlue(LIMELIGHTNAME));
   }
 
+  private boolean isDrivetrainSlowEnough(CommandSwerveDrivetrain drivetrain) {
+    var speeds = drivetrain.getState().Speeds;
+    return Math.abs(speeds.vxMetersPerSecond) < POSE_UPDATE_MAX_TRANSLATION_SPEED_MPS
+        && Math.abs(speeds.vyMetersPerSecond) < POSE_UPDATE_MAX_TRANSLATION_SPEED_MPS
+        && Math.abs(speeds.omegaRadiansPerSecond) < POSE_UPDATE_MAX_ROTATION_SPEED_RAD_PER_SEC;
+  }
+
+  private boolean isReliableVisionEstimate(PoseEstimate est) {
+    if (est == null || est.tagCount < 1 || est.pose == null) {
+      return false;
+    }
+
+    if (!Double.isFinite(est.pose.getX()) || !Double.isFinite(est.pose.getY())) {
+      return false;
+    }
+
+    if (est.tagCount > 1) {
+      return true;
+    }
+
+    if (est.rawFiducials == null || est.rawFiducials.length == 0) {
+      return false;
+    }
+
+    double minAmbiguity = Double.POSITIVE_INFINITY;
+    double minDistance = Double.POSITIVE_INFINITY;
+    for (var fiducial : est.rawFiducials) {
+      minAmbiguity = Math.min(minAmbiguity, fiducial.ambiguity);
+      minDistance = Math.min(minDistance, fiducial.distToCamera);
+    }
+
+    return minAmbiguity <= SINGLE_TAG_MAX_AMBIGUITY && minDistance <= SINGLE_TAG_MAX_DISTANCE_METERS;
+  }
+
   public void updateGlobalPose(CommandSwerveDrivetrain drivetrain) {
-    if ((/*RobotState.isAutonomous() || */ RobotState.isTest()) &&
-        (Math.abs(drivetrain.getState().Speeds.vxMetersPerSecond) < 0.2) &&
-        (Math.abs(drivetrain.getState().Speeds.vyMetersPerSecond) < 0.2) &&
-        (Math.abs(drivetrain.getState().Speeds.omegaRadiansPerSecond) < RotationsPerSecond.of(2).in(RadiansPerSecond))) {
+    if (isDrivetrainSlowEnough(drivetrain)) {
 
       // Limelight-only: get chosen limelight pose (with hysteresis) and add it to estimator
       // var postEst = this.getVisionMeasurement_MT2(drivetrain.getPigeon2().getYaw());
       var postEst = this.getVisionMeasurement_MT1();
-      postEst.ifPresent(
+      postEst.filter(this::isReliableVisionEstimate).ifPresent(
           est -> {
-            if (est.tagCount >= 1) {
-              telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1PoseX", est.pose.getTranslation().getX());
-              telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1PoseY", est.pose.getTranslation().getY());
-              telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1TagCount", est.tagCount);
-              drivetrain.addVisionMeasurement(
-                      est.pose, 
-                      est.timestampSeconds, 
-                      this.getEstimationStdDevs());
-
-                // drivetrain.resetPose(est.pose);
-            }
+            telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1PoseX", est.pose.getTranslation().getX());
+            telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1PoseY", est.pose.getTranslation().getY());
+            telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1TagCount", est.tagCount);
+            drivetrain.addVisionMeasurement(
+                    est.pose, 
+                    est.timestampSeconds, 
+                    this.getEstimationStdDevs());
           });
     }
   }
 
   public void resetGlobalPose(CommandSwerveDrivetrain drivetrain) {
-    if ((Math.abs(drivetrain.getState().Speeds.vxMetersPerSecond) < 0.2) &&
-        (Math.abs(drivetrain.getState().Speeds.vyMetersPerSecond) < 0.2) &&
-        (Math.abs(drivetrain.getState().Speeds.omegaRadiansPerSecond) < RotationsPerSecond.of(1).in(RadiansPerSecond))) {
+    if (isDrivetrainSlowEnough(drivetrain)) {
 
       var postEst = this.getVisionMeasurement_MT1();
-      postEst.ifPresent(
+      postEst.filter(this::isReliableVisionEstimate).ifPresent(
           est -> {
             telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/ResetTagCount", est.tagCount);
             telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/ResetPoseX", est.pose.getTranslation().getX());
             telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/ResetPoseY", est.pose.getTranslation().getY());
-
-            if (est.tagCount >= 1) {
-                drivetrain.resetPose(est.pose);
-            }
+            drivetrain.resetPose(est.pose);
           });
     }
   }
@@ -315,7 +341,7 @@ public class VisionSubsystem extends SubsystemBase {
 
   /** Return a command that sets a specific pipeline index on all cameras when executed. */
   public Command setPipelineCommand(int pipelineIndex) {
-    return run(() -> setPipeline(pipelineIndex)).withName("SetPipelineAll-" + pipelineIndex);
+    return runOnce(() -> setPipeline(pipelineIndex)).withName("SetPipelineAll-" + pipelineIndex);
   }
 
   // ----- Simulation

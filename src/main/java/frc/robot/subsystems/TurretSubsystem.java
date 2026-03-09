@@ -222,27 +222,22 @@ public class TurretSubsystem extends SubsystemBase {
   private void updateTelemetry() {
     m_turret.updateTelemetry();
     // publish a few human-friendly telemetry values through the central Telemetry class
-    try {
-      telemetry.putNumber("Turret/TurretAngleDeg", this.getAngle().in(Degrees));
-      // the rest of the values are useful only for debugging/tuning
-      telemetry.putNumber("Turret/TurretTargetAngleDeg", turretTargetAngle.in(Degrees), true);
-      telemetry.putNumber("Turret/TurretRotorPos", m_turretSMC.getRotorPosition().in(Rotations), true);
-      telemetry.putNumber("Turret/TurretPotentiometer", -m_turretPotentiometer.get(), true);
-      telemetry.putNumber("Turret/SeededTurretDeg", this.potentiometerAngle.in(Degrees), true);
-    } catch (Exception e) {
-      telemetry.putNumber("Turret/TurretAngleDeg", 0.0);
-      // the rest of the values are useful only for debugging/tuning
-      telemetry.putNumber("Turret/TurretTargetAngleDeg", 0.0, true);
-      telemetry.putNumber("Turret/TurretRotorPos", 0.0, true);
-      telemetry.putNumber("Turret/TurretPotentiometer", 0.0, true);
-      telemetry.putNumber("Turret/SeededTurretDeg", 0.0, true);
-    }
+    telemetry.putNumber("Turret/TurretAngleDeg", finiteOrZero(this.getAngle().in(Degrees)));
+    // the rest of the values are useful only for debugging/tuning
+    telemetry.putNumber("Turret/TurretTargetAngleDeg", finiteOrZero(turretTargetAngle.in(Degrees)), true);
+    telemetry.putNumber("Turret/TurretRotorPos", finiteOrZero(m_turretSMC.getRotorPosition().in(Rotations)), true);
+    telemetry.putNumber("Turret/TurretPotentiometer", finiteOrZero(-m_turretPotentiometer.get()), true);
+    telemetry.putNumber("Turret/SeededTurretDeg", finiteOrZero(this.potentiometerAngle.in(Degrees)), true);
   }
 
   // -- Commands -----------------------------------------------------------
   public Command seedTurretPositionCommand() {
     return runOnce(this::seedTurretPosition)
         .withName("SeedTurretPositionCommand");
+  }
+
+  private static double finiteOrZero(double value) {
+    return Double.isFinite(value) ? value : 0.0;
   }
 
 }

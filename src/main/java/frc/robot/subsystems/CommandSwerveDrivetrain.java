@@ -282,9 +282,12 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
    */
   public Command driveDistanceCommand(
       Translation2d distanceInMeters, double speedInMetersPerSecond) {
+    final double distanceNorm = distanceInMeters.getNorm();
+    if (distanceNorm < 1e-6) {
+      return runOnce(() -> {}).withName("DriveDistanceNoOp");
+    }
     final Translation2d start = this.getState().Pose.getTranslation();
-    final Translation2d speed =
-        distanceInMeters.times(speedInMetersPerSecond / distanceInMeters.getNorm());
+    final Translation2d speed = distanceInMeters.times(speedInMetersPerSecond / distanceNorm);
     return run(() ->
             this.setControl(
                 this.driveRobotCentric

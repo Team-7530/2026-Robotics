@@ -212,10 +212,7 @@ public class RakeArmSubsystem extends SubsystemBase {
 
   private void updateTelemetry() {
     m_rakeArm.updateTelemetry();
-    try {
-      telemetry.putNumber("RakeArm/PositionDeg", this.getRakeArmPosition().in(Degrees), true);
-    } catch (Exception e) {
-      telemetry.putNumber("RakeArm/PositionDeg", 0.0, true);
-    }
+    double positionDeg = this.getRakeArmPosition().in(Degrees);
+    telemetry.putNumber("RakeArm/PositionDeg", Double.isFinite(positionDeg) ? positionDeg : 0.0, true);
   }
 }
