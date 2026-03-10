@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Left Shoot"
+            "pathName": "Left Backup"
           }
         },
         {
@@ -53,6 +53,12 @@
           }
         },
         {
+          "type": "path",
+          "data": {
+            "pathName": "Left To Center"
+          }
+        },
+        {
           "type": "named",
           "data": {
             "name": "rakeIntake"
@@ -67,55 +73,13 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Left to Collect"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "aimRange"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "spinup"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 0.5
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "shoot"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "rakeUp"
+            "pathName": "Left Sweep"
           }
         },
         {
           "type": "named",
           "data": {
             "name": "rakeIntakeStop"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 6.0
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "stopShoot"
           }
         }
       ]
