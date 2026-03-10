@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Mid to Depot"
+            "pathName": "Right Shoot"
           }
         },
         {
@@ -55,24 +55,6 @@
         {
           "type": "named",
           "data": {
-            "name": "rakeIntake"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 0.5
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Depot Backup"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
             "name": "aimRange"
           }
         },
@@ -85,7 +67,7 @@
         {
           "type": "wait",
           "data": {
-            "waitTime": 0.5
+            "waitTime": 0.2
           }
         },
         {
@@ -95,21 +77,21 @@
           }
         },
         {
+          "type": "wait",
+          "data": {
+            "waitTime": 2.0
+          }
+        },
+        {
           "type": "named",
           "data": {
             "name": "rakeUp"
           }
         },
         {
-          "type": "named",
-          "data": {
-            "name": "rakeIntakeStop"
-          }
-        },
-        {
           "type": "wait",
           "data": {
-            "waitTime": 6.0
+            "waitTime": 5.0
           }
         },
         {

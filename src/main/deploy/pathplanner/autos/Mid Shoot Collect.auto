@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Left to Depot"
+            "pathName": "Mid to Depot"
           }
         },
         {
@@ -67,7 +67,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Depot Backup"
+            "pathName": "Left to Collect"
           }
         },
         {
