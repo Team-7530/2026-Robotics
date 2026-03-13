@@ -68,8 +68,6 @@ import static edu.wpi.first.units.Units.*;
 
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.UsbCamera;
-// import edu.wpi.first.cameraserver.CameraServer;
-// import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -115,7 +113,7 @@ public class VisionSubsystem extends SubsystemBase {
                         Degrees.of(0)));
 
   // The standard deviations of our vision estimated poses, which affect correction rate
-  public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(0.7, 0.7, 9999999);
+  public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(0.3, 0.3, 1.0);
   public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.5, 0.5, 9999999);
 
   // ------------------------------------------------------------------
@@ -147,7 +145,7 @@ public class VisionSubsystem extends SubsystemBase {
 
   // hysteresis parameters (ambiguity-delta-based)
   private static final double AMBIGUITY_DELTA_THRESHOLD = 0.35;
-  private static final double DISTANCE_THRESHOLD = 2.5;
+  private static final double DISTANCE_THRESHOLD = 2.0;
   private static final double POSE_UPDATE_MAX_TRANSLATION_SPEED_MPS = 0.15;
   private static final double POSE_UPDATE_MAX_ROTATION_SPEED_RAD_PER_SEC =
       RotationsPerSecond.of(0.5).in(RadiansPerSecond);

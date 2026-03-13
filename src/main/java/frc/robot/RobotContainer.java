@@ -151,14 +151,10 @@ public class RobotContainer {
     oi.getPOVRight().onTrue(rakeArm.rakeArmUpCommand());
 
     oi.getStartButton().onTrue(shooter.turret.seedTurretPositionCommand());
+    oi.getBackButton().whileTrue(vision.updateGlobalPoseCommand(drivetrain));
 
-    oi.getLeftThumbstickButton().onTrue(vision.updateGlobalPoseCommand(drivetrain));
-    oi.getRightThumbstickButton().onTrue(vision.resetGlobalPoseCommand(drivetrain));
-
-    // back button toggles continuous hub-aiming for testing; cancels immediately
-    // when released by virtue of being a run-while-true command.
+    // oi.getRightThumbstickButton().onTrue(vision.resetGlobalPoseCommand(drivetrain));
    
-
     shooter.turret.setDefaultCommand(Commands.run(() -> shooter.turret.teleop(oi.getLeftThumbstickX()), shooter.turret));    
     rakeArm.setDefaultCommand(Commands.run(() -> rakeArm.teleop(-oi.getRightThumbstickY()), rakeArm));
   }
@@ -231,6 +227,7 @@ public class RobotContainer {
   private void configureAutoCommands() {
     // Add commands to Autonomous Sendable Chooser
     autoChooser = AutoBuilder.buildAutoChooser("Forward");
+    logger.putData("AutoChooser", autoChooser);
 
     CommandScheduler.getInstance().schedule(PathfindingCommand.warmupCommand());
   }
@@ -239,7 +236,7 @@ public class RobotContainer {
 
     // climber.setDefaultCommand(
     //     Commands.run(() -> climber.teleopClimb(-oi.getRightThumbstickY()), climber));
-    vision.setDefaultCommand(vision.updateGlobalPoseCommand(drivetrain));
+    // vision.setDefaultCommand(vision.updateGlobalPoseCommand(drivetrain));
   }
 
   private void configureAutoPaths() {
@@ -258,10 +255,6 @@ public class RobotContainer {
 
   private void configureTelemetry() {
     drivetrain.registerTelemetry(logger::telemeterize);
-
-    logger.putData("AutoChooser", autoChooser);
-    logger.putData("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
-    logger.putData("AimAtHub", shooter.aimTurretAtHubCommand(drivetrain));
   }
 
   private Command setDriveMaxSpeedsCommand(ChassisSpeeds speeds) {
@@ -298,7 +291,9 @@ public class RobotContainer {
     }
   }
 
-  public void autonomousPeriodic() {}
+  public void autonomousPeriodic() {
+    vision.updateGlobalPose(drivetrain);
+  }
 
   public void teleopInit() {
     // This makes sure that the autonomous stops running when
@@ -317,7 +312,9 @@ public class RobotContainer {
     CommandScheduler.getInstance().cancelAll();
   }
 
-  public void testPeriodic() {}
+  public void testPeriodic() {
+    vision.updateGlobalPose(drivetrain);
+  }
 
   public void testExit() {}
 
