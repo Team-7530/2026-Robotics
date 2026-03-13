@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Right Shoot"
+            "pathName": "Left Backup"
           }
         },
         {
@@ -50,6 +50,36 @@
           "type": "named",
           "data": {
             "name": "rakeDeploy"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Left To NZ"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "rakeIntake"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 0.5
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Left NZ Collect"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "rakeIntakeStop"
           }
         }
       ]

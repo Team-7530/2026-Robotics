@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Left Backup"
+            "pathName": "Mid to Depot"
           }
         },
         {
@@ -53,12 +53,6 @@
           }
         },
         {
-          "type": "path",
-          "data": {
-            "pathName": "Left To Center"
-          }
-        },
-        {
           "type": "named",
           "data": {
             "name": "rakeIntake"
@@ -73,13 +67,55 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Left Sweep"
+            "pathName": "Depot Collect"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "aimRange"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "spinup"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 0.5
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "shoot"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "rakeUp"
           }
         },
         {
           "type": "named",
           "data": {
             "name": "rakeIntakeStop"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 6.0
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "stopShoot"
           }
         }
       ]
