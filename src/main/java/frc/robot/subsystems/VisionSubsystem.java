@@ -66,6 +66,8 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
+import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.cscore.UsbCamera;
 // import edu.wpi.first.cameraserver.CameraServer;
 // import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.math.Matrix;
@@ -77,6 +79,7 @@ import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import frc.robot.Robot;
 import frc.robot.Telemetry;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -153,7 +156,7 @@ public class VisionSubsystem extends SubsystemBase {
   private static final double MIN_VISION_TIMESTAMP_DELTA_SEC = 1e-4;
 
   /* Cameras */
-  // public UsbCamera cam0;
+  public UsbCamera cam0;
 
   private final Telemetry telemetry;
   private double lastAcceptedVisionTimestampSeconds = Double.NEGATIVE_INFINITY;
@@ -174,6 +177,12 @@ public class VisionSubsystem extends SubsystemBase {
 
   // Pose estimation is now handled by LimelightHelpers, which reads directly
   // from NetworkTables when requested. No persistent estimator object needed.
+
+    if (Robot.isReal()) {
+      cam0 = CameraServer.startAutomaticCapture();
+      cam0.setResolution(240, 160);
+      cam0.setFPS(15);
+    }
 
     if (RobotBase.isSimulation()) {
       // Provide a Field2d for visualizing limelight estimations and tags in simulation.
