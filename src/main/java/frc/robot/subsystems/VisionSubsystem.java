@@ -77,6 +77,7 @@ import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import frc.lib.util.FieldConstants;
 import frc.robot.Robot;
 import frc.robot.Telemetry;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -112,9 +113,10 @@ public class VisionSubsystem extends SubsystemBase {
                         Degrees.of(45.0), 
                         Degrees.of(0)));
 
-  // The standard deviations of our vision estimated poses, which affect correction rate
-  public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(0.3, 0.3, 1.0);
-  public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.5, 0.5, 9999999);
+  // For MT1 solves, trust multi-tag translation more than single-tag translation and
+  // leave heading almost entirely to the gyro. Single-tag yaw has been too fragile.
+  public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(0.9, 0.9, 9999999);
+  public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.35, 0.35, 9999999);
 
   // ------------------------------------------------------------------
   // Limelight pipeline indices
@@ -143,9 +145,8 @@ public class VisionSubsystem extends SubsystemBase {
   // Simulation debug field
   private Field2d simDebugField = null;
 
-  // hysteresis parameters (ambiguity-delta-based)
-  private static final double AMBIGUITY_DELTA_THRESHOLD = 0.35;
-  private static final double DISTANCE_THRESHOLD = 2.0;
+  // Vision acceptance and scaling thresholds.
+  private static final double FIELD_BORDER_MARGIN_METERS = 0.25;
   private static final double POSE_UPDATE_MAX_TRANSLATION_SPEED_MPS = 0.15;
   private static final double POSE_UPDATE_MAX_ROTATION_SPEED_RAD_PER_SEC =
       RotationsPerSecond.of(0.5).in(RadiansPerSecond);
@@ -162,19 +163,19 @@ public class VisionSubsystem extends SubsystemBase {
   public VisionSubsystem(Telemetry telemetry) {
     this.telemetry = telemetry;
 
-  // configure camera pose and LED mode using the helper routines
-  LimelightHelpers.setCameraPose_RobotSpace(
-    LIMELIGHTNAME,
-    LIMELIGHTPOSE.getTranslation().getX(),
-    LIMELIGHTPOSE.getTranslation().getY(),
-    LIMELIGHTPOSE.getTranslation().getZ(),
-    Math.toDegrees(LIMELIGHTPOSE.getRotation().getX()),
-    Math.toDegrees(LIMELIGHTPOSE.getRotation().getY()),
-    Math.toDegrees(LIMELIGHTPOSE.getRotation().getZ()));
-  LimelightHelpers.setLEDMode_PipelineControl(LIMELIGHTNAME);
+    // Configure camera pose and LED mode using the helper routines.
+    LimelightHelpers.setCameraPose_RobotSpace(
+        LIMELIGHTNAME,
+        LIMELIGHTPOSE.getTranslation().getX(),
+        LIMELIGHTPOSE.getTranslation().getY(),
+        LIMELIGHTPOSE.getTranslation().getZ(),
+        Math.toDegrees(LIMELIGHTPOSE.getRotation().getX()),
+        Math.toDegrees(LIMELIGHTPOSE.getRotation().getY()),
+        Math.toDegrees(LIMELIGHTPOSE.getRotation().getZ()));
+    LimelightHelpers.setLEDMode_PipelineControl(LIMELIGHTNAME);
 
-  // Pose estimation is now handled by LimelightHelpers, which reads directly
-  // from NetworkTables when requested. No persistent estimator object needed.
+    // Pose estimation is now handled by LimelightHelpers, which reads directly
+    // from NetworkTables when requested. No persistent estimator object needed.
 
     if (Robot.isReal()) {
       cam0 = CameraServer.startAutomaticCapture();
@@ -202,9 +203,9 @@ public class VisionSubsystem extends SubsystemBase {
 
   /**
    * Update standard deviations heuristic for Limelight PoseEstimate.
-   * Chooses kMultiTagStdDevs when multiple tags are visible, otherwise uses
-   * kSingleTagStdDevs for close/low-ambiguity single-tag sightings. Falls back to
-   * scaled multi-tag stddevs based on average tag distance.
+   * Multi-tag solves get tighter translation trust than single-tag solves, while both
+   * leave heading effectively gyro-owned. Distance and single-tag ambiguity inflate the
+   * translational standard deviations before the sample is fused.
    */
   private Optional<PoseEstimate> updateEstimationStdDevs(PoseEstimate estimatedPose) {
     if (estimatedPose == null) {
@@ -218,11 +219,11 @@ public class VisionSubsystem extends SubsystemBase {
     }
 
     if (estimatedPose.tagCount > 1) {
-      curStdDevs = kMultiTagStdDevs;
+      double distanceScale = 1.0 + (estimatedPose.avgTagDist * estimatedPose.avgTagDist / 30.0);
+      curStdDevs = kMultiTagStdDevs.times(distanceScale);
       return Optional.of(estimatedPose);
     }
 
-    // Single tag: prefer single-tag stddevs if low ambiguity and close enough
     double amb = Double.MAX_VALUE;
     double dist = estimatedPose.avgTagDist;
     if (estimatedPose.rawFiducials != null && estimatedPose.rawFiducials.length > 0) {
@@ -230,12 +231,14 @@ public class VisionSubsystem extends SubsystemBase {
       dist = estimatedPose.rawFiducials[0].distToCamera;
     }
 
-    if (amb <= AMBIGUITY_DELTA_THRESHOLD && dist <= DISTANCE_THRESHOLD) {
-      curStdDevs = kSingleTagStdDevs;
-    } else {
-      // Scale multi-tag stddevs by distance heuristic
-      curStdDevs = kMultiTagStdDevs.times(1 + (estimatedPose.avgTagDist * estimatedPose.avgTagDist / 30));
-    }
+    double distanceScale = 1.0 + (dist * dist / 15.0);
+    double ambiguityScale = 1.0 + Math.max(0.0, amb);
+    double baseScale = distanceScale * ambiguityScale;
+
+    curStdDevs =
+        (amb <= SINGLE_TAG_MAX_AMBIGUITY && dist <= SINGLE_TAG_MAX_DISTANCE_METERS)
+            ? kSingleTagStdDevs.times(baseScale)
+            : kSingleTagStdDevs.times(4.0 * baseScale);
     return Optional.of(estimatedPose);
   }
 
@@ -269,21 +272,36 @@ public class VisionSubsystem extends SubsystemBase {
         && Math.abs(speeds.omegaRadiansPerSecond) < POSE_UPDATE_MAX_ROTATION_SPEED_RAD_PER_SEC;
   }
 
-  private boolean isReliableVisionEstimate(PoseEstimate est) {
-    if (est == null || est.tagCount < 1 || est.pose == null) {
+  private boolean isVisionPoseOnField(Pose2d pose) {
+    if (pose == null) {
       return false;
+    }
+
+    return pose.getX() >= -FIELD_BORDER_MARGIN_METERS
+        && pose.getX() <= (FieldConstants.fieldLength + FIELD_BORDER_MARGIN_METERS)
+        && pose.getY() >= -FIELD_BORDER_MARGIN_METERS
+        && pose.getY() <= (FieldConstants.fieldWidth + FIELD_BORDER_MARGIN_METERS);
+  }
+
+  private String getVisionEstimateRejectionReason(PoseEstimate est) {
+    if (est == null || est.tagCount < 1 || est.pose == null) {
+      return "missingEstimate";
     }
 
     if (!Double.isFinite(est.pose.getX()) || !Double.isFinite(est.pose.getY())) {
-      return false;
+      return "nonFinitePose";
+    }
+
+    if (!isVisionPoseOnField(est.pose)) {
+      return "outOfField";
     }
 
     if (est.tagCount > 1) {
-      return true;
+      return "";
     }
 
     if (est.rawFiducials == null || est.rawFiducials.length == 0) {
-      return false;
+      return "singleTagMissingFiducial";
     }
 
     double minAmbiguity = Double.POSITIVE_INFINITY;
@@ -293,7 +311,15 @@ public class VisionSubsystem extends SubsystemBase {
       minDistance = Math.min(minDistance, fiducial.distToCamera);
     }
 
-    return minAmbiguity <= SINGLE_TAG_MAX_AMBIGUITY && minDistance <= SINGLE_TAG_MAX_DISTANCE_METERS;
+    if (minAmbiguity > SINGLE_TAG_MAX_AMBIGUITY) {
+      return "singleTagAmbiguity";
+    }
+
+    if (minDistance > SINGLE_TAG_MAX_DISTANCE_METERS) {
+      return "singleTagDistance";
+    }
+
+    return "";
   }
 
   private boolean isFreshVisionEstimate(PoseEstimate est) {
@@ -301,37 +327,52 @@ public class VisionSubsystem extends SubsystemBase {
         && est.timestampSeconds > (lastAcceptedVisionTimestampSeconds + MIN_VISION_TIMESTAMP_DELTA_SEC);
   }
 
+  private boolean shouldAcceptVisionEstimate(PoseEstimate est, String telemetryPrefix) {
+    String rejectionReason = getVisionEstimateRejectionReason(est);
+    if (rejectionReason.isEmpty() && !isFreshVisionEstimate(est)) {
+      rejectionReason = "staleTimestamp";
+    }
+
+    boolean accepted = rejectionReason.isEmpty();
+    telemetry.putBoolean(telemetryPrefix + "/Accepted", accepted);
+    telemetry.putString(telemetryPrefix + "/RejectReason", accepted ? "accepted" : rejectionReason);
+    telemetry.putBoolean(
+        telemetryPrefix + "/PoseOnField",
+        est != null && est.pose != null && isVisionPoseOnField(est.pose));
+
+    if (est != null) {
+      telemetry.putNumber(telemetryPrefix + "/TagCount", est.tagCount);
+      if (est.pose != null) {
+        telemetry.putNumber(telemetryPrefix + "/PoseX", est.pose.getX());
+        telemetry.putNumber(telemetryPrefix + "/PoseY", est.pose.getY());
+      }
+    }
+
+    return accepted;
+  }
+
   public void updateGlobalPose(CommandSwerveDrivetrain drivetrain) {
     if (isDrivetrainSlowEnough(drivetrain)) {
-
-      // Limelight-only: get chosen limelight pose (with hysteresis) and add it to estimator
-      // var postEst = this.getVisionMeasurement_MT2(drivetrain.getPigeon2().getYaw());
       var postEst = this.getVisionMeasurement_MT1();
-      postEst.filter(this::isReliableVisionEstimate).filter(this::isFreshVisionEstimate).ifPresent(
-          est -> {
-            telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1PoseX", est.pose.getTranslation().getX());
-            telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1PoseY", est.pose.getTranslation().getY());
-            telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/MT1TagCount", est.tagCount);
-            lastAcceptedVisionTimestampSeconds = est.timestampSeconds;
-            drivetrain.addVisionMeasurement(
-                    est.pose, 
-                    est.timestampSeconds, 
+      postEst
+          .filter(est -> shouldAcceptVisionEstimate(est, "Vision/Camera/" + LIMELIGHTNAME + "/Update"))
+          .ifPresent(
+              est -> {
+                lastAcceptedVisionTimestampSeconds = est.timestampSeconds;
+                drivetrain.addVisionMeasurement(
+                    est.pose,
+                    est.timestampSeconds,
                     this.getEstimationStdDevs());
-          });
+              });
     }
   }
 
   public void resetGlobalPose(CommandSwerveDrivetrain drivetrain) {
     if (isDrivetrainSlowEnough(drivetrain)) {
-
       var postEst = this.getVisionMeasurement_MT1();
-      postEst.filter(this::isReliableVisionEstimate).filter(this::isFreshVisionEstimate).ifPresent(
-          est -> {
-            telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/ResetTagCount", est.tagCount);
-            telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/ResetPoseX", est.pose.getTranslation().getX());
-            telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/ResetPoseY", est.pose.getTranslation().getY());
-            drivetrain.resetPose(est.pose);
-          });
+      postEst
+          .filter(est -> shouldAcceptVisionEstimate(est, "Vision/Camera/" + LIMELIGHTNAME + "/Reset"))
+          .ifPresent(est -> drivetrain.resetPose(est.pose));
     }
   }
 
