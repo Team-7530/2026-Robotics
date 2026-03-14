@@ -115,16 +115,16 @@ public class VisionSubsystem extends SubsystemBase {
   // Rotation examples using Limelight robot-space and the right-hand rule:
   //   roll  = rotation about +X (forward). +roll tips the camera so the robot's
   //           right side rises and left side drops. +180 deg is upside down.
-  //   pitch = rotation about +Y (right). +pitch tips the camera downward.
-  //           Example: +45 deg looks down 45 deg, -45 deg looks up 45 deg.
+  //   pitch = rotation about +Y (right). +pitch tips the camera upward.
+  //           Example: -45 deg looks down 45 deg, +45 deg looks up 45 deg.
   //   yaw   = rotation about +Z (up). +yaw turns the camera toward the robot's
   //           right. Example: +90 deg points right, -90 deg points left.
   public static final Pose3d LIMELIGHTPOSE = new Pose3d(
-          new Translation3d(Inches.of(11).in(Meters),
-                            Inches.of(8.7).in(Meters),
-                            Inches.of(7.3).in(Meters)),
+          new Translation3d(Inches.of(14).in(Meters),
+                            Inches.of(8.75).in(Meters),
+                            Inches.of(13).in(Meters)),
           new Rotation3d(Degrees.of(0), 
-                        Degrees.of(-45.0), 
+                        Degrees.of(11.0), 
                         Degrees.of(0)));
 
   // For MT1 solves, trust multi-tag translation more than single-tag translation and
