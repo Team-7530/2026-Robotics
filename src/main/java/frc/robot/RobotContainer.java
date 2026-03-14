@@ -127,7 +127,7 @@ public class RobotContainer {
 
   private void configureOperatorControls() {
     //oi.getAButton().onTrue(shooter.shooterSpinupCommand(RPM.of(2950)));
-    oi.getAButton().whileTrue(shooter.targetHubCommand());
+    oi.getAButton().whileTrue(shooter.targetHubCommand().alongWith(vision.updateGlobalPoseCommand(drivetrain)));
     oi.getBButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3000)));
     oi.getXButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3400)));
     oi.getYButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3600)));
