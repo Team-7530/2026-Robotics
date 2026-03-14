@@ -99,18 +99,32 @@ public class VisionSubsystem extends SubsystemBase {
   public static final String LIMELIGHTNAME = "limelight";
   public static final String LIMELIGHTURL = "limelight.local";
   
-  // Cam - x = +toward front, 0 center, -toward rear in meters.
-  //       y = -left of center, 0 center, +right of center in meters
-  //       z = +up from base of robot in meters
-  //    roll = rotate around front/rear in radians. PI = upsidedown
-  //   pitch = tilt down/up along left/right axis. PI/4 = tilt down 45 degrees, -PI/4 = tilt up 45
-  //     yaw = rotate left/right around z axis. PI/4 = rotate camera to the left 45 degrees.
+  // Stored as a Pose3d for convenience, then passed into Limelight's
+  // setCameraPose_RobotSpace(forward, side, up, roll, pitch, yaw) helper.
+  //
+  // Limelight robot-space convention:
+  //   x / forward = +toward robot front, -toward rear
+  //   y / side    = +toward robot right, -toward robot left
+  //   z / up      = +up from the carpet/floor reference, not from the bellypan
+  //
+  // Measure translation from the robot center projected to the floor to the
+  // camera lens center. Roll, pitch, and yaw are passed to Limelight in that
+  // order after converting this Rotation3d to degrees. Verify the sign of the
+  // angles in the Limelight 3D viewer whenever the camera mounting changes.
+  //
+  // Rotation examples using Limelight robot-space and the right-hand rule:
+  //   roll  = rotation about +X (forward). +roll tips the camera so the robot's
+  //           right side rises and left side drops. +180 deg is upside down.
+  //   pitch = rotation about +Y (right). +pitch tips the camera downward.
+  //           Example: +45 deg looks down 45 deg, -45 deg looks up 45 deg.
+  //   yaw   = rotation about +Z (up). +yaw turns the camera toward the robot's
+  //           right. Example: +90 deg points right, -90 deg points left.
   public static final Pose3d LIMELIGHTPOSE = new Pose3d(
           new Translation3d(Inches.of(11).in(Meters),
                             Inches.of(8.7).in(Meters),
-                            Inches.of(6.3).in(Meters)),
+                            Inches.of(7.3).in(Meters)),
           new Rotation3d(Degrees.of(0), 
-                        Degrees.of(45.0), 
+                        Degrees.of(-45.0), 
                         Degrees.of(0)));
 
   // For MT1 solves, trust multi-tag translation more than single-tag translation and
