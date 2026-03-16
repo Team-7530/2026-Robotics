@@ -122,19 +122,27 @@ public class FeederSubsystem extends SubsystemBase {
     return m_feeder.getSpeed();
   }
 
-  public Command setVelocity(AngularVelocity speed) {
+  public void setVelocityDirect(AngularVelocity velocity) {
+    m_feederSMC.setVelocity(velocity);
+  }
+
+  public void setDutyCycleDirect(double dutyCycle) {
+    m_feederSMC.setDutyCycle(dutyCycle);
+  }
+
+  public Command setVelocityCommand(AngularVelocity speed) {
     return m_feeder.setSpeed(speed).withName("FeederSetVelocityCommand");
   }
 
-  public Command setVelocity(Supplier<AngularVelocity> speed) {
+  public Command setVelocityCommand(Supplier<AngularVelocity> speed) {
     return m_feeder.setSpeed(speed).withName("FeederSetVelocitySupplierCommand");
   }
 
-  public Command setDutyCycle(double duty) {
+  public Command setDutyCycleCommand(double duty) {
     return m_feeder.set(duty).withName("FeederSetDutyCycleCommand");
   }
 
-  public Command setDutyCycle(Supplier<Double> dutyCycle) {
+  public Command setDutyCycleCommand(Supplier<Double> dutyCycle) {
     return m_feeder.set(dutyCycle).withName("FeederSetDutyCycleSupplierCommand");
   }
 
@@ -145,7 +153,7 @@ public class FeederSubsystem extends SubsystemBase {
 
   /** Sets motors to constants intake speed */
   public Command feederStartCommand() {
-    return setVelocity(feederVelocity)
+    return setVelocityCommand(feederVelocity)
     .withName("FeederStartCommand")
     .withTimeout(1.0);
   }
@@ -158,7 +166,7 @@ public class FeederSubsystem extends SubsystemBase {
   public Command feederUnstuckCommand() {
     // run the velocity control in reverse to clear jams (negative RPM) for 500 ms,
     // then guarantee a stop via finallyDo (even if interrupted)
-    return setVelocity(feederUnstuckVelocity)
+    return setVelocityCommand(feederUnstuckVelocity)
       .withName("FeederUnstuckCommand")
       .withTimeout(0.5)
       .finallyDo(interrupted -> feederStop());

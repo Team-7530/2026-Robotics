@@ -111,6 +111,9 @@ public class ShooterSubsystem extends SubsystemBase {
 
   private void setFlywheelVelocityDirect(AngularVelocity velocity) {
     this.flywheelVelocity = velocity;
+    if (isSpinup()) {
+      this.flywheel.setVelocityDirect(velocity);
+    }
   }
 
   /**
@@ -207,6 +210,11 @@ public class ShooterSubsystem extends SubsystemBase {
     return Radians.of(-turretRelativeAngle.getRadians());
   }
 
+  private void targetHub() {
+    turret.setAngleDirect(currentTurretAngleToHub);
+    this.setFlywheelVelocityOnDistance(currentDistanceToHub);
+  }
+
   private void setSpinup(boolean isSpinup) {
     this.m_isSpinup = isSpinup;
   }
@@ -236,16 +244,11 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public Command shooterSpinupCommand(AngularVelocity velocity) {
-    return shooterSpinupCommand(() -> velocity)
-      .withTimeout(0.2)
-      .withName("shooterSpinupCommand");
+    return shooterSpinupCommand(() -> velocity);
   }
 
   public Command shooterSpinupCommand() {
-    return Commands.runOnce(() -> setSpinup(true))
-      .andThen(flywheel.flywheelStartCommand(this::getFlywheelVelocity).alongWith(feeder.feederStartCommand()))
-      .withTimeout(0.2)
-      .withName("shooterSpinupCommand");
+    return shooterSpinupCommand(this::getFlywheelVelocity);
   }
 
   public Command shooterStopCommand() {
@@ -268,45 +271,13 @@ public class ShooterSubsystem extends SubsystemBase {
         .withName("shooterUnstuckCommand");
   }
 
-  public Command aimTurretAtHubCommand(CommandSwerveDrivetrain drivetrain) {
-    return Commands.run(() -> {
-      Pose2d robotPose = drivetrain.getState().Pose;
-      Angle turretAngle = getTurretAngleToHub(robotPose);
-      turret.setAngleDirect(turretAngle);
-    }, turret)
-      .withName("AimTurretAtHubCommand");
-  }
-
-  public Command setFlywheelAtHubCommand(CommandSwerveDrivetrain drivetrain) {
-    return Commands.run(() -> {
-      Pose2d robotPose = drivetrain.getState().Pose;
-      Distance distance = getDistanceToHub(robotPose);
-      this.setFlywheelVelocityOnDistance(distance);
-    }, flywheel)
-      .withName("SetFlywheelAtHubCommand");
-  }
-
-  public Command targetHubCommand(CommandSwerveDrivetrain drivetrain) {
-    return Commands.run(() -> {
-      Pose2d robotPose = drivetrain.getState().Pose;
-      Angle turretAngle = getTurretAngleToHub(robotPose);
-      Distance distance = getDistanceToHub(robotPose);
-      turret.setAngleDirect(turretAngle);
-      this.setFlywheelVelocityOnDistance(distance);
-    }, turret)
-      .withName("targetHubCommand");
-  }
-
   /**
    * One-shot aim command for autonomous routines.
    * Applies cached turret angle and flywheel velocity once, then finishes.
    * Use this in PathPlanner autos before shooting.
    */
   public Command targetHubOnceCommand() {
-    return Commands.runOnce(() -> {
-      turret.setAngleDirect(currentTurretAngleToHub);
-      this.setFlywheelVelocityOnDistance(currentDistanceToHub);
-    }, turret)
+    return Commands.runOnce(this::targetHub, turret)
       .withName("targetHubOnceCommand");
   }
 
@@ -316,10 +287,7 @@ public class ShooterSubsystem extends SubsystemBase {
    * Use this when binding to a button.
    */
   public Command targetHubCommand() {
-    return Commands.run(() -> {
-      turret.setAngleDirect(currentTurretAngleToHub);
-      this.setFlywheelVelocityOnDistance(currentDistanceToHub);
-    }, turret)
+    return Commands.run(this::targetHub, turret)
       .withName("targetHubCommand");
   }
 }

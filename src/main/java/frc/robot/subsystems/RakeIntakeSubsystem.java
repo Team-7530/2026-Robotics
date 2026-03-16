@@ -122,19 +122,27 @@ public class RakeIntakeSubsystem extends SubsystemBase {
     return m_rakeIntake.getSpeed();
   }
 
-  public Command setVelocity(AngularVelocity speed) {
+  public void setVelocityDirect(AngularVelocity velocity) {
+    m_rakeIntakeSMC.setVelocity(velocity);
+  }
+
+  public void setDutyCycleDirect(double dutyCycle) {
+    m_rakeIntakeSMC.setDutyCycle(dutyCycle);
+  }
+
+  public Command setVelocityCommand(AngularVelocity speed) {
     return m_rakeIntake.setSpeed(speed);
   }
 
-  public Command setVelocity(Supplier<AngularVelocity> speed) {
+  public Command setVelocityCommand(Supplier<AngularVelocity> speed) {
     return m_rakeIntake.setSpeed(speed);
   }
 
-  public Command setDutyCycle(double duty) {
+  public Command setDutyCycleCommand(double duty) {
     return m_rakeIntake.set(duty);
   }
 
-  public Command setDutyCycle(Supplier<Double> dutyCycle) {
+  public Command setDutyCycleCommand(Supplier<Double> dutyCycle) {
     return m_rakeIntake.set(dutyCycle);
   }
 
@@ -145,7 +153,7 @@ public class RakeIntakeSubsystem extends SubsystemBase {
 
   /** Sets motors to constants intake speed */
   public Command rakeIntakeStartCommand() {
-    return setVelocity(rakeIntakeVelocity)
+    return setVelocityCommand(rakeIntakeVelocity)
     .withName("RakeIntakeStartCommand")
     .withTimeout(0.2);
   }
@@ -158,7 +166,7 @@ public class RakeIntakeSubsystem extends SubsystemBase {
 
   public Command rakeIntakeUnstuckCommand() {
     // spin backward to clear jams
-    return setVelocity(rakeIntakeUnstuckVelocity)
+    return setVelocityCommand(rakeIntakeUnstuckVelocity)
       .withName("RakeIntakeUnstuckCommand")
       .withTimeout(2.0)
       .finallyDo(interrupted -> rakeIntakeStop());

@@ -395,6 +395,11 @@ public class VisionSubsystem extends SubsystemBase {
     return run(() -> this.updateGlobalPose(drivetrain)).withName("UpdateGlobalPoseCommand");
   }
 
+  public Command updateGlobalPoseOnceCommand(CommandSwerveDrivetrain drivetrain) {
+    // schedules a periodic pose-update; usually set as a default command
+    return runOnce(() -> this.updateGlobalPose(drivetrain)).withName("UpdateGlobalPoseOnceCommand");
+  }
+
   public Command resetGlobalPoseCommand(CommandSwerveDrivetrain drivetrain) {
     return runOnce(() -> this.resetGlobalPose(drivetrain)).withName("ResetGlobalPoseCommand");
   }
