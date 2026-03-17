@@ -129,10 +129,15 @@ public class RobotContainer {
   }
 
   private void configureOperatorControls() {
-    oi.getAButton().whileTrue(shooter.targetHubCommand().alongWith(vision.updateGlobalPoseCommand(drivetrain)));
-    oi.getBButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3000)));
-    oi.getXButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3400)));
-    oi.getYButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3600)));
+    // A/B select a tracked shot mode; X/Y restore fixed-RPM manual profiles.
+    oi.getAButton()
+      .onTrue(vision.setHubPipelineCommand())
+      .whileTrue(shooter.targetHubCommand().alongWith(vision.updateGlobalPoseCommand(drivetrain)));
+    oi.getBButton()
+      .onTrue(vision.setBumpPipelineCommand())
+      .whileTrue(shooter.targetBumpCommand().alongWith(vision.updateGlobalPoseCommand(drivetrain)));
+    oi.getXButton().onTrue(shooter.setManualLowShotProfileCommand());
+    oi.getYButton().onTrue(shooter.setManualHighShotProfileCommand());
 
     oi.getLeftBumper()
       .onTrue(shooter.shooterSpinupCommand());
@@ -140,6 +145,7 @@ public class RobotContainer {
       .onTrue(shooter.shooterStopCommand());
 
     oi.getLeftTrigger()
+      // Trigger fires whichever profile is currently active.
       .onTrue(shooter.shooterSpinupIfNeededCommand().andThen(shooter.shooterStartCommand()))
       .onFalse(shooter.shooterUnstuckCommand());
 

@@ -26,6 +26,9 @@ import frc.robot.Telemetry;
  */
 @Logged
 public class ShooterSubsystem extends SubsystemBase {
+  private static final AngularVelocity MANUAL_PROFILE_LOW_VELOCITY = RPM.of(3250);
+  private static final AngularVelocity MANUAL_PROFILE_HIGH_VELOCITY = RPM.of(4000);
+  private static final AngularVelocity FLYWHEEL_APPLY_TOLERANCE = RPM.of(25);
 
     // Holds and manages turret, hood and flywheel
 
@@ -37,16 +40,12 @@ public class ShooterSubsystem extends SubsystemBase {
   private final Telemetry telemetry;
   private final CommandSwerveDrivetrain drivetrain;
 
-  private Translation2d hubPosition = new Translation2d();
-  private Translation2d currentTurretFieldPosition = new Translation2d();
-  private Angle currentAngleToHub = Degrees.of(0);
-  private Angle currentTurretAngleToHub = Degrees.of(0);
-  private Distance currentDistanceToHub = Meters.of(0);
-
   // Offsets for turret position relative to robot center (in robot frame)
   private static final Translation2d TURRET_OFFSET = new Translation2d(0, 0); // x: forward, y: left
   // Offsets for hub position (applied in field frame)
   private static final Translation2d HUB_OFFSET = new Translation2d(0, 0);
+  // Offsets for bump position (applied in field frame)
+  private static final Translation2d BUMP_OFFSET = new Translation2d(0, 0);
 
   // Distance-to-velocity mapping for hub shots (linear interpolation).
   // At VELOCITY_DISTANCE_MIN, shoot at VELOCITY_AT_MIN.
@@ -56,8 +55,12 @@ public class ShooterSubsystem extends SubsystemBase {
   private static final AngularVelocity VELOCITY_SLOPE = RPM.of(400.0 / 1.65); // RPM per meter
   private static final double SHOOTER_READY_WAIT_SECONDS = 0.6;
 
-  private AngularVelocity flywheelVelocity = RPM.of(8000);
+  private AngularVelocity flywheelVelocity = MANUAL_PROFILE_LOW_VELOCITY;
+  private AngularVelocity manualFlywheelVelocity = MANUAL_PROFILE_LOW_VELOCITY;
+  private AngularVelocity lastAppliedFlywheelVelocity = null;
   private boolean m_isSpinup = false;
+  private String manualProfileName = "Fixed3250";
+  private String activeShotProfile = manualProfileName;
 
   public ShooterSubsystem(Telemetry tele, CommandSwerveDrivetrain drivetrain) {
     // inject telemetry into nested subsystems so they can publish centrally
@@ -72,37 +75,36 @@ public class ShooterSubsystem extends SubsystemBase {
   
   @Override
   public void periodic() {
-    updateTargeting();
+    // Targeting commands update the desired RPM; periodic only pushes changes when needed.
+    applyDesiredFlywheelVelocityIfNeeded();
     updateTelemetry();
   }
 
-  private void updateTargeting() {
-    Pose2d robotPose = drivetrain.getState().Pose;
-
-    hubPosition = getHubPosition();
-    currentTurretFieldPosition = getTurretFieldPosition(robotPose);
-    
-    // Field-relative angle: use Translation2d.minus() and getAngle()
-    Translation2d vectorToHub = hubPosition.minus(currentTurretFieldPosition);
-    currentAngleToHub = Radians.of(vectorToHub.getAngle().getRadians());
-
+  // Shared aiming path for tracked shots: compute geometry, point turret, and update desired RPM.
+  private void updateTargeting(Pose2d robotPose, Translation2d targetPosition) {
+    Translation2d turretFieldPosition = getTurretFieldPosition(robotPose);
+    Translation2d vectorToTarget = targetPosition.minus(turretFieldPosition);
     // Robot-relative turret angle: subtract robot heading from field angle
-    Rotation2d fieldAngleRot = new Rotation2d(currentAngleToHub.in(Radians));
-    Rotation2d turretRelativeAngle = fieldAngleRot.minus(robotPose.getRotation());
-    currentTurretAngleToHub = Radians.of(-turretRelativeAngle.getRadians());
-    currentDistanceToHub = Meters.of(currentTurretFieldPosition.getDistance(hubPosition));
+    Rotation2d fieldAngleToTarget = new Rotation2d(vectorToTarget.getAngle().getMeasure());
+    Rotation2d turretRelativeAngle = fieldAngleToTarget.minus(robotPose.getRotation());
+
+    Angle turretAngleToTarget = turretRelativeAngle.unaryMinus().getMeasure();
+    Distance distanceToTarget = Meters.of(turretFieldPosition.getDistance(targetPosition));
+
+    turret.setAngleDirect(turretAngleToTarget);
+    this.setFlywheelVelocityOnDistance(distanceToTarget);
+
+    telemetry.putNumber("Shooter/TargetFieldX", targetPosition.getX());
+    telemetry.putNumber("Shooter/TargetFieldY", targetPosition.getY());
+    telemetry.putNumber("Shooter/TurretFieldX", turretFieldPosition.getX());
+    telemetry.putNumber("Shooter/TurretFieldY", turretFieldPosition.getY());
+    telemetry.putNumber("Shooter/TurretAngleToTargetDeg", turretAngleToTarget.in(Degrees));
+    telemetry.putNumber("Shooter/DistanceToTargetM", distanceToTarget.in(Meters));
   }
 
   private void updateTelemetry() {
     telemetry.putNumber("Shooter/FlywheelVelocityRPM", getFlywheelVelocity().in(RPM));
-
-    telemetry.putNumber("Shooter/HubFieldX", hubPosition.getX());
-    telemetry.putNumber("Shooter/HubFieldY", hubPosition.getY());
-    telemetry.putNumber("Shooter/TurretFieldX", currentTurretFieldPosition.getX());
-    telemetry.putNumber("Shooter/TurretFieldY", currentTurretFieldPosition.getY());
-    telemetry.putNumber("Shooter/AngleToHubDeg", currentAngleToHub.in(Degrees));
-    telemetry.putNumber("Shooter/TurretAngleToHubDeg", currentTurretAngleToHub.in(Degrees));
-    telemetry.putNumber("Shooter/DistanceToHubM", currentDistanceToHub.in(Meters));
+    telemetry.putString("Shooter/ActiveShotProfile", activeShotProfile);
   }
 
   @Logged
@@ -110,23 +112,32 @@ public class ShooterSubsystem extends SubsystemBase {
     return this.flywheelVelocity;
   }
 
-  private void setFlywheelVelocityDirect(AngularVelocity velocity) {
-    if (!velocity.equals(this.flywheelVelocity)) {
-      this.flywheelVelocity = velocity;
-      if (isSpinup()) {
-        this.flywheel.setVelocityDirect(this.flywheelVelocity);
-      }
+  private void setDesiredFlywheelVelocity(AngularVelocity velocity) {
+    this.flywheelVelocity = velocity;
+  }
+
+  // Avoid resending the same setpoint every loop while still letting tracked shots adjust on the fly.
+  private void applyDesiredFlywheelVelocityIfNeeded() {
+    if (!isSpinup()) {
+      lastAppliedFlywheelVelocity = null;
+      return;
+    }
+
+    if (lastAppliedFlywheelVelocity == null
+        || !lastAppliedFlywheelVelocity.isNear(flywheelVelocity, FLYWHEEL_APPLY_TOLERANCE)) {
+      flywheel.setVelocityDirect(flywheelVelocity);
+      lastAppliedFlywheelVelocity = flywheelVelocity;
     }
   }
 
   /**
-   * Set flywheel velocity based on distance to hub using linear interpolation.
+   * Set flywheel velocity from measured shot distance using a simple linear fit.
    * 
    * <p>Uses a piecewise linear model: at distances <= VELOCITY_DISTANCE_MIN, the flywheel
    * spins at VELOCITY_AT_MIN (e.g., 60 rot/s). For greater distances, velocity increases
    * by VELOCITY_SLOPE rot/s per meter. This compensates for energy loss over distance.
    * 
-   * @param distance Distance from turret to hub (typically from {@link #getDistanceToHub}).
+   * @param distance Distance from turret to the active target.
    *                 Should be >= 0 meters.
    */
   public void setFlywheelVelocityOnDistance(Distance distance) {
@@ -141,7 +152,7 @@ public class ShooterSubsystem extends SubsystemBase {
       double excessDistance = distanceMeters - minDistanceMeters;
       targetVelocity = VELOCITY_AT_MIN.plus(VELOCITY_SLOPE.times(excessDistance));
     }
-    this.setFlywheelVelocityDirect(targetVelocity);
+    this.setDesiredFlywheelVelocity(targetVelocity);
   }
 
   public Translation2d getTurretFieldPosition(Pose2d robotPose) {
@@ -155,71 +166,78 @@ public class ShooterSubsystem extends SubsystemBase {
    * @return Hub center position as Translation2d (with offsets applied)
    */
   public Translation2d getHubPosition() {
-    Alliance alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
-    boolean isBlue = alliance == DriverStation.Alliance.Blue;
+    boolean isBlue = DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Blue;
     Translation2d hubBase = Constants.Field.getHubPose(isBlue).getTranslation();
     return hubBase.plus(HUB_OFFSET);
   }
 
   /**
-   * Get straight-line distance from TURRET to the hub center.
+   * Get straight-line distance from TURRET to the target.
    * Uses actual turret position, not robot center.
    * @return Distance in meters
    */
-  public Distance getDistanceToHub(Pose2d robotPose) {
-      Translation2d hubPosition = getHubPosition();
+  public Distance getDistanceToTarget(Pose2d robotPose, Translation2d targetPosition) {
       Translation2d turretPosition = getTurretFieldPosition(robotPose);
-      return Meters.of(turretPosition.getDistance(hubPosition));
+      return Meters.of(turretPosition.getDistance(targetPosition));
   }
 
   /**
-   * Get the FIELD-RELATIVE angle from turret to hub.
+   * Get the ROBOT-RELATIVE turret angle needed to point at the target.
    * 
-   * <p>Coordinate frame: 0 radians points along the positive X axis of the field.
-   * Returns the absolute angle from the turret's field position to the hub center,
-   * independent of the robot's heading. Used by {@link #getTurretAngleToHub} to
-   * compute robot-relative turret commands.
-   * 
-   * @param robotPose Current robot pose (position and heading) from odometry.
-   * @return Field-relative angle to hub in radians (-π to +π).
-   * @see #getTurretFieldPosition(Pose2d) for turret offset calculation
-   * @see #getHubPosition() for hub center with tuning offsets
-   */
-  public Angle getAngleToHub(Pose2d robotPose) {
-    Translation2d vectorToHub = getHubPosition().minus(getTurretFieldPosition(robotPose));
-    return Radians.of(vectorToHub.getAngle().getRadians());
-  }
-
-  /**
-   * Get the ROBOT-RELATIVE turret angle needed to point at the hub.
-   * 
-   * <p>Converts the field-relative hub angle ({@link #getAngleToHub}) to a turret-relative
+   * <p>Converts the turret field position to a field-relative target angle to a turret-relative
    * command by subtracting the robot's heading. This angle can be directly fed to the
    * turret motor controller.
    * 
-   * <p>Coordinate frame: The turret is assumed to be centered on the robot. This method
-   * returns the angle the turret needs to rotate to from its current position to align
-   * with the hub, accounting for the robot's field heading.
+   * <p>This returns the angle the turret should hold relative to the robot chassis.
    * 
    * @param robotPose Current robot pose (position and heading) from odometry.
    * @return Robot-relative turret angle in radians (-π to +π). Positive = counterclockwise.
-   * @see #getAngleToHub(Pose2d) for the field-relative angle calculation
    */
-  public Angle getTurretAngleToHub(Pose2d robotPose) {
-    Rotation2d fieldAngleToHub = new Rotation2d(getAngleToHub(robotPose).in(Radians));
-    Rotation2d turretRelativeAngle = fieldAngleToHub.minus(robotPose.getRotation());
+  public Angle getTurretAngleToTarget(Pose2d robotPose, Translation2d targetPosition) {
+    Translation2d vectorToTarget = targetPosition.minus(getTurretFieldPosition(robotPose));
+    Rotation2d fieldAngleToTarget = new Rotation2d(vectorToTarget.getAngle().getMeasure());
+    Rotation2d turretRelativeAngle = fieldAngleToTarget.minus(robotPose.getRotation());
 
-    // Negate because turret convention may differ; adjust if needed
-    return Radians.of(-turretRelativeAngle.getRadians());
+    // Turret positive direction is opposite the field-angle sign convention used above.
+    return turretRelativeAngle.unaryMinus().getMeasure();
+  }
+
+  // Aim at the nearer bump-side lane by picking the offset on our half of the field.
+  private Translation2d getBumpTarget(Pose2d robotPose) {
+    if (robotPose.getY() < Constants.Field.FIELD_HALF_WIDTH.in(Meters)) {
+      return getHubPosition().minus(Constants.Field.BUMP_CENTER_OFFSET).plus(BUMP_OFFSET);
+    }
+    return getHubPosition().plus(Constants.Field.BUMP_CENTER_OFFSET).plus(BUMP_OFFSET);    
   }
 
   private void targetHub() {
-    turret.setAngleDirect(currentTurretAngleToHub);
-    this.setFlywheelVelocityOnDistance(currentDistanceToHub);
+    activeShotProfile = "HubTrack";
+    updateTargeting(drivetrain.getState().Pose, getHubPosition());
+  }
+
+  private void targetBump() {
+    activeShotProfile = "BumpTrack";
+    Pose2d robotPose = drivetrain.getState().Pose;
+    updateTargeting(robotPose, getBumpTarget(robotPose));
+  }
+
+  private void setManualShotProfile(AngularVelocity velocity, String profileName) {
+    manualFlywheelVelocity = velocity;
+    manualProfileName = profileName;
+    restoreManualShotProfile();
+  }
+
+  // When tracked aiming ends, fall back to the last manual preset instead of leaving a stale dynamic RPM.
+  private void restoreManualShotProfile() {
+    activeShotProfile = manualProfileName;
+    setDesiredFlywheelVelocity(manualFlywheelVelocity);
   }
 
   private void setSpinup(boolean isSpinup) {
     this.m_isSpinup = isSpinup;
+    if (!isSpinup) {
+      lastAppliedFlywheelVelocity = null;
+    }
   }
 
   private boolean isSpinup() {
@@ -229,6 +247,7 @@ public class ShooterSubsystem extends SubsystemBase {
   private boolean isFlywheelReady() {
     return isSpinup() && flywheel.isAtSpeed(getFlywheelVelocity());
   }
+
 
   private Command fuelFeedCommand() {
     return feeder.feederStartCommand()
@@ -246,19 +265,20 @@ public class ShooterSubsystem extends SubsystemBase {
   // -- Commands -----------------------------------------------------------
   // spin flywheel up to the given velocity
   public Command setFlywheelVelocityCommand(AngularVelocity velocity) {
-    return Commands.runOnce(() -> setFlywheelVelocityDirect(velocity))
+    return Commands.runOnce(() -> setDesiredFlywheelVelocity(velocity))
         .withName("setFlywheelVelocityCommand");
   }
 
   public Command setFlywheelVelocityCommand(Supplier<AngularVelocity> velocitySupplier) {
-    return Commands.runOnce(() -> setFlywheelVelocityDirect(velocitySupplier.get()))
+    return Commands.runOnce(() -> setDesiredFlywheelVelocity(velocitySupplier.get()))
         .withName("setFlywheelVelocityCommand");
   }
 
   public Command shooterSpinupCommand(Supplier<AngularVelocity> velocitySupplier) {
     return Commands.runOnce(() -> setSpinup(true))
       .andThen(setFlywheelVelocityCommand(velocitySupplier))
-      .andThen(flywheel.flywheelStartCommand(velocitySupplier))
+      // The flywheel command keeps running; periodic updates the setpoint if targeting changes it.
+      .andThen(flywheel.flywheelStartCommand(this::getFlywheelVelocity))
       .withTimeout(0.2)
       .withName("shooterSpinupCommand");
   }
@@ -291,6 +311,7 @@ public class ShooterSubsystem extends SubsystemBase {
   public Command shooterStartCommand() {
     return Commands.waitUntil(this::isFlywheelReady)
       .withTimeout(SHOOTER_READY_WAIT_SECONDS)
+      // After the short wait, feed anyway if we are still armed; operators sometimes want the fallback shot.
       .andThen(fuelFeedCommand())
       .onlyIf(this::isSpinup)
       .withName("shooterStartCommand");
@@ -299,6 +320,16 @@ public class ShooterSubsystem extends SubsystemBase {
   public Command shooterUnstuckCommand() {
     return fuelUnstuckCommand()
       .withName("shooterUnstuckCommand");
+  }
+
+  public Command setManualLowShotProfileCommand() {
+    return Commands.runOnce(() -> setManualShotProfile(MANUAL_PROFILE_LOW_VELOCITY, "Fixed3250"))
+      .withName("SetManualLowShotProfileCommand");
+  }
+
+  public Command setManualHighShotProfileCommand() {
+    return Commands.runOnce(() -> setManualShotProfile(MANUAL_PROFILE_HIGH_VELOCITY, "Fixed4000"))
+      .withName("SetManualHighShotProfileCommand");
   }
 
   /**
@@ -317,7 +348,14 @@ public class ShooterSubsystem extends SubsystemBase {
    * Use this when binding to a button.
    */
   public Command targetHubCommand() {
-    return Commands.run(this::targetHub, turret, flywheel)
+    // Hold to keep recomputing turret angle and RPM from the current estimated pose.
+    return Commands.runEnd(this::targetHub, this::restoreManualShotProfile, turret)
       .withName("targetHubCommand");
+  }
+
+  public Command targetBumpCommand() {
+    // Same as hub tracking, but the target point moves to the nearer bump-side lane.
+    return Commands.runEnd(this::targetBump, this::restoreManualShotProfile, turret)
+      .withName("targetBumpCommand");
   }
 }
