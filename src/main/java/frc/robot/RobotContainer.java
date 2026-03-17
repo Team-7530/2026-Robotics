@@ -59,7 +59,7 @@ public class RobotContainer {
   public final VisionSubsystem vision = new VisionSubsystem(logger);
   @Logged
   public final ShooterSubsystem shooter = new ShooterSubsystem(logger, drivetrain);
-  // public final RakeArmSubsystem rakeArm = new RakeArmSubsystem(logger);
+  public final RakeArmSubsystem rakeArm = new RakeArmSubsystem(logger);
   public final RakeIntakeSubsystem rakeIntake = new RakeIntakeSubsystem(logger);
 
   /* Path follower */
@@ -302,13 +302,9 @@ public class RobotContainer {
     }
   }
 
-<<<<<<< HEAD
   public void autonomousPeriodic() {
-    // vision.updateGlobalPose(drivetrain);
+    vision.updateGlobalPose(drivetrain);
   }
-=======
-  public void autonomousPeriodic() {}
->>>>>>> 3c1430df2db227c4a248a2cef527e5085705b03f
 
   public void teleopInit() {
     // This makes sure that the autonomous stops running when
