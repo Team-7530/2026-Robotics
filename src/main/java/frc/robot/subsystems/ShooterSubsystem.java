@@ -44,7 +44,7 @@ public class ShooterSubsystem extends SubsystemBase {
   private Distance currentDistanceToHub = Meters.of(0);
 
   // Offsets for turret position relative to robot center (in robot frame)
-  private static final Translation2d TURRET_OFFSET = new Translation2d(0, 0); // x: forward, y: left
+  private static final Translation2d TURRET_OFFSET = new Translation2d(Inches.of(7.0).in(Meters), 0); // x: forward, y: left
   // Offsets for hub position (applied in field frame)
   private static final Translation2d HUB_OFFSET = new Translation2d(0, 0);
 

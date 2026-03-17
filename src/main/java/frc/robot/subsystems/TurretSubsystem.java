@@ -47,7 +47,7 @@ public class TurretSubsystem extends SubsystemBase {
   public static final Angle TURRET_MIN_DEG = Degrees.of(-80.0);
   public static final Angle TURRET_MAX_DEG = Degrees.of(80.0);
 
-  public static final double kTurretOffset = 16.5;
+  public static final double kTurretOffset = 19.5;
 
   public static final double kTurretChainRatio = 200.0 / 20.0; // 20:200 ratio (20 teeth on motor sprocket, 200 teeth on turret sprocket)
   public static final double kTurretGearboxRatio = 20.0; // 20:1
