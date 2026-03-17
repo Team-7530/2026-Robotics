@@ -34,6 +34,7 @@ import edu.wpi.first.math.Pair;
 //Subsystem for the shooter flywheel
 @Logged
 public class FlywheelSubsystem extends SubsystemBase {
+  private static final AngularVelocity READY_TOLERANCE = RPM.of(250);
 
   public static final CANBus kCANBus = CANBUS_FD;
 
@@ -131,6 +132,14 @@ public class FlywheelSubsystem extends SubsystemBase {
 
     public void setDutyCycleDirect(double dutyCycle) {
       m_flywheelSMC.setDutyCycle(dutyCycle);
+    }
+
+    public boolean isAtSpeed(AngularVelocity targetVelocity) {
+      return isAtSpeed(targetVelocity, READY_TOLERANCE);
+    }
+
+    public boolean isAtSpeed(AngularVelocity targetVelocity, AngularVelocity tolerance) {
+      return getVelocity().isNear(targetVelocity, tolerance);
     }
 
     public Command setVelocityCommand(AngularVelocity speed) {

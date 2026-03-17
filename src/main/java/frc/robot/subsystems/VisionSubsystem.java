@@ -348,17 +348,17 @@ public class VisionSubsystem extends SubsystemBase {
     }
 
     boolean accepted = rejectionReason.isEmpty();
-    telemetry.putBoolean(telemetryPrefix + "/Accepted", accepted);
-    telemetry.putString(telemetryPrefix + "/RejectReason", accepted ? "accepted" : rejectionReason);
+    telemetry.putBoolean(telemetryPrefix + "/Accepted", accepted, false);
+    telemetry.putString(telemetryPrefix + "/RejectReason", accepted ? "accepted" : rejectionReason, false);
     telemetry.putBoolean(
         telemetryPrefix + "/PoseOnField",
-        est != null && est.pose != null && isVisionPoseOnField(est.pose));
+        est != null && est.pose != null && isVisionPoseOnField(est.pose), false);
 
     if (est != null) {
-      telemetry.putNumber(telemetryPrefix + "/TagCount", est.tagCount);
+      telemetry.putNumber(telemetryPrefix + "/TagCount", est.tagCount, false);
       if (est.pose != null) {
-        telemetry.putNumber(telemetryPrefix + "/PoseX", est.pose.getX());
-        telemetry.putNumber(telemetryPrefix + "/PoseY", est.pose.getY());
+        telemetry.putNumber(telemetryPrefix + "/PoseX", est.pose.getX(), false);
+        telemetry.putNumber(telemetryPrefix + "/PoseY", est.pose.getY(), false);
       }
     }
 
@@ -396,8 +396,14 @@ public class VisionSubsystem extends SubsystemBase {
   }
 
   public Command updateGlobalPoseOnceCommand(CommandSwerveDrivetrain drivetrain) {
-    // schedules a periodic pose-update; usually set as a default command
-    return runOnce(() -> this.updateGlobalPose(drivetrain)).withName("UpdateGlobalPoseOnceCommand");
+    final double[] startingTimestampSeconds = new double[1];
+
+    return runOnce(() -> startingTimestampSeconds[0] = lastAcceptedVisionTimestampSeconds)
+        .andThen(
+            run(() -> this.updateGlobalPose(drivetrain))
+                .until(() -> lastAcceptedVisionTimestampSeconds > startingTimestampSeconds[0])
+                .withTimeout(0.4))
+        .withName("UpdateGlobalPoseOnceCommand");
   }
 
   public Command resetGlobalPoseCommand(CommandSwerveDrivetrain drivetrain) {

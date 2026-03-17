@@ -54,6 +54,7 @@ public class ShooterSubsystem extends SubsystemBase {
   private static final Distance VELOCITY_DISTANCE_MIN = Meters.of(3.0);
   private static final AngularVelocity VELOCITY_AT_MIN = RPM.of(3000);
   private static final AngularVelocity VELOCITY_SLOPE = RPM.of(400.0 / 1.65); // RPM per meter
+  private static final double SHOOTER_READY_WAIT_SECONDS = 0.6;
 
   private AngularVelocity flywheelVelocity = RPM.of(8000);
   private boolean m_isSpinup = false;
@@ -110,9 +111,11 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   private void setFlywheelVelocityDirect(AngularVelocity velocity) {
-    this.flywheelVelocity = velocity;
-    if (isSpinup()) {
-      this.flywheel.setVelocityDirect(velocity);
+    if (!velocity.equals(this.flywheelVelocity)) {
+      this.flywheelVelocity = velocity;
+      if (isSpinup()) {
+        this.flywheel.setVelocityDirect(this.flywheelVelocity);
+      }
     }
   }
 
@@ -223,6 +226,23 @@ public class ShooterSubsystem extends SubsystemBase {
     return this.m_isSpinup;
   }
 
+  private boolean isFlywheelReady() {
+    return isSpinup() && flywheel.isAtSpeed(getFlywheelVelocity());
+  }
+
+  private Command fuelFeedCommand() {
+    return feeder.feederStartCommand()
+        .alongWith(collector.collectorStartCommand())
+        .withName("ShooterFuelFeedCommand");
+  }
+
+  private Command fuelUnstuckCommand() {
+    return feeder.feederUnstuckCommand()
+        .alongWith(collector.collectorUnstuckCommand())
+        .andThen(feeder.feederStartCommand().withTimeout(0.2))
+        .withName("ShooterFuelUnstuckCommand");
+  }
+
   // -- Commands -----------------------------------------------------------
   // spin flywheel up to the given velocity
   public Command setFlywheelVelocityCommand(AngularVelocity velocity) {
@@ -238,7 +258,7 @@ public class ShooterSubsystem extends SubsystemBase {
   public Command shooterSpinupCommand(Supplier<AngularVelocity> velocitySupplier) {
     return Commands.runOnce(() -> setSpinup(true))
       .andThen(setFlywheelVelocityCommand(velocitySupplier))
-      .andThen(flywheel.flywheelStartCommand(velocitySupplier).alongWith(feeder.feederStartCommand()))
+      .andThen(flywheel.flywheelStartCommand(velocitySupplier))
       .withTimeout(0.2)
       .withName("shooterSpinupCommand");
   }
@@ -251,24 +271,34 @@ public class ShooterSubsystem extends SubsystemBase {
     return shooterSpinupCommand(this::getFlywheelVelocity);
   }
 
+  public Command shooterSpinupIfNeededCommand() {
+    return Commands.either(
+            Commands.none(),
+            shooterSpinupCommand(),
+            this::isSpinup)
+        .withName("shooterSpinupIfNeededCommand");
+  }
+
   public Command shooterStopCommand() {
-  return runOnce(() -> setSpinup(false))
-    .andThen(flywheel.flywheelStopCommand().alongWith(feeder.feederStopCommand().alongWith(collector.collectorStopCommand())))
-    .withTimeout(0.2)
-    .withName("shooterStopCommand");
+    return runOnce(() -> setSpinup(false))
+      .andThen(flywheel.flywheelStopCommand()
+          .alongWith(feeder.feederStopCommand())
+          .alongWith(collector.collectorStopCommand()))
+      .withTimeout(0.2)
+      .withName("shooterStopCommand");
   }
   
   public Command shooterStartCommand() {
-    // start collector wheel to feed balls
-    return feeder.feederStartCommand().alongWith(collector.collectorStartCommand().onlyIf(this::isSpinup))
-      .withTimeout(0.2)
+    return Commands.waitUntil(this::isFlywheelReady)
+      .withTimeout(SHOOTER_READY_WAIT_SECONDS)
+      .andThen(fuelFeedCommand())
+      .onlyIf(this::isSpinup)
       .withName("shooterStartCommand");
   }
 
   public Command shooterUnstuckCommand() {
-    // reverse collector briefly to clear jams
-      return collector.collectorUnstuckCommand().alongWith(feeder.feederUnstuckCommand())
-        .withName("shooterUnstuckCommand");
+    return fuelUnstuckCommand()
+      .withName("shooterUnstuckCommand");
   }
 
   /**
@@ -287,7 +317,7 @@ public class ShooterSubsystem extends SubsystemBase {
    * Use this when binding to a button.
    */
   public Command targetHubCommand() {
-    return Commands.run(this::targetHub, turret)
+    return Commands.run(this::targetHub, turret, flywheel)
       .withName("targetHubCommand");
   }
 }

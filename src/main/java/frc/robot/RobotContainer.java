@@ -140,7 +140,7 @@ public class RobotContainer {
       .onTrue(shooter.shooterStopCommand());
 
     oi.getLeftTrigger()
-      .onTrue(shooter.shooterSpinupCommand().andThen(shooter.shooterStartCommand()))
+      .onTrue(shooter.shooterSpinupIfNeededCommand().andThen(shooter.shooterStartCommand()))
       .onFalse(shooter.shooterUnstuckCommand());
 
     oi.getRightTrigger()
