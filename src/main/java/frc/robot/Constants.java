@@ -49,18 +49,21 @@ public final class Constants {
       // IDs of the two hub tags; update these values to match the game document.
       public static final Distance FIELD_LENGTH = Meters.of(16.540988);
       public static final Distance FIELD_WIDTH = Meters.of(8.069326);
+      public static final Distance FIELD_HALF_WIDTH = Meters.of(4.034663);
     
-      public static final Distance HUB_X = Meters.of(4.571194);
-      public static final Distance HUB_Y = Meters.of(4.034631);
+      public static final Distance HUB_X = Meters.of(4.625518);
+      public static final Distance HUB_Y = Meters.of(4.034663);
       public static final Distance HUB_HEIGHT = Meters.of(1.437087);
       
+      public static final Distance BUMP_X_OFFSET = Meters.of(0.0);
+      public static final Distance BUMP_Y_OFFSET = Meters.of(1.52);
+        
       public static final Translation2d BLUE_HUB_CENTER = new Translation2d(HUB_X, HUB_Y);
-      public static final Translation2d RED_HUB_CENTER = new Translation2d(FIELD_LENGTH.minus(HUB_X), FIELD_WIDTH.minus(HUB_Y));
-  
+      public static final Translation2d RED_HUB_CENTER = new Translation2d(FIELD_LENGTH.minus(HUB_X), FIELD_WIDTH.minus(HUB_Y));  
+      public static final Translation2d BUMP_CENTER_OFFSET = new Translation2d(BUMP_X_OFFSET, BUMP_Y_OFFSET);
+
       /**
-       * Return the pose of the hub centre for the given alliance.  The result is
-       * computed from the appropriate april-tag pose found in the currently
-       * selected `apriltagLayout` plus the constant offset above.
+       * Return the pose of the hub centre for the given alliance. 
        */
       public static Pose2d getHubPose(boolean isBlue) {
         return isBlue ? new Pose2d(BLUE_HUB_CENTER, Rotation2d.kZero) 

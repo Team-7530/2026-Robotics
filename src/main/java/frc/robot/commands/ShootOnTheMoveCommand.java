@@ -86,7 +86,7 @@ public class ShootOnTheMoveCommand extends Command
   {
     flywheelVelocityCommand =
         shooterSubsystem.flywheel
-            .setVelocity(() -> RPM.of(targetFlywheelRpm))
+            .setVelocityCommand(() -> RPM.of(targetFlywheelRpm))
             .withName("ShootOnTheMoveFlywheelVelocity");
     CommandScheduler.getInstance().schedule(flywheelVelocityCommand);
   }

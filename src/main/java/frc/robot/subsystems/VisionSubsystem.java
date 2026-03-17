@@ -153,6 +153,8 @@ public class VisionSubsystem extends SubsystemBase {
   //    pipeline (hub-blue, hub-red, tower-blue, tower-red, etc.).
   // 5. Test live in the UI and adjust detection thresholds or downscale as
   //    necessary before using from robot code.
+  public static final int LIMELIGHT_PIPELINE_HUB = 0;
+  public static final int LIMELIGHT_PIPELINE_BUMP = 0;
 
   private Matrix<N3, N1> curStdDevs;
 
@@ -348,17 +350,17 @@ public class VisionSubsystem extends SubsystemBase {
     }
 
     boolean accepted = rejectionReason.isEmpty();
-    telemetry.putBoolean(telemetryPrefix + "/Accepted", accepted);
-    telemetry.putString(telemetryPrefix + "/RejectReason", accepted ? "accepted" : rejectionReason);
+    telemetry.putBoolean(telemetryPrefix + "/Accepted", accepted, false);
+    telemetry.putString(telemetryPrefix + "/RejectReason", accepted ? "accepted" : rejectionReason, false);
     telemetry.putBoolean(
         telemetryPrefix + "/PoseOnField",
-        est != null && est.pose != null && isVisionPoseOnField(est.pose));
+        est != null && est.pose != null && isVisionPoseOnField(est.pose), false);
 
     if (est != null) {
-      telemetry.putNumber(telemetryPrefix + "/TagCount", est.tagCount);
+      telemetry.putNumber(telemetryPrefix + "/TagCount", est.tagCount, false);
       if (est.pose != null) {
-        telemetry.putNumber(telemetryPrefix + "/PoseX", est.pose.getX());
-        telemetry.putNumber(telemetryPrefix + "/PoseY", est.pose.getY());
+        telemetry.putNumber(telemetryPrefix + "/PoseX", est.pose.getX(), false);
+        telemetry.putNumber(telemetryPrefix + "/PoseY", est.pose.getY(), false);
       }
     }
 
@@ -395,6 +397,17 @@ public class VisionSubsystem extends SubsystemBase {
     return run(() -> this.updateGlobalPose(drivetrain)).withName("UpdateGlobalPoseCommand");
   }
 
+  public Command updateGlobalPoseOnceCommand(CommandSwerveDrivetrain drivetrain) {
+    final double[] startingTimestampSeconds = new double[1];
+
+    return runOnce(() -> startingTimestampSeconds[0] = lastAcceptedVisionTimestampSeconds)
+        .andThen(
+            run(() -> this.updateGlobalPose(drivetrain))
+                .until(() -> lastAcceptedVisionTimestampSeconds > startingTimestampSeconds[0])
+                .withTimeout(0.4))
+        .withName("UpdateGlobalPoseOnceCommand");
+  }
+
   public Command resetGlobalPoseCommand(CommandSwerveDrivetrain drivetrain) {
     return runOnce(() -> this.resetGlobalPose(drivetrain)).withName("ResetGlobalPoseCommand");
   }
@@ -402,8 +415,13 @@ public class VisionSubsystem extends SubsystemBase {
   // ---------- Limelight pipeline helpers
   /** Set the pipeline index on a single limelight camera. */
   public void setPipeline(int pipelineIndex) {
+    setPipeline(pipelineIndex, "Manual");
+  }
+
+  private void setPipeline(int pipelineIndex, String activeMode) {
     LimelightHelpers.setPipelineIndex(LIMELIGHTNAME, pipelineIndex);
     telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/Pipeline", pipelineIndex);
+    telemetry.putString("Vision/ActiveMode", activeMode);
   }
 
 
@@ -412,6 +430,17 @@ public class VisionSubsystem extends SubsystemBase {
   /** Return a command that sets a specific pipeline index on all cameras when executed. */
   public Command setPipelineCommand(int pipelineIndex) {
     return runOnce(() -> setPipeline(pipelineIndex)).withName("SetPipelineAll-" + pipelineIndex);
+  }
+
+  public Command setHubPipelineCommand() {
+    // Hub targeting and bump targeting may eventually use different tag filters or exposure settings.
+    return runOnce(() -> setPipeline(LIMELIGHT_PIPELINE_HUB, "HubTargeting"))
+        .withName("SetHubPipelineCommand");
+  }
+
+  public Command setBumpPipelineCommand() {
+    return runOnce(() -> setPipeline(LIMELIGHT_PIPELINE_BUMP, "BumpTargeting"))
+        .withName("SetBumpPipelineCommand");
   }
 
   // ----- Simulation

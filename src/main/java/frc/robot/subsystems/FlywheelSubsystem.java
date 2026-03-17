@@ -34,6 +34,7 @@ import edu.wpi.first.math.Pair;
 //Subsystem for the shooter flywheel
 @Logged
 public class FlywheelSubsystem extends SubsystemBase {
+  private static final AngularVelocity READY_TOLERANCE = RPM.of(250);
 
   public static final CANBus kCANBus = CANBUS_FD;
 
@@ -125,19 +126,35 @@ public class FlywheelSubsystem extends SubsystemBase {
       return m_flywheel.getSpeed();
     }
   
-    public Command setVelocity(AngularVelocity speed) {
+    public void setVelocityDirect(AngularVelocity velocity) {
+      m_flywheelSMC.setVelocity(velocity);
+    }
+
+    public void setDutyCycleDirect(double dutyCycle) {
+      m_flywheelSMC.setDutyCycle(dutyCycle);
+    }
+
+    public boolean isAtSpeed(AngularVelocity targetVelocity) {
+      return isAtSpeed(targetVelocity, READY_TOLERANCE);
+    }
+
+    public boolean isAtSpeed(AngularVelocity targetVelocity, AngularVelocity tolerance) {
+      return getVelocity().isNear(targetVelocity, tolerance);
+    }
+
+    public Command setVelocityCommand(AngularVelocity speed) {
       return m_flywheel.setSpeed(speed).withName("FlywheelSetVelocityCommand");
     }
   
-    public Command setVelocity(Supplier<AngularVelocity> speed) {
+    public Command setVelocityCommand(Supplier<AngularVelocity> speed) {
       return m_flywheel.setSpeed(speed).withName("FlywheelSetVelocitySupplierCommand");
     }
   
-    public Command setDutyCycle(double dutyCycle) {
+    public Command setDutyCycleCommand(double dutyCycle) {
       return m_flywheel.set(dutyCycle).withName("FlywheelSetDutyCycleCommand");
     }
   
-    public Command setDutyCycle(Supplier<Double> dutyCycle) {
+    public Command setDutyCycleCommand(Supplier<Double> dutyCycle) {
       return m_flywheel.set(dutyCycle).withName("FlywheelSetDutyCycleSupplierCommand");
     }
   
@@ -147,14 +164,14 @@ public class FlywheelSubsystem extends SubsystemBase {
   
     /** Sets motors to constants intake speed */
     public Command flywheelStartCommand(AngularVelocity velocity) {
-      return setVelocity(velocity)
+      return setVelocityCommand(velocity)
         .withName("FlywheelStartCommand")
         .withTimeout(0.2);
     }
  
     /** Sets motors to constants intake speed */
     public Command flywheelStartCommand(Supplier<AngularVelocity> velocity) {
-      return setVelocity(velocity)
+      return setVelocityCommand(velocity)
         .withName("FlywheelStartCommand")
         .withTimeout(0.2);
     }
@@ -166,7 +183,7 @@ public class FlywheelSubsystem extends SubsystemBase {
      * Run the flywheel backward for a short duration to clear jams.
      */
     public Command flywheelUnstuckCommand() {
-      return setDutyCycle(-0.2)
+      return setDutyCycleCommand(-0.2)
           .withName("FlywheelUnstuckCommand")
           .withTimeout(0.5)
           .finallyDo(interrupted -> flywheelStop());

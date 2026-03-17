@@ -6,6 +6,8 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.commands.PathfindingCommand;
 
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.livewindow.LiveWindow;
@@ -14,6 +16,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.epilogue.NotLogged;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -60,6 +64,7 @@ public class RobotContainer {
 
   /* Path follower */
   private SendableChooser<Command> autoChooser;
+  @NotLogged
   private Command autonomousCommand;
 
   public static RobotContainer getInstance() {
@@ -126,11 +131,15 @@ public class RobotContainer {
   }
 
   private void configureOperatorControls() {
-    //oi.getAButton().onTrue(shooter.shooterSpinupCommand(RPM.of(2950)));
-    oi.getAButton().whileTrue(shooter.targetHubCommand().alongWith(vision.updateGlobalPoseCommand(drivetrain)));
-    oi.getBButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3000)));
-    oi.getXButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3400)));
-    oi.getYButton().onTrue(shooter.shooterSpinupCommand(RPM.of(3600)));
+    // A/B select a tracked shot mode; X/Y restore fixed-RPM manual profiles.
+    oi.getAButton()
+      .onTrue(vision.setHubPipelineCommand())
+      .whileTrue(shooter.targetHubCommand().alongWith(vision.updateGlobalPoseCommand(drivetrain)));
+    oi.getBButton()
+      .onTrue(vision.setBumpPipelineCommand())
+      .whileTrue(shooter.targetBumpCommand().alongWith(vision.updateGlobalPoseCommand(drivetrain)));
+    oi.getXButton().onTrue(shooter.setManualLowShotProfileCommand());
+    oi.getYButton().onTrue(shooter.setManualHighShotProfileCommand());
 
     oi.getLeftBumper()
       .onTrue(shooter.shooterSpinupCommand());
@@ -138,11 +147,12 @@ public class RobotContainer {
       .onTrue(shooter.shooterStopCommand());
 
     oi.getLeftTrigger()
-      .onTrue(shooter.shooterStartCommand())
+      // Trigger fires whichever profile is currently active.
+      .onTrue(shooter.shooterSpinupIfNeededCommand().andThen(shooter.shooterStartCommand()))
       .onFalse(shooter.shooterUnstuckCommand());
 
     oi.getRightTrigger()
-      .onTrue(rakeIntake.rakeIntakeStartCommand())
+      .onTrue(rakeArm.rakeArmDeployCommand().alongWith(rakeIntake.rakeIntakeStartCommand()))
       .onFalse(rakeIntake.rakeIntakeStopCommand());
     
     // oi.getPOVUp().onTrue(rakeArm.rakeArmRetractCommand());
@@ -234,8 +244,6 @@ public class RobotContainer {
 
   private void configureDefaultCommands() {
 
-    // climber.setDefaultCommand(
-    //     Commands.run(() -> climber.teleopClimb(-oi.getRightThumbstickY()), climber));
     // vision.setDefaultCommand(vision.updateGlobalPoseCommand(drivetrain));
   }
 
@@ -252,8 +260,8 @@ public class RobotContainer {
     // NamedCommands.registerCommand("rakeRetract", rakeArm.rakeArmRetractCommand());
     NamedCommands.registerCommand("rakeIntake", rakeIntake.rakeIntakeStartCommand());
     NamedCommands.registerCommand("rakeIntakeStop", rakeIntake.rakeIntakeStopCommand());
-    NamedCommands.registerCommand("UpdatePose", vision.updateGlobalPoseCommand(drivetrain));
-    NamedCommands.registerCommand("ResetPose", vision.resetGlobalPoseCommand(drivetrain));
+    NamedCommands.registerCommand("updatePose", vision.updateGlobalPoseOnceCommand(drivetrain));
+    NamedCommands.registerCommand("resetPose", vision.resetGlobalPoseCommand(drivetrain));
   }
 
   private void configureTelemetry() {
@@ -294,9 +302,13 @@ public class RobotContainer {
     }
   }
 
+<<<<<<< HEAD
   public void autonomousPeriodic() {
     // vision.updateGlobalPose(drivetrain);
   }
+=======
+  public void autonomousPeriodic() {}
+>>>>>>> 3c1430df2db227c4a248a2cef527e5085705b03f
 
   public void teleopInit() {
     // This makes sure that the autonomous stops running when
@@ -313,6 +325,7 @@ public class RobotContainer {
   public void testInit() {
     // Cancels all running commands at the start of test mode.
     CommandScheduler.getInstance().cancelAll();
+    drivetrain.setOperatorPerspectiveForward(DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red ? Rotation2d.k180deg : Rotation2d.kZero );
   }
 
   public void testPeriodic() {

@@ -122,19 +122,27 @@ public class CollectorSubsystem extends SubsystemBase {
     return m_collector.getSpeed();
   }
 
-  public Command setVelocity(AngularVelocity speed) {
+  public void setVelocityDirect(AngularVelocity velocity) {
+    m_collectorSMC.setVelocity(velocity);
+  }
+
+  public void setDutyCycleDirect(double dutyCycle) {
+    m_collectorSMC.setDutyCycle(dutyCycle);
+  }
+
+  public Command setVelocityCommand(AngularVelocity speed) {
     return m_collector.setSpeed(speed).withName("CollectorSetVelocityCommand");
   }
 
-  public Command setVelocity(Supplier<AngularVelocity> speed) {
+  public Command setVelocityCommand(Supplier<AngularVelocity> speed) {
     return m_collector.setSpeed(speed).withName("CollectorSetVelocitySupplierCommand");
   }
 
-  public Command setDutyCycle(double duty) {
+  public Command setDutyCycleCommand(double duty) {
     return m_collector.set(duty).withName("CollectorSetDutyCycleCommand");
   }
 
-  public Command setDutyCycle(Supplier<Double> dutyCycle) {
+  public Command setDutyCycleCommand(Supplier<Double> dutyCycle) {
     return m_collector.set(dutyCycle).withName("CollectorSetDutyCycleSupplierCommand");
   }
 
@@ -145,7 +153,7 @@ public class CollectorSubsystem extends SubsystemBase {
 
   /** Sets motors to constants intake speed */
   public Command collectorStartCommand() {
-    return setVelocity(collectorVelocity)
+    return setVelocityCommand(collectorVelocity)
       .withName("CollectorStartCommand")
       .withTimeout(0.2);
   }
@@ -159,7 +167,7 @@ public class CollectorSubsystem extends SubsystemBase {
   public Command collectorUnstuckCommand() {
     // reverse velocity briefly to eject jams (500ms), then guarantee a stop
     // via finallyDo (even if interrupted)
-    return setVelocity(collectorUnstuckVelocity)
+    return setVelocityCommand(collectorUnstuckVelocity)
       .withName("CollectorUnstuckCommand")    
       .withTimeout(0.5)
       .finallyDo(interrupted -> collectorStop());
