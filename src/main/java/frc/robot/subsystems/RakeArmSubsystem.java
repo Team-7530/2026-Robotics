@@ -3,8 +3,6 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.*;
 
-import frc.robot.Telemetry;
-
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -33,30 +31,24 @@ import yams.motorcontrollers.remote.TalonFXWrapper;
 
 @Logged
 public class RakeArmSubsystem extends SubsystemBase {
+  private static final CANBus kCANBus = CANBUS_FD;
 
-  public static final CANBus kCANBus = CANBUS_FD;
+  private static final int RAKEARMMOTOR_ID = 30;
+  private static final int RAKEARMENCODER_ID = 31;
 
-  public static final int RAKEARMMOTOR_ID = 30;
-  public static final int RAKEARMENCODER_ID = 31;
-
-  public static final double kRakeArmChainRatio = 60.0 / 8.0; // 8:60 ratio
-  public static final double kRakeArmGearboxRatio = 45.0; // 45:1
-
-  public static final double RAKEARM_KG = 0.0;
-  public static final double RAKEARM_KS = 0.0;
-  public static final double RAKEARM_KV = 0.0;
-  public static final double RAKEARM_KA = 0.0;
-  public static final double RAKEARM_KP = 110.0; // 70
-  public static final double RAKEARM_KI = 0.0;
-  public static final double RAKEARM_KD = 0.0;
-  public static final AngularVelocity RAKEARM_kMaxV = RPM.of(5000);
-  public static final AngularAcceleration RAKEARM_kMaxA = RotationsPerSecondPerSecond.of(2500);
-
-  public static final Angle kRakeArmPositionDeploy = Degrees.of(0);
-  public static final Angle kRakeArmPositionRetract = Degrees.of(131.0);
-  public static final Angle kRakeArmPositionUp = Degrees.of(90.0);
+  private static final double kRakeArmChainRatio = 60.0 / 8.0; // 8:60 ratio
+  private static final double kRakeArmGearboxRatio = 45.0; // 45:1
+  private static final double RAKEARM_KS = 0.0;
+  private static final double RAKEARM_KP = 110.0; // 70
+  private static final double RAKEARM_KI = 0.0;
+  private static final double RAKEARM_KD = 0.0;
+  private static final AngularVelocity RAKEARM_kMaxV = RPM.of(5000);
+  private static final AngularAcceleration RAKEARM_kMaxA = RotationsPerSecondPerSecond.of(2500);
+  private static final Angle kRakeArmPositionDeploy = Degrees.of(0);
+  private static final Angle kRakeArmPositionRetract = Degrees.of(131.0);
+  private static final Angle kRakeArmPositionUp = Degrees.of(90.0);
   
-  public static final double kRakeArmTeleopSpeed = 0.2;
+  private static final double kRakeArmTeleopSpeed = 0.2;
     
   private final TalonFX m_rakeArmMotor = new TalonFX(RAKEARMMOTOR_ID, kCANBus);
   private final CANcoder m_rakeArmEncoder = new CANcoder(RAKEARMENCODER_ID, kCANBus);
@@ -102,7 +94,6 @@ public class RakeArmSubsystem extends SubsystemBase {
       // Angle limits
       .withHardLimit(Degrees.of(0), Degrees.of(132))
       .withStartingPosition(Degrees.of(0))
-//    .withHorizontalZero(Degrees.of(0))
       // Mass of the flywheel.
       .withMass(Pounds.of(1))
       // Telemetry name and verbosity for the arm.
@@ -111,12 +102,10 @@ public class RakeArmSubsystem extends SubsystemBase {
 
   private final Arm m_rakeArm = new Arm(m_rakeArmConfig);
   
+  @Logged(importance = Logged.Importance.INFO)
   private boolean m_isTeleop = false;
-  private final Telemetry telemetry;
 
-  public RakeArmSubsystem(Telemetry telemetry) {
-    this.telemetry = telemetry;
-  }
+  public RakeArmSubsystem() {}
     
   @Override
   public void periodic() {
@@ -138,7 +127,7 @@ public class RakeArmSubsystem extends SubsystemBase {
   }
 
   /** Returns the rake angle */
-  @Logged
+  @Logged(importance = Logged.Importance.CRITICAL)
   public Angle getRakeArmPosition() {
     return m_rakeArm.getAngle();
   }
@@ -154,43 +143,43 @@ public class RakeArmSubsystem extends SubsystemBase {
 
   /**
    * Run a simple SysId routine on the rake arm motor.  This is useful when
-   * characterizing the mechanism during practice‑field tuning.  The command
-   * will apply a 10 V step for 5 s while logging the response; modify the
+   * characterizing the mechanism during practice-field tuning. The command
+   * will apply a 10 V step for 5 s while logging the response; modify the
    * parameters if you need a different profile.
    */
   public Command sysIdCommand() {
     return m_rakeArm.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
   }
 
-  /** Sets motors to constants intake speed */
+  /** Move the rake to the deployed floor-intake angle. */
   public Command rakeArmDeployCommand() {
-      return m_rakeArm.setAngle(kRakeArmPositionDeploy)
-        .withName("rakeArmDeployCommand")
-        .withTimeout(0.2);
+    return m_rakeArm.setAngle(kRakeArmPositionDeploy)
+      .withName("rakeArmDeployCommand")
+      .withTimeout(0.2);
   }
 
   public Command rakeArmRetractCommand() {
-      return m_rakeArm.setAngle(kRakeArmPositionRetract)
-        .withName("rakeArmRetractCommand")
-        .withTimeout(0.2);
+    return m_rakeArm.setAngle(kRakeArmPositionRetract)
+      .withName("rakeArmRetractCommand")
+      .withTimeout(0.2);
   }
 
   public Command rakeArmUpCommand() {
-      return m_rakeArm.setAngle(kRakeArmPositionUp)
-        .withName("rakeArmUpCommand")
-        .withTimeout(0.2);
+    return m_rakeArm.setAngle(kRakeArmPositionUp)
+      .withName("rakeArmUpCommand")
+      .withTimeout(0.2);
   }
 
-  /** Stops motor and activates brakes */
+  /** Stop the rake arm motor immediately. */
   public Command rakeArmStopCommand() {
-      return runOnce(this::rakeArmStop)
-        .withName("rakeArmStopCommand");
-    }
+    return runOnce(this::rakeArmStop)
+      .withName("rakeArmStopCommand");
+  }
 
-    /** Stops the rake arm motor immediately (open-loop stop). */
-    public void rakeArmStop() {
-      m_rakeArmSMC.stopClosedLoopController();
-      m_rakeArmSMC.setDutyCycle(0.0);
+  /** Stops the rake arm motor immediately (open-loop stop). */
+  public void rakeArmStop() {
+    m_rakeArmSMC.stopClosedLoopController();
+    m_rakeArmSMC.setDutyCycle(0.0);
   }
 
   /**
@@ -212,7 +201,5 @@ public class RakeArmSubsystem extends SubsystemBase {
 
   private void updateTelemetry() {
     m_rakeArm.updateTelemetry();
-    double positionDeg = this.getRakeArmPosition().in(Degrees);
-    telemetry.putNumber("RakeArm/PositionDeg", Double.isFinite(positionDeg) ? positionDeg : 0.0, true);
   }
 }

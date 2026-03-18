@@ -6,6 +6,7 @@ package frc.robot;
 
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.epilogue.Logged.Importance;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -13,6 +14,8 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import java.io.File;
 import java.nio.file.Path;
+
+import com.ctre.phoenix6.HootEpilogueBackend;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -42,6 +45,13 @@ public class Robot extends TimedRobot {
       RobotBase.isReal() ? RESOURCES_PATH_REAL : RESOURCES_PATH_SIMULATED;
 
   public Robot() {
+    // Configure Epilogue to use CTRE Signal Logger as the storage backend
+    Epilogue.configure(config -> {
+      config.backend = new HootEpilogueBackend();
+
+      config.minimumImportance = Constants.DEBUG_LOGGING ? Importance.DEBUG : Importance.INFO;
+    });
+
     Epilogue.bind(this);
   }
   /**

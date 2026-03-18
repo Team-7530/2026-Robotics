@@ -35,15 +35,8 @@ import frc.robot.subsystems.*;
  */
 @Logged
 public class RobotContainer {
-  private static RobotContainer instance;
-
-  /* Setting up bindings for necessary control of the swerve drive platform */
-  // private final SwerveRequest.RobotCentric forwardStraight =
-  //     new SwerveRequest.RobotCentric().withDriveRequestType(DriveRequestType.OpenLoopVoltage);
-
-  // create telemetry with debug enabled only in test/simulation modes to
-  // conserve CPU/NT traffic during competition.  Callers may also construct a
-  // separate telemetry object if dynamic toggling is required.
+  // Shared dashboard/logger helper. Keep this local to the container instead of
+  // having subsystems reach back through a global singleton.
   private final Telemetry logger = new Telemetry(
       DriveTrainConstants.maxSpeed.vxMetersPerSecond,
       Constants.DEBUG_LOGGING || edu.wpi.first.wpilibj.RobotBase.isSimulation());
@@ -52,30 +45,26 @@ public class RobotContainer {
   public OperatorInterface oi = new OperatorInterface() {};
 
   /* Subsystems */
-  public final PowerDistribution power = new PowerDistribution();
-  public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
-  public final VisionSubsystem vision = new VisionSubsystem(logger);
-  public final ShooterSubsystem shooter = new ShooterSubsystem(logger, drivetrain);
-  public final RakeArmSubsystem rakeArm = new RakeArmSubsystem(logger);
-  public final RakeIntakeSubsystem rakeIntake = new RakeIntakeSubsystem(logger);
+  public final PowerDistribution power;
+  public final CommandSwerveDrivetrain drivetrain;
+  public final VisionSubsystem vision;
+  public final ShooterSubsystem shooter;
+  public final RakeArmSubsystem rakeArm;
+  public final RakeIntakeSubsystem rakeIntake;
 
   /* Path follower */
   private SendableChooser<Command> autoChooser;
   @NotLogged
   private Command autonomousCommand;
 
-  public static RobotContainer getInstance() {
-    return instance;
-  }
-
-  /** Return the shared Telemetry instance used by the robot. */
-  public Telemetry getTelemetry() {
-    return logger;
-  }
-
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    instance = this;
+    this.power = new PowerDistribution();
+    this.drivetrain = TunerConstants.createDrivetrain();
+    this.vision = new VisionSubsystem(logger);
+    this.shooter = new ShooterSubsystem(drivetrain, logger);
+    this.rakeArm = new RakeArmSubsystem();
+    this.rakeIntake = new RakeIntakeSubsystem();
 
     // disable all telemetry in the LiveWindow to reduce the processing during each iteration
     LiveWindow.disableAllTelemetry();
@@ -160,8 +149,6 @@ public class RobotContainer {
     oi.getStartButton().onTrue(shooter.turret.seedTurretPositionCommand());
     oi.getBackButton().whileTrue(vision.updateGlobalPoseCommand(drivetrain));
 
-    // oi.getRightThumbstickButton().onTrue(vision.resetGlobalPoseCommand(drivetrain));
-   
     shooter.turret.setDefaultCommand(Commands.run(() -> shooter.turret.teleop(oi.getLeftThumbstickX()), shooter.turret));    
     rakeArm.setDefaultCommand(Commands.run(() -> rakeArm.teleop(-oi.getRightThumbstickY()), rakeArm));
   }

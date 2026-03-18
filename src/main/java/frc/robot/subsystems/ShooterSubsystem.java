@@ -2,9 +2,12 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
+import frc.robot.Constants;
+import frc.robot.Telemetry;
 import java.util.function.Supplier;
 
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -16,8 +19,6 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Constants;
-import frc.robot.Telemetry;
 
 /**
  * ShooterSubsystem controls a turret (absolute encoder + position control) and a two-motor
@@ -26,19 +27,19 @@ import frc.robot.Telemetry;
  */
 @Logged
 public class ShooterSubsystem extends SubsystemBase {
+  private final Telemetry telemetry;
+
+  // Shooter owns the turret and all Fuel-moving mechanisms used during a shot.
+  public final TurretSubsystem turret;
+  public final FlywheelSubsystem flywheel = new FlywheelSubsystem();
+  public final FeederSubsystem feeder = new FeederSubsystem();
+  public final CollectorSubsystem collector = new CollectorSubsystem();
+
+  private final CommandSwerveDrivetrain drivetrain;
+
   private static final AngularVelocity MANUAL_PROFILE_LOW_VELOCITY = RPM.of(3250);
   private static final AngularVelocity MANUAL_PROFILE_HIGH_VELOCITY = RPM.of(4000);
   private static final AngularVelocity FLYWHEEL_APPLY_TOLERANCE = RPM.of(25);
-
-    // Holds and manages turret, hood and flywheel
-
-  public final TurretSubsystem turret;
-  public final FlywheelSubsystem flywheel;
-  public final FeederSubsystem feeder;
-  public final CollectorSubsystem collector;
-
-  private final Telemetry telemetry;
-  private final CommandSwerveDrivetrain drivetrain;
 
   // Offsets for turret position relative to robot center (in robot frame)
   private static final Translation2d TURRET_OFFSET = new Translation2d(Inches.of(7.0).in(Meters), 0); // x: forward, y: left
@@ -57,20 +58,33 @@ public class ShooterSubsystem extends SubsystemBase {
 
   private AngularVelocity flywheelVelocity = MANUAL_PROFILE_LOW_VELOCITY;
   private AngularVelocity manualFlywheelVelocity = MANUAL_PROFILE_LOW_VELOCITY;
+
+  @NotLogged
   private AngularVelocity lastAppliedFlywheelVelocity = null;
+
   private boolean m_isSpinup = false;
   private String manualProfileName = "Fixed3250";
+  @Logged(importance = Logged.Importance.CRITICAL)
   private String activeShotProfile = manualProfileName;
 
-  public ShooterSubsystem(Telemetry tele, CommandSwerveDrivetrain drivetrain) {
-    // inject telemetry into nested subsystems so they can publish centrally
-    this.telemetry = tele;
-    this.turret = new TurretSubsystem(telemetry);
-    this.flywheel = new FlywheelSubsystem(telemetry);
-    this.feeder = new FeederSubsystem(telemetry);
-    this.collector = new CollectorSubsystem(telemetry);
+  @Logged(importance = Logged.Importance.CRITICAL)
+  private Translation2d turretFieldPosition = new Translation2d();
+  @Logged(importance = Logged.Importance.CRITICAL)
+  private Translation2d vectorToTarget = new Translation2d();
+  @Logged(importance = Logged.Importance.CRITICAL)
+  private Rotation2d fieldAngleToTarget = new Rotation2d();
+  @Logged(importance = Logged.Importance.CRITICAL)
+  private Rotation2d turretRelativeAngle = new Rotation2d();
 
+  @Logged(importance = Logged.Importance.CRITICAL)
+  private Angle turretAngleToTarget = Degrees.of(0);
+  @Logged(importance = Logged.Importance.CRITICAL)
+  private Distance distanceToTarget = Meters.of(0);
+
+  public ShooterSubsystem(CommandSwerveDrivetrain drivetrain, Telemetry telemetry) {
     this.drivetrain = drivetrain;
+    this.telemetry = telemetry;
+    this.turret = new TurretSubsystem(telemetry);
   }
   
   @Override
@@ -82,32 +96,32 @@ public class ShooterSubsystem extends SubsystemBase {
 
   // Shared aiming path for tracked shots: compute geometry, point turret, and update desired RPM.
   private void updateTargeting(Pose2d robotPose, Translation2d targetPosition) {
-    Translation2d turretFieldPosition = getTurretFieldPosition(robotPose);
-    Translation2d vectorToTarget = targetPosition.minus(turretFieldPosition);
+    turretFieldPosition = getTurretFieldPosition(robotPose);
+    vectorToTarget = targetPosition.minus(turretFieldPosition);
     // Robot-relative turret angle: subtract robot heading from field angle
-    Rotation2d fieldAngleToTarget = new Rotation2d(vectorToTarget.getAngle().getMeasure());
-    Rotation2d turretRelativeAngle = fieldAngleToTarget.minus(robotPose.getRotation());
+    fieldAngleToTarget = new Rotation2d(vectorToTarget.getAngle().getMeasure());
+    turretRelativeAngle = fieldAngleToTarget.minus(robotPose.getRotation());
 
-    Angle turretAngleToTarget = turretRelativeAngle.unaryMinus().getMeasure();
-    Distance distanceToTarget = Meters.of(turretFieldPosition.getDistance(targetPosition));
+    turretAngleToTarget = turretRelativeAngle.unaryMinus().getMeasure();
+    distanceToTarget = Meters.of(turretFieldPosition.getDistance(targetPosition));
 
     turret.setAngleDirect(turretAngleToTarget);
     this.setFlywheelVelocityOnDistance(distanceToTarget);
 
     telemetry.putNumber("Shooter/TargetFieldX", targetPosition.getX());
     telemetry.putNumber("Shooter/TargetFieldY", targetPosition.getY());
+  }
+
+  private void updateTelemetry() {
     telemetry.putNumber("Shooter/TurretFieldX", turretFieldPosition.getX());
     telemetry.putNumber("Shooter/TurretFieldY", turretFieldPosition.getY());
     telemetry.putNumber("Shooter/TurretAngleToTargetDeg", turretAngleToTarget.in(Degrees));
     telemetry.putNumber("Shooter/DistanceToTargetM", distanceToTarget.in(Meters));
-  }
-
-  private void updateTelemetry() {
     telemetry.putNumber("Shooter/FlywheelVelocityRPM", getFlywheelVelocity().in(RPM));
     telemetry.putString("Shooter/ActiveShotProfile", activeShotProfile);
   }
 
-  @Logged
+  @Logged(importance = Logged.Importance.CRITICAL)
   public AngularVelocity getFlywheelVelocity() {
     return this.flywheelVelocity;
   }
@@ -174,11 +188,12 @@ public class ShooterSubsystem extends SubsystemBase {
   /**
    * Get straight-line distance from TURRET to the target.
    * Uses actual turret position, not robot center.
+   *
    * @return Distance in meters
    */
   public Distance getDistanceToTarget(Pose2d robotPose, Translation2d targetPosition) {
-      Translation2d turretPosition = getTurretFieldPosition(robotPose);
-      return Meters.of(turretPosition.getDistance(targetPosition));
+    Translation2d turretPosition = getTurretFieldPosition(robotPose);
+    return Meters.of(turretPosition.getDistance(targetPosition));
   }
 
   /**
@@ -248,7 +263,6 @@ public class ShooterSubsystem extends SubsystemBase {
     return isSpinup() && flywheel.isAtSpeed(getFlywheelVelocity());
   }
 
-
   private Command fuelFeedCommand() {
     return feeder.feederStartCommand()
         .alongWith(collector.collectorStartCommand())
@@ -263,7 +277,7 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   // -- Commands -----------------------------------------------------------
-  // spin flywheel up to the given velocity
+  // Set the requested flywheel speed; periodic applies it only when spinup is armed.
   public Command setFlywheelVelocityCommand(AngularVelocity velocity) {
     return Commands.runOnce(() -> setDesiredFlywheelVelocity(velocity))
         .withName("setFlywheelVelocityCommand");

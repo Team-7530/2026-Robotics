@@ -66,8 +66,13 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
+import frc.lib.util.FieldConstants;
+import frc.robot.Robot;
+import frc.robot.Telemetry;
+
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.UsbCamera;
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -77,9 +82,7 @@ import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
-import frc.lib.util.FieldConstants;
-import frc.robot.Robot;
-import frc.robot.Telemetry;
+
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -95,9 +98,12 @@ import frc.lib.limelightvision.LimelightHelpers.PoseEstimate;
 
 import java.util.Optional;
 
+@Logged
 public class VisionSubsystem extends SubsystemBase {
-  public static final String LIMELIGHTNAME = "limelight";
-  public static final String LIMELIGHTURL = "limelight.local";
+  private final Telemetry telemetry;
+
+  private static final String LIMELIGHTNAME = "limelight";
+  // private static final String LIMELIGHTURL = "limelight.local";
   
   // Stored as a Pose3d for convenience, then passed into Limelight's
   // setCameraPose_RobotSpace(forward, side, up, roll, pitch, yaw) helper.
@@ -119,7 +125,7 @@ public class VisionSubsystem extends SubsystemBase {
   //           Example: -45 deg looks down 45 deg, +45 deg looks up 45 deg.
   //   yaw   = rotation about +Z (up). +yaw turns the camera toward the robot's
   //           right. Example: +90 deg points right, -90 deg points left.
-  public static final Pose3d LIMELIGHTPOSE = new Pose3d(
+  private static final Pose3d LIMELIGHTPOSE = new Pose3d(
           new Translation3d(Inches.of(14).in(Meters),
                             Inches.of(8.75).in(Meters),
                             Inches.of(13).in(Meters)),
@@ -129,8 +135,8 @@ public class VisionSubsystem extends SubsystemBase {
 
   // For MT1 solves, trust multi-tag translation more than single-tag translation and
   // leave heading almost entirely to the gyro. Single-tag yaw has been too fragile.
-  public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(0.9, 0.9, 9999999);
-  public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.35, 0.35, 9999999);
+  private static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(0.9, 0.9, 9999999);
+  private static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.35, 0.35, 9999999);
 
   // ------------------------------------------------------------------
   // Limelight pipeline indices
@@ -153,12 +159,13 @@ public class VisionSubsystem extends SubsystemBase {
   //    pipeline (hub-blue, hub-red, tower-blue, tower-red, etc.).
   // 5. Test live in the UI and adjust detection thresholds or downscale as
   //    necessary before using from robot code.
-  public static final int LIMELIGHT_PIPELINE_HUB = 0;
-  public static final int LIMELIGHT_PIPELINE_BUMP = 0;
+  private static final int LIMELIGHT_PIPELINE_HUB = 0;
+  private static final int LIMELIGHT_PIPELINE_BUMP = 0;
 
   private Matrix<N3, N1> curStdDevs;
 
   // Simulation debug field
+  @Logged(importance = Logged.Importance.DEBUG)
   private Field2d simDebugField = null;
 
   // Vision acceptance and scaling thresholds.
@@ -171,14 +178,12 @@ public class VisionSubsystem extends SubsystemBase {
   private static final double MIN_VISION_TIMESTAMP_DELTA_SEC = 1e-4;
 
   /* Cameras */
-  public UsbCamera cam0;
+  private UsbCamera cam0;
 
-  private final Telemetry telemetry;
   private double lastAcceptedVisionTimestampSeconds = Double.NEGATIVE_INFINITY;
 
   public VisionSubsystem(Telemetry telemetry) {
     this.telemetry = telemetry;
-
     // Configure camera pose and LED mode using the helper routines.
     LimelightHelpers.setCameraPose_RobotSpace(
         LIMELIGHTNAME,

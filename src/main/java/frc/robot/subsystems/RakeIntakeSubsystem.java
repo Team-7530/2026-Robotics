@@ -3,7 +3,6 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.*;
 
-import frc.robot.Telemetry;
 import java.util.function.Supplier;
 
 import yams.motorcontrollers.SmartMotorController;
@@ -30,32 +29,31 @@ import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-//Subsystem for rollers inside of hopper
+// Powers the rake intake rollers.
 @Logged
 public class RakeIntakeSubsystem extends SubsystemBase {
-
-  public static final CANBus kCANBus = CANBUS_FD;
+  private static final CANBus kCANBus = CANBUS_FD;
 
   // CAN IDs
-  public static final int RAKEINTAKEMOTOR_ID = 32;
+  private static final int RAKEINTAKEMOTOR_ID = 32;
 
-  public static final double kRakeIntakeChainRatio = 1.0; // 1:1
-  public static final double kRakeIntakeGearboxRatio = 3.0; // 3:1
+  private static final double kRakeIntakeChainRatio = 1.0; // 1:1
+  private static final double kRakeIntakeGearboxRatio = 3.0; // 3:1
 
   // Torque-based velocity does not require a feed forward, as torque will accelerate the rotor up to the desired velocity by itself
-  public static final double RAKEINTAKE_KS = 0.0; // Static feedforward gain
-  public static final double RAKEINTAKE_KP = 8.0; // error of 1 rps results in 8 amps output
-  public static final double RAKEINTAKE_KI = 0.2; // error of 1 rps incr by 0.2 amps per sec
-  public static final double RAKEINTAKE_KD = 0.001; // 1000 rps^2 incr 1 amp output
-  public static final AngularVelocity RAKEINTAKE_kMaxV = RPM.of(5000);
-  public static final AngularAcceleration RAKEINTAKE_kMaxA = RotationsPerSecondPerSecond.of(2500);
+  private static final double RAKEINTAKE_KS = 0.0; // Static feedforward gain
+  private static final double RAKEINTAKE_KP = 8.0; // error of 1 rps results in 8 amps output
+  private static final double RAKEINTAKE_KI = 0.2; // error of 1 rps incr by 0.2 amps per sec
+  private static final double RAKEINTAKE_KD = 0.001; // 1000 rps^2 incr 1 amp output
+  private static final AngularVelocity RAKEINTAKE_kMaxV = RPM.of(5000);
+  private static final AngularAcceleration RAKEINTAKE_kMaxA = RotationsPerSecondPerSecond.of(2500);
 
   private static final Distance flywheelDiameter = Inches.of(1);
   private static final Mass flywheelMass = Pounds.of(0.5);
 
-  public static final AngularVelocity rakeIntakeVelocity = RPM.of(3000);
-  public static final AngularVelocity rakeIntakeUnstuckVelocity = RPM.of(-2000);
-    
+  private static final AngularVelocity rakeIntakeVelocity = RPM.of(3000);
+  private static final AngularVelocity rakeIntakeUnstuckVelocity = RPM.of(-2000);
+
   private static final double kRakeIntakeTeleopFactor = 0.8;
 
   // TalonFX hardware instance (kept for wrapper)
@@ -98,13 +96,10 @@ public class RakeIntakeSubsystem extends SubsystemBase {
 
   private final FlyWheel m_rakeIntake = new FlyWheel(m_rakeIntakeConfig);
 
-  @Logged
+  @Logged(importance = Logged.Importance.INFO)
   private boolean m_isTeleop = false;
-  private final Telemetry telemetry;
 
-  public RakeIntakeSubsystem(Telemetry telemetry) {
-    this.telemetry = telemetry;
-  }
+  public RakeIntakeSubsystem() {}
 
   @Override
   public void periodic() {
@@ -117,7 +112,7 @@ public class RakeIntakeSubsystem extends SubsystemBase {
   }
 
   // YAMS Flywheel API wrappers
-  @Logged
+  @Logged(importance = Logged.Importance.CRITICAL)
   public AngularVelocity getVelocity() {
     return m_rakeIntake.getSpeed();
   }
@@ -154,14 +149,14 @@ public class RakeIntakeSubsystem extends SubsystemBase {
   /** Sets motors to constants intake speed */
   public Command rakeIntakeStartCommand() {
     return setVelocityCommand(rakeIntakeVelocity)
-    .withName("RakeIntakeStartCommand")
-    .withTimeout(0.2);
+      .withName("RakeIntakeStartCommand")
+      .withTimeout(0.2);
   }
 
   public Command rakeIntakeStopCommand() {
-    // immediate stop command
+    // Immediate stop command.
     return runOnce(this::rakeIntakeStop)
-    .withName("RakeIntakeStopCommand");
+      .withName("RakeIntakeStopCommand");
   }
 
   public Command rakeIntakeUnstuckCommand() {
@@ -172,7 +167,7 @@ public class RakeIntakeSubsystem extends SubsystemBase {
       .finallyDo(interrupted -> rakeIntakeStop());
   }
 
-    /** Stops the rake intake motor immediately (open-loop stop). */
+  /** Stops the rake intake motor immediately (open-loop stop). */
   public void rakeIntakeStop() {
     m_rakeIntakeSMC.stopClosedLoopController();
     m_rakeIntakeSMC.setDutyCycle(0.0);
@@ -181,7 +176,7 @@ public class RakeIntakeSubsystem extends SubsystemBase {
   /**
    * Teleop controls
    *
-   * @param aspeed a double that sets the arm speed during teleop
+   * @param aspeed duty-cycle request from the operator stick
    */
   public void teleop(double aspeed) {
     aspeed = MathUtil.applyDeadband(aspeed, STICK_DEADBAND);
@@ -197,9 +192,6 @@ public class RakeIntakeSubsystem extends SubsystemBase {
   
   private void updateTelemetry() {
     m_rakeIntake.updateTelemetry();
-    double velocityRpm = getVelocity().in(RPM);
-    telemetry.putNumber("RakeIntake/VelocityRPM", Double.isFinite(velocityRpm) ? velocityRpm : 0.0, true);
   }
 
 }
-

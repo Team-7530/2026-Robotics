@@ -3,7 +3,6 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.*;
 
-import frc.robot.Telemetry;
 import java.util.function.Supplier;
 
 import yams.motorcontrollers.SmartMotorController;
@@ -30,31 +29,30 @@ import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-//Subsystem for feeder flywheel to the shooter flywheel
+// Feeds Fuel from the hopper into the shooter flywheel.
 @Logged
 public class FeederSubsystem extends SubsystemBase {
-
-  public static final CANBus kCANBus = CANBUS_FD;
+  private static final CANBus kCANBus = CANBUS_FD;
 
   // CAN IDs
-  public static final int FEEDERMOTOR_ID = 50;
+  private static final int FEEDERMOTOR_ID = 50;
 
-  public static final double kFeederChainRatio = 40.0 / 32.0; // 40:32
-  public static final double kFeederGearboxRatio = 4.0; // 4:1
+  private static final double kFeederChainRatio = 40.0 / 32.0; // 40:32
+  private static final double kFeederGearboxRatio = 4.0; // 4:1
 
   // Torque-based velocity does not require a feed forward, as torque will accelerate the rotor up to the desired velocity by itself
-  public static final double FEEDER_KS = 0.0; // Static feedforward gain
-  public static final double FEEDER_KP = 8.0; // error of 1 rps results in 8 amps output
-  public static final double FEEDER_KI = 0.2; // error of 1 rps incr by 0.2 amps per sec
-  public static final double FEEDER_KD = 0.001; // 1000 rps^2 incr 1 amp output
-  public static final AngularVelocity FEEDER_kMaxV = RPM.of(5000);
-  public static final AngularAcceleration FEEDER_kMaxA = RotationsPerSecondPerSecond.of(2500);
+  private static final double FEEDER_KS = 0.0; // Static feedforward gain
+  private static final double FEEDER_KP = 8.0; // error of 1 rps results in 8 amps output
+  private static final double FEEDER_KI = 0.2; // error of 1 rps incr by 0.2 amps per sec
+  private static final double FEEDER_KD = 0.001; // 1000 rps^2 incr 1 amp output
+  private static final AngularVelocity FEEDER_kMaxV = RPM.of(5000);
+  private static final AngularAcceleration FEEDER_kMaxA = RotationsPerSecondPerSecond.of(2500);
 
   private final Distance flywheelDiameter = Inches.of(4);
   private final Mass flywheelMass = Pounds.of(0.5);
 
-  public static final AngularVelocity feederVelocity = RPM.of(3000);
-  public static final AngularVelocity feederUnstuckVelocity = RPM.of(-2000);
+  private static final AngularVelocity feederVelocity = RPM.of(3000);
+  private static final AngularVelocity feederUnstuckVelocity = RPM.of(-2000);
     
   private static final double kFeederTeleopFactor = 0.8;
 
@@ -98,13 +96,10 @@ public class FeederSubsystem extends SubsystemBase {
 
   private final FlyWheel m_feeder = new FlyWheel(m_feederConfig);
 
-  @Logged
+  @Logged(importance = Logged.Importance.INFO)
   private boolean m_isTeleop = false;
-  private final Telemetry telemetry;
 
-  public FeederSubsystem(Telemetry telemetry) {
-    this.telemetry = telemetry; 
-  }
+  public FeederSubsystem() {}
 
   @Override
   public void periodic() {
@@ -117,7 +112,7 @@ public class FeederSubsystem extends SubsystemBase {
   }
 
   // YAMS Flywheel API wrappers
-  @Logged
+  @Logged(importance = Logged.Importance.CRITICAL)
   public AngularVelocity getVelocity() {
     return m_feeder.getSpeed();
   }
@@ -181,7 +176,7 @@ public class FeederSubsystem extends SubsystemBase {
   /**
    * Teleop controls
    *
-   * @param aspeed a double that sets the arm speed during teleop
+   * @param aspeed duty-cycle request from the operator stick
    */
   public void teleop(double aspeed) {
     aspeed = MathUtil.applyDeadband(aspeed, STICK_DEADBAND);
@@ -195,12 +190,7 @@ public class FeederSubsystem extends SubsystemBase {
     }
   }
 
-  private void updateTelemetry() 
-  {
+  private void updateTelemetry() {
     m_feeder.updateTelemetry();
-    double velocityRpm = getVelocity().in(RPM);
-    telemetry.putNumber("Feeder/VelocityRPM", Double.isFinite(velocityRpm) ? velocityRpm : 0.0, true);
   }
-
 }
-

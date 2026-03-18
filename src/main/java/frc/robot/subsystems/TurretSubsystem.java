@@ -36,38 +36,38 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 @Logged
 public class TurretSubsystem extends SubsystemBase {
+  private final Telemetry telemetry;
 
-  public static final CANBus kCANBus = CANBUS_FD;
+  private static final CANBus kCANBus = CANBUS_FD;
 
-  // Placeholder CAN IDs - update to match your wiring
-  public static final int TURRET_MASTER_ID = 62;
-  public static final int TURRET_ANALOG_ID = 0;
+  // Update these CAN IDs to match the robot wiring.
+  private static final int TURRET_MASTER_ID = 62;
+  private static final int TURRET_ANALOG_ID = 0;
 
-  // Turret limits in degrees (180-degree travel centered on 0)
-  public static final Angle TURRET_MIN_DEG = Degrees.of(-80.0);
-  public static final Angle TURRET_MAX_DEG = Degrees.of(80.0);
+  // Turret travel is limited by wiring and frame geometry.
+  private static final Angle TURRET_MIN_DEG = Degrees.of(-80.0);
+  private static final Angle TURRET_MAX_DEG = Degrees.of(80.0);
 
-  public static final double kTurretOffset = 19.5;
+  private static final double kTurretOffset = 19.5;
 
-  public static final double kTurretChainRatio = 200.0 / 20.0; // 20:200 ratio (20 teeth on motor sprocket, 200 teeth on turret sprocket)
-  public static final double kTurretGearboxRatio = 20.0; // 20:1
-  public static final double kTurretGearRatio = kTurretChainRatio * kTurretGearboxRatio;
+  private static final double kTurretChainRatio = 200.0 / 20.0; // 20:200 ratio (20 teeth on motor sprocket, 200 teeth on turret sprocket)
+  private static final double kTurretGearboxRatio = 20.0; // 20:1
 
-  public static final double TURRET_KS = 0.0;
-  public static final double TURRET_KP = 180.0; // 45
-  public static final double TURRET_KI = 0.0;
-  public static final double TURRET_KD = 0.0;
-  public static final double TURRET_KV = 0.0;
-  public static final double TURRET_KA = 0.0;
+  private static final double TURRET_KP = 180.0; // 45
+  private static final double TURRET_KI = 0.0;
+  private static final double TURRET_KD = 0.0;
+  private static final double TURRET_KV = 0.0;
+  private static final double TURRET_KA = 0.0;
 
-  public static final AngularVelocity TURRET_kMaxV = DegreesPerSecond.of(1440);
-  public static final AngularAcceleration TURRET_kMaxA = DegreesPerSecondPerSecond.of(1440);
+  private static final AngularVelocity TURRET_kMaxV = DegreesPerSecond.of(1440);
+  private static final AngularAcceleration TURRET_kMaxA = DegreesPerSecondPerSecond.of(1440);
 
-  public static final double kTurretTeleopSpeed = 0.8;
+  private static final double kTurretTeleopSpeed = 0.8;
   
   // TalonFX hardware + YAMS controller
   private final TalonFX m_turretMotor = new TalonFX(TURRET_MASTER_ID, kCANBus);
-  @Logged
+
+  @Logged(importance = Logged.Importance.CRITICAL)
   private final AnalogPotentiometer m_turretPotentiometer = new AnalogPotentiometer(TURRET_ANALOG_ID, 360.0, -180.0);
 
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
@@ -109,17 +109,16 @@ public class TurretSubsystem extends SubsystemBase {
 
   Pivot m_turret = new Pivot(m_turretconfig);
 
-  @Logged
+  @Logged(importance = Logged.Importance.INFO)
   private boolean m_isTeleop = false;
-  @Logged
-  private Angle turretTargetAngle = Degrees.of(0.0);
-  private Angle potentiometerAngle = Degrees.of(0.0);
 
-  private final Telemetry telemetry;
+  @Logged(importance = Logged.Importance.CRITICAL)
+  private Angle turretTargetAngle = Degrees.of(0.0);
+  @Logged(importance = Logged.Importance.CRITICAL)
+  private Angle potentiometerAngle = Degrees.of(0.0);
 
   public TurretSubsystem(Telemetry telemetry) {
     this.telemetry = telemetry;
-
     seedTurretPosition();
   }
 
@@ -138,7 +137,7 @@ public class TurretSubsystem extends SubsystemBase {
     m_turret.simIterate();
   }
 
-  @Logged
+  @Logged(importance = Logged.Importance.CRITICAL)
   public Angle getAngle() {
     return m_turret.getAngle();
   }
@@ -178,27 +177,27 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   public Command setDutyCycleCommand(Supplier<Double> dutyCycleSupplier) {
-    // command to run turret at a variable duty cycle (open-loop)
+    // Open-loop duty-cycle control for manual aiming.
     return runOnce(() -> turretTargetAngle = Degrees.of(0.0))
       .andThen(m_turret.set(dutyCycleSupplier))
       .withName("TurretSetDutyCycleCommand");
   }
 
   public Command setDutyCycleCommand(double dutyCycle) {
-    // open-loop control with a constant duty value
+    // Open-loop duty-cycle control with a fixed value.
     return runOnce(() -> turretTargetAngle = Degrees.of(0.0))
       .andThen(m_turret.set(dutyCycle))
       .withName("TurretSetDutyCycleCommand");
   }
 
   public void setDutyCycleDirect(double dutyCycle) {
-    // direct motor call bypassing the YAMS command API
+    // Direct motor call that bypasses the YAMS command wrappers.
     turretTargetAngle = Degrees.of(0.0);
     m_turretSMC.setDutyCycle(dutyCycle);
   }
 
   public Command sysIdCommand() {
-    // step test for calibration; run on practice field
+    // Practice-field-only characterization helper.
     return m_turret.sysId(
                     Volts.of(4.0), // maximumVoltage
                     Volts.per(Second).of(0.5), // step
@@ -214,7 +213,7 @@ public class TurretSubsystem extends SubsystemBase {
   /**
    * Teleop controls
    *
-   * @param aspeed a double that sets the arm speed during teleop
+   * @param aspeed duty-cycle request from the operator stick
    */
   public void teleop(double aspeed) {
     aspeed = MathUtil.applyDeadband(aspeed, STICK_DEADBAND);
@@ -229,30 +228,22 @@ public class TurretSubsystem extends SubsystemBase {
     }
   }
 
+  private static Angle clampToTurretLimits(Angle angle) {
+    return Degrees.of(
+        MathUtil.clamp(angle.in(Degrees), TURRET_MIN_DEG.in(Degrees), TURRET_MAX_DEG.in(Degrees)));
+  }
+
   private void updateTelemetry() {
     m_turret.updateTelemetry();
-    // publish a few human-friendly telemetry values through the central Telemetry class
-    telemetry.putNumber("Turret/TurretAngleDeg", finiteOrZero(this.getAngle().in(Degrees)));
-    // the rest of the values are useful only for debugging/tuning
-    telemetry.putNumber("Turret/TurretTargetAngleDeg", finiteOrZero(turretTargetAngle.in(Degrees)), true);
-    telemetry.putNumber("Turret/TurretRotorPos", finiteOrZero(m_turretSMC.getRotorPosition().in(Rotations)), true);
-    telemetry.putNumber("Turret/TurretPotentiometer", finiteOrZero(-m_turretPotentiometer.get()), true);
-    telemetry.putNumber("Turret/SeededTurretDeg", finiteOrZero(this.potentiometerAngle.in(Degrees)), true);
+    // YAMS already publishes the turret mechanism angle, setpoint, and rotor state.
+    telemetry.putNumber("Turret/TurretPotentiometer", -m_turretPotentiometer.get(), true);
+    telemetry.putNumber("Turret/SeededTurretDeg", this.potentiometerAngle.in(Degrees), true);
   }
 
   // -- Commands -----------------------------------------------------------
   public Command seedTurretPositionCommand() {
     return runOnce(this::seedTurretPosition)
-        .withName("SeedTurretPositionCommand");
-  }
-
-  private static double finiteOrZero(double value) {
-    return Double.isFinite(value) ? value : 0.0;
-  }
-
-  private static Angle clampToTurretLimits(Angle angle) {
-    return Degrees.of(
-        MathUtil.clamp(angle.in(Degrees), TURRET_MIN_DEG.in(Degrees), TURRET_MAX_DEG.in(Degrees)));
+      .withName("SeedTurretPositionCommand");
   }
 
 }

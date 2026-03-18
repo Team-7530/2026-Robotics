@@ -3,7 +3,6 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.*;
 
-import frc.robot.Telemetry;
 import java.util.function.Supplier;
 
 import yams.motorcontrollers.SmartMotorController;
@@ -30,31 +29,29 @@ import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-//Subsystem for rollers inside of hopper
+// Moves Fuel through the collector rollers.
 @Logged
 public class CollectorSubsystem extends SubsystemBase {
-
-  public static final CANBus kCANBus = CANBUS_FD;
+  private static final CANBus kCANBus = CANBUS_FD;
 
   // CAN IDs
-  public static final int COLLECTORMOTOR_ID = 40;
+  private static final int COLLECTORMOTOR_ID = 40;
 
-  public static final double kCollectorChainRatio = 1.0; // 1:1
-  public static final double kCollectorGearboxRatio = 16.0; // 16:1
+  private static final double kCollectorChainRatio = 1.0; // 1:1
+  private static final double kCollectorGearboxRatio = 16.0; // 16:1
 
   // Torque-based velocity does not require a feed forward, as torque will accelerate the rotor up to the desired velocity by itself
-  public static final double COLLECTOR_KS = 0.0; // Static feedforward gain
-  public static final double COLLECTOR_KP = 8.0; // error of 1 rps results in 8 amps output
-  public static final double COLLECTOR_KI = 0.2; // error of 1 rps incr by 0.2 amps per sec
-  public static final double COLLECTOR_KD = 0.001; // 1000 rps^2 incr 1 amp output
-  public static final AngularVelocity COLLECTOR_kMaxV = RPM.of(5000);
-  public static final AngularAcceleration COLLECTOR_kMaxA = RotationsPerSecondPerSecond.of(2500);
-
+  private static final double COLLECTOR_KS = 0.0; // Static feedforward gain
+  private static final double COLLECTOR_KP = 8.0; // error of 1 rps results in 8 amps output
+  private static final double COLLECTOR_KI = 0.2; // error of 1 rps incr by 0.2 amps per sec
+  private static final double COLLECTOR_KD = 0.001; // 1000 rps^2 incr 1 amp output
+  private static final AngularVelocity COLLECTOR_kMaxV = RPM.of(5000);
+  private static final AngularAcceleration COLLECTOR_kMaxA = RotationsPerSecondPerSecond.of(2500);
   private static final Distance flywheelDiameter = Inches.of(1);
   private static final Mass flywheelMass = Pounds.of(0.5);
 
-  public static final AngularVelocity collectorVelocity = RPM.of(3000);
-  public static final AngularVelocity collectorUnstuckVelocity = RPM.of(-2000);
+  private static final AngularVelocity collectorVelocity = RPM.of(3000);
+  private static final AngularVelocity collectorUnstuckVelocity = RPM.of(-2000);
     
   private static final double kCollectorTeleopFactor = 0.8;
 
@@ -98,13 +95,10 @@ public class CollectorSubsystem extends SubsystemBase {
 
   private final FlyWheel m_collector = new FlyWheel(m_collectorConfig);
 
-  @Logged
+  @Logged(importance = Logged.Importance.INFO)
   private boolean m_isTeleop = false;
-  private final Telemetry telemetry;
 
-  public CollectorSubsystem(Telemetry telemetry) {
-    this.telemetry = telemetry;
-  }
+  public CollectorSubsystem() {}
 
   @Override
   public void periodic() {
@@ -117,7 +111,7 @@ public class CollectorSubsystem extends SubsystemBase {
   }
 
   // YAMS Flywheel API wrappers
-  @Logged
+  @Logged(importance = Logged.Importance.CRITICAL)
   public AngularVelocity getVelocity() {
     return m_collector.getSpeed();
   }
@@ -182,7 +176,7 @@ public class CollectorSubsystem extends SubsystemBase {
   /**
    * Teleop controls
    *
-   * @param aspeed a double that sets the arm speed during teleop
+   * @param aspeed duty-cycle request from the operator stick
    */
   public void teleop(double aspeed) {
     aspeed = MathUtil.applyDeadband(aspeed, STICK_DEADBAND);
@@ -196,12 +190,7 @@ public class CollectorSubsystem extends SubsystemBase {
     }
   }
 
-  private void updateTelemetry() 
-  {
+  private void updateTelemetry() {
     m_collector.updateTelemetry();
-    double velocityRpm = getVelocity().in(RPM);
-    telemetry.putNumber("Collector/VelocityRPM", Double.isFinite(velocityRpm) ? velocityRpm : 0.0);
   }
-
 }
-
