@@ -42,10 +42,12 @@ public class Telemetry {
   public Telemetry(double maxSpeed, boolean debugMode) {
     m_maxSpeed = maxSpeed;
     m_debugMode = debugMode;  
+
     //SignalLogger.start();
     SignalLogger.enableAutoLogging(true);
     // SignalLogger.stop();
     // register the common sendables once on the shuffleboard tab
+
     putData("Field", field);
     for (int i = 0; i < m_moduleMechanisms.length; ++i) {
       putData("Module " + i, m_moduleMechanisms[i]);

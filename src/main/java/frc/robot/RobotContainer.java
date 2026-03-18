@@ -20,7 +20,6 @@ import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.robot.Constants.DriveTrainConstants;
 import frc.robot.commands.*;
 import frc.robot.generated.TunerConstants;
@@ -57,7 +56,6 @@ public class RobotContainer {
   public final PowerDistribution power = new PowerDistribution();
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
   public final VisionSubsystem vision = new VisionSubsystem(logger);
-  @Logged
   public final ShooterSubsystem shooter = new ShooterSubsystem(logger, drivetrain);
   public final RakeArmSubsystem rakeArm = new RakeArmSubsystem(logger);
   public final RakeIntakeSubsystem rakeIntake = new RakeIntakeSubsystem(logger);
@@ -155,10 +153,10 @@ public class RobotContainer {
       .onTrue(rakeArm.rakeArmDeployCommand().alongWith(rakeIntake.rakeIntakeStartCommand()))
       .onFalse(rakeIntake.rakeIntakeStopCommand());
     
-    // oi.getPOVUp().onTrue(rakeArm.rakeArmRetractCommand());
-    // oi.getPOVDown().onTrue(rakeArm.rakeArmDeployCommand());
+    oi.getPOVUp().onTrue(rakeArm.rakeArmRetractCommand());
+    oi.getPOVDown().onTrue(rakeArm.rakeArmDeployCommand());
     oi.getPOVLeft().onTrue(shooter.turret.setAngleCommand(Degrees.of(0)));
-    // oi.getPOVRight().onTrue(rakeArm.rakeArmUpCommand());
+    oi.getPOVRight().onTrue(rakeArm.rakeArmUpCommand());
 
     oi.getStartButton().onTrue(shooter.turret.seedTurretPositionCommand());
     oi.getBackButton().whileTrue(vision.updateGlobalPoseCommand(drivetrain));
@@ -166,7 +164,7 @@ public class RobotContainer {
     // oi.getRightThumbstickButton().onTrue(vision.resetGlobalPoseCommand(drivetrain));
    
     shooter.turret.setDefaultCommand(Commands.run(() -> shooter.turret.teleop(oi.getLeftThumbstickX()), shooter.turret));    
-    // rakeArm.setDefaultCommand(Commands.run(() -> rakeArm.teleop(-oi.getRightThumbstickY()), rakeArm));
+    rakeArm.setDefaultCommand(Commands.run(() -> rakeArm.teleop(-oi.getRightThumbstickY()), rakeArm));
   }
 
   private void configureTestingControls() {
@@ -198,9 +196,9 @@ public class RobotContainer {
     testOI.getStartButton()
       .and(testOI.getAButton())
       .whileTrue(shooter.turret.sysIdCommand());
-    // testOI.getStartButton()
-    //   .and(testOI.getBButton())
-    //   .whileTrue(rakeArm.sysIdCommand());
+    testOI.getStartButton()
+      .and(testOI.getBButton())
+      .whileTrue(rakeArm.sysIdCommand());
     testOI.getStartButton()
       .and(testOI.getXButton())
       .whileTrue(shooter.flywheel.sysIdCommand());
@@ -252,12 +250,9 @@ public class RobotContainer {
     NamedCommands.registerCommand("spinup", shooter.shooterSpinupCommand());
     NamedCommands.registerCommand("shoot", shooter.shooterStartCommand());
     NamedCommands.registerCommand("stopShoot", shooter.shooterStopCommand());
-    NamedCommands.registerCommand("rakeDeploy", new InstantCommand());
-    NamedCommands.registerCommand("rakeUp", new InstantCommand());
-    NamedCommands.registerCommand("rakeRetract", new InstantCommand());
-    // NamedCommands.registerCommand("rakeDeploy", rakeArm.rakeArmDeployCommand());
-    // NamedCommands.registerCommand("rakeUp", rakeArm.rakeArmUpCommand());
-    // NamedCommands.registerCommand("rakeRetract", rakeArm.rakeArmRetractCommand());
+    NamedCommands.registerCommand("rakeDeploy", rakeArm.rakeArmDeployCommand());
+    NamedCommands.registerCommand("rakeUp", rakeArm.rakeArmUpCommand());
+    NamedCommands.registerCommand("rakeRetract", rakeArm.rakeArmRetractCommand());
     NamedCommands.registerCommand("rakeIntake", rakeIntake.rakeIntakeStartCommand());
     NamedCommands.registerCommand("rakeIntakeStop", rakeIntake.rakeIntakeStopCommand());
     NamedCommands.registerCommand("updatePose", vision.updateGlobalPoseOnceCommand(drivetrain));
@@ -303,7 +298,6 @@ public class RobotContainer {
   }
 
   public void autonomousPeriodic() {
-    vision.updateGlobalPose(drivetrain);
   }
 
   public void teleopInit() {
