@@ -95,7 +95,7 @@ public class CollectorSubsystem extends SubsystemBase {
 
   private final FlyWheel m_collector = new FlyWheel(m_collectorConfig);
 
-  @Logged(importance = Logged.Importance.INFO)
+  @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
 
   public CollectorSubsystem() {}
@@ -125,19 +125,23 @@ public class CollectorSubsystem extends SubsystemBase {
   }
 
   public Command setVelocityCommand(AngularVelocity speed) {
-    return m_collector.setSpeed(speed).withName("CollectorSetVelocityCommand");
+    return m_collector.setSpeed(speed)
+      .withName("CollectorSetVelocityCommand");
   }
 
   public Command setVelocityCommand(Supplier<AngularVelocity> speed) {
-    return m_collector.setSpeed(speed).withName("CollectorSetVelocitySupplierCommand");
+    return m_collector.setSpeed(speed)
+      .withName("CollectorSetVelocitySupplierCommand");
   }
 
   public Command setDutyCycleCommand(double duty) {
-    return m_collector.set(duty).withName("CollectorSetDutyCycleCommand");
+    return m_collector.set(duty)
+      .withName("CollectorSetDutyCycleCommand");
   }
 
   public Command setDutyCycleCommand(Supplier<Double> dutyCycle) {
-    return m_collector.set(dutyCycle).withName("CollectorSetDutyCycleSupplierCommand");
+    return m_collector.set(dutyCycle)
+      .withName("CollectorSetDutyCycleSupplierCommand");
   }
 
   public Command sysIdCommand() {
@@ -192,5 +196,10 @@ public class CollectorSubsystem extends SubsystemBase {
 
   private void updateTelemetry() {
     m_collector.updateTelemetry();
+  }
+
+  /** Get the collector motor for health monitoring. */
+  public TalonFX getCollectorMotor() {
+    return m_collectorMotor;
   }
 }

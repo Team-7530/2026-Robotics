@@ -96,7 +96,7 @@ public class RakeIntakeSubsystem extends SubsystemBase {
 
   private final FlyWheel m_rakeIntake = new FlyWheel(m_rakeIntakeConfig);
 
-  @Logged(importance = Logged.Importance.INFO)
+  @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
 
   public RakeIntakeSubsystem() {}
@@ -126,19 +126,23 @@ public class RakeIntakeSubsystem extends SubsystemBase {
   }
 
   public Command setVelocityCommand(AngularVelocity speed) {
-    return m_rakeIntake.setSpeed(speed);
+    return m_rakeIntake.setSpeed(speed)
+      .withName("RakeIntakeSetVelocityCommand");
   }
 
   public Command setVelocityCommand(Supplier<AngularVelocity> speed) {
-    return m_rakeIntake.setSpeed(speed);
+    return m_rakeIntake.setSpeed(speed)
+      .withName("RakeIntakeSetVelocityCommand");
   }
 
   public Command setDutyCycleCommand(double duty) {
-    return m_rakeIntake.set(duty);
+    return m_rakeIntake.set(duty)
+      .withName("RakeIntakeSetDutyCycleCommand");
   }
 
   public Command setDutyCycleCommand(Supplier<Double> dutyCycle) {
-    return m_rakeIntake.set(dutyCycle);
+    return m_rakeIntake.set(dutyCycle)
+      .withName("RakeIntakeSetDutyCycleCommand");
   }
 
   public Command sysIdCommand() {
@@ -192,6 +196,11 @@ public class RakeIntakeSubsystem extends SubsystemBase {
   
   private void updateTelemetry() {
     m_rakeIntake.updateTelemetry();
+  }
+
+  /** Get the rake intake motor for health monitoring. */
+  public TalonFX getRakeIntakeMotor() {
+    return m_rakeIntakeMotor;
   }
 
 }

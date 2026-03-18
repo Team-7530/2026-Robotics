@@ -38,6 +38,8 @@ public class RakeArmSubsystem extends SubsystemBase {
 
   private static final double kRakeArmChainRatio = 60.0 / 8.0; // 8:60 ratio
   private static final double kRakeArmGearboxRatio = 45.0; // 45:1
+  private static final double kRakeArmEncoderOffset = 0.11; // offset needed so encoder 0 is horizontal
+  
   private static final double RAKEARM_KS = 0.0;
   private static final double RAKEARM_KP = 110.0; // 70
   private static final double RAKEARM_KI = 0.0;
@@ -78,7 +80,7 @@ public class RakeArmSubsystem extends SubsystemBase {
       .withExternalEncoder(m_rakeArmEncoder)
       .withExternalEncoderGearing(1.0)
       .withExternalEncoderInverted(false)
-      .withExternalEncoderZeroOffset(Rotations.of(0.11))
+      .withExternalEncoderZeroOffset(Rotations.of(kRakeArmEncoderOffset))
       .withUseExternalFeedbackEncoder(true);
 
   private final SmartMotorController m_rakeArmSMC = new TalonFXWrapper(m_rakeArmMotor, DCMotor.getKrakenX60Foc(1), smc_config);
@@ -102,7 +104,7 @@ public class RakeArmSubsystem extends SubsystemBase {
 
   private final Arm m_rakeArm = new Arm(m_rakeArmConfig);
   
-  @Logged(importance = Logged.Importance.INFO)
+  @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
 
   public RakeArmSubsystem() {}
@@ -133,15 +135,6 @@ public class RakeArmSubsystem extends SubsystemBase {
   }
 
   /**
-   * Sets the rake motor speed
-   *
-   * @param wspeed double, target speed
-   */
-  public Command setRakeArmSpeed(double wspeed) {
-    return m_rakeArm.set(wspeed).withName("rakeArmSetSpeedCommand");
-  }
-
-  /**
    * Run a simple SysId routine on the rake arm motor.  This is useful when
    * characterizing the mechanism during practice-field tuning. The command
    * will apply a 10 V step for 5 s while logging the response; modify the
@@ -154,26 +147,26 @@ public class RakeArmSubsystem extends SubsystemBase {
   /** Move the rake to the deployed floor-intake angle. */
   public Command rakeArmDeployCommand() {
     return m_rakeArm.setAngle(kRakeArmPositionDeploy)
-      .withName("rakeArmDeployCommand")
+      .withName("RakeArmDeployCommand")
       .withTimeout(0.2);
   }
 
   public Command rakeArmRetractCommand() {
     return m_rakeArm.setAngle(kRakeArmPositionRetract)
-      .withName("rakeArmRetractCommand")
+      .withName("RakeArmRetractCommand")
       .withTimeout(0.2);
   }
 
   public Command rakeArmUpCommand() {
     return m_rakeArm.setAngle(kRakeArmPositionUp)
-      .withName("rakeArmUpCommand")
+      .withName("RakeArmUpCommand")
       .withTimeout(0.2);
   }
 
   /** Stop the rake arm motor immediately. */
   public Command rakeArmStopCommand() {
     return runOnce(this::rakeArmStop)
-      .withName("rakeArmStopCommand");
+      .withName("RakeArmStopCommand");
   }
 
   /** Stops the rake arm motor immediately (open-loop stop). */
@@ -201,5 +194,10 @@ public class RakeArmSubsystem extends SubsystemBase {
 
   private void updateTelemetry() {
     m_rakeArm.updateTelemetry();
+  }
+
+  /** Get the rake arm motor for health monitoring. */
+  public TalonFX getRakeArmMotor() {
+    return m_rakeArmMotor;
   }
 }

@@ -96,7 +96,7 @@ public class FeederSubsystem extends SubsystemBase {
 
   private final FlyWheel m_feeder = new FlyWheel(m_feederConfig);
 
-  @Logged(importance = Logged.Importance.INFO)
+  @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
 
   public FeederSubsystem() {}
@@ -126,19 +126,23 @@ public class FeederSubsystem extends SubsystemBase {
   }
 
   public Command setVelocityCommand(AngularVelocity speed) {
-    return m_feeder.setSpeed(speed).withName("FeederSetVelocityCommand");
+    return m_feeder.setSpeed(speed)
+      .withName("FeederSetVelocityCommand");
   }
 
   public Command setVelocityCommand(Supplier<AngularVelocity> speed) {
-    return m_feeder.setSpeed(speed).withName("FeederSetVelocitySupplierCommand");
+    return m_feeder.setSpeed(speed)
+      .withName("FeederSetVelocitySupplierCommand");
   }
 
   public Command setDutyCycleCommand(double duty) {
-    return m_feeder.set(duty).withName("FeederSetDutyCycleCommand");
+    return m_feeder.set(duty)
+      .withName("FeederSetDutyCycleCommand");
   }
 
   public Command setDutyCycleCommand(Supplier<Double> dutyCycle) {
-    return m_feeder.set(dutyCycle).withName("FeederSetDutyCycleSupplierCommand");
+    return m_feeder.set(dutyCycle)
+      .withName("FeederSetDutyCycleSupplierCommand");
   }
 
   public Command sysIdCommand() {
@@ -192,5 +196,10 @@ public class FeederSubsystem extends SubsystemBase {
 
   private void updateTelemetry() {
     m_feeder.updateTelemetry();
+  }
+
+  /** Get the feeder motor for health monitoring. */
+  public TalonFX getFeederMotor() {
+    return m_feederMotor;
   }
 }

@@ -98,19 +98,21 @@ public class TurretSubsystem extends SubsystemBase {
       .withMaxRobotLength(Inches.of(34.0))
       .withRelativePosition(new Translation3d(Inches.of(0.0), Inches.of(8), Inches.of(8)));
 
-  PivotConfig m_turretconfig = new PivotConfig(m_turretSMC)
+  PivotConfig m_turretConfig = new PivotConfig(m_turretSMC)
       .withStartingPosition(Degrees.of(0)) // Starting position of the Pivot
       .withWrapping(Degrees.of(-180), Degrees.of(180)) // Wrapping enabled bc the pivot can spin infinitely
-      .withSoftLimits(TURRET_MIN_DEG, TURRET_MAX_DEG) // Hard limit bc wiring prevents infinite spinning
-      .withHardLimit(TURRET_MIN_DEG, TURRET_MAX_DEG) // Hard limit bc wiring prevents infinite spinning
+      .withSoftLimits(TURRET_MIN_DEG, TURRET_MAX_DEG) // Angle limit on motor bc wiring prevents infinite spinning
+      .withHardLimit(TURRET_MIN_DEG, TURRET_MAX_DEG) // Angle limit in simulator bc wiring prevents infinite spinning
       .withTelemetry("Turret", TelemetryVerbosity.HIGH) // Telemetry
       .withMOI(Meters.of(0.25), Pounds.of(4)) // MOI Calculation
       .withMechanismPositionConfig(robotToMechanism);
 
-  Pivot m_turret = new Pivot(m_turretconfig);
+  Pivot m_turret = new Pivot(m_turretConfig);
 
-  @Logged(importance = Logged.Importance.INFO)
+  @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
+  @Logged(importance = Logged.Importance.DEBUG)
+  private boolean m_isSeeded = false;
 
   @Logged(importance = Logged.Importance.CRITICAL)
   private Angle turretTargetAngle = Degrees.of(0.0);
@@ -119,16 +121,19 @@ public class TurretSubsystem extends SubsystemBase {
 
   public TurretSubsystem(Telemetry telemetry) {
     this.telemetry = telemetry;
-    seedTurretPosition();
   }
 
   private void seedTurretPosition() {
+    m_isSeeded = true;
     this.potentiometerAngle = Degrees.of(-m_turretPotentiometer.get() + kTurretOffset);
     m_turretSMC.setEncoderPosition(this.potentiometerAngle);
   }
 
   @Override
   public void periodic() {
+    if (!m_isSeeded)
+      seedTurretPosition();
+
     this.updateTelemetry();
   }
 
@@ -147,7 +152,8 @@ public class TurretSubsystem extends SubsystemBase {
     return runOnce(() -> {
       m_isTeleop = false;
       turretTargetAngle = clampedAngle;
-    }).andThen(m_turret.runTo(clampedAngle, Degrees.of(0.1))).withName("TurretSetAngleCommand")
+    }).andThen(m_turret.runTo(clampedAngle, Degrees.of(0.1)))
+      .withName("TurretSetAngleCommand")
       .withTimeout(1.0);
   }
 
@@ -156,7 +162,8 @@ public class TurretSubsystem extends SubsystemBase {
     return runOnce(() -> {
       m_isTeleop = false;
       turretTargetAngle = clampedAngle;
-    }).andThen(m_turret.runTo(clampedAngle, tolerance)).withName("TurretSetAngleWithToleranceCommand")
+    }).andThen(m_turret.runTo(clampedAngle, tolerance))
+      .withName("TurretSetAngleWithToleranceCommand")
       .withTimeout(1.0);
   }
 
@@ -166,7 +173,8 @@ public class TurretSubsystem extends SubsystemBase {
         Angle clampedAngle = clampToTurretLimits(angleSupplier.get());
         turretTargetAngle = clampedAngle;
         return clampedAngle;
-      })).withName("TurretSetAngleSupplierCommand")
+      }))
+      .withName("TurretSetAngleSupplierCommand")
       .withTimeout(1.0);
   }
 
@@ -244,6 +252,11 @@ public class TurretSubsystem extends SubsystemBase {
   public Command seedTurretPositionCommand() {
     return runOnce(this::seedTurretPosition)
       .withName("SeedTurretPositionCommand");
+  }
+
+  /** Get the turret motor for health monitoring. */
+  public TalonFX getTurretMotor() {
+    return m_turretMotor;
   }
 
 }

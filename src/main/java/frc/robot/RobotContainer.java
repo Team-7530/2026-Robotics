@@ -51,6 +51,7 @@ public class RobotContainer {
   public final ShooterSubsystem shooter;
   public final RakeArmSubsystem rakeArm;
   public final RakeIntakeSubsystem rakeIntake;
+  public final HealthMonitoringSubsystem health;
 
   /* Path follower */
   private SendableChooser<Command> autoChooser;
@@ -65,6 +66,15 @@ public class RobotContainer {
     this.shooter = new ShooterSubsystem(drivetrain, logger);
     this.rakeArm = new RakeArmSubsystem();
     this.rakeIntake = new RakeIntakeSubsystem();
+    this.health = new HealthMonitoringSubsystem(logger, power);
+
+    // Register motors with health monitoring for current tracking
+    health.registerFlywheelMotors(shooter.flywheel.getFlywheelMasterMotor());
+    health.registerCollectorMotor(shooter.collector.getCollectorMotor());
+    health.registerFeederMotor(shooter.feeder.getFeederMotor());
+    health.registerTurretMotor(shooter.turret.getTurretMotor());
+    health.registerRakeArmMotor(rakeArm.getRakeArmMotor());
+    health.registerRakeIntakeMotor(rakeIntake.getRakeIntakeMotor());
 
     // disable all telemetry in the LiveWindow to reduce the processing during each iteration
     LiveWindow.disableAllTelemetry();

@@ -25,7 +25,11 @@ import java.util.Map;
 
 @Logged
 public class Telemetry {
-  @Logged(importance = Logged.Importance.DEBUG)
+  /**
+   * The maximum speed the drivetrain is currently allowed to achieve.
+   * Changes during the match (cruise/slow/max modes) are critical diagnostics.
+   */
+  @Logged(importance = Logged.Importance.INFO)
   private double m_maxSpeed;
   /** if true, debug values (marked by callers) will be published; otherwise
    * they are suppressed to save bandwidth/CPU during competition runs. */
@@ -55,9 +59,9 @@ public class Telemetry {
   private final DoublePublisher odomFreq = driveStats.getDoubleTopic("Odometry Frequency").publish();
 
   /* Keep a reference of the last pose to calculate the speeds */
-  @Logged(importance = Logged.Importance.INFO)
+  @Logged(importance = Logged.Importance.DEBUG)
   private Pose2d m_lastPose = new Pose2d();
-  @Logged(importance = Logged.Importance.INFO)
+  @Logged(importance = Logged.Importance.DEBUG)
   private double lastTime = Utils.getCurrentTimeSeconds();
 
   /* Mechanisms to represent the swerve module states */
@@ -212,10 +216,10 @@ public class Telemetry {
 
     // also publish the drivetrain maximum speed; this is used on the
     // competition layout so drivers know what the robot is currently allowed to do.
-    putNumber("DriveTrain/MaxSpeed", m_maxSpeed);
-    putNumber("DriveTrain/PoseX", m_poseX);
-    putNumber("DriveTrain/PoseY", m_poseY);
-    putNumber("DriveTrain/PoseTheta", m_poseRotation);
+    putNumber("DriveTrain/MaxSpeed", m_maxSpeed, true);
+    putNumber("DriveTrain/PoseX", m_poseX, true);
+    putNumber("DriveTrain/PoseY", m_poseY, true);
+    putNumber("DriveTrain/PoseTheta", m_poseRotation, true);
 
     /* Telemeterize the module's states */
     double moduleSpeedDenominator = Math.max(1e-6, 2.0 * m_maxSpeed);

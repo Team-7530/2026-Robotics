@@ -99,7 +99,7 @@ public class FlywheelSubsystem extends SubsystemBase {
 
   private final FlyWheel m_flywheel = new FlyWheel(m_flywheelConfig);
   
-  @Logged(importance = Logged.Importance.INFO)
+  @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
 
   public FlywheelSubsystem() {}
@@ -137,19 +137,23 @@ public class FlywheelSubsystem extends SubsystemBase {
   }
 
   public Command setVelocityCommand(AngularVelocity speed) {
-    return m_flywheel.setSpeed(speed).withName("FlywheelSetVelocityCommand");
+    return m_flywheel.setSpeed(speed)
+      .withName("FlywheelSetVelocityCommand");
   }
 
   public Command setVelocityCommand(Supplier<AngularVelocity> speed) {
-    return m_flywheel.setSpeed(speed).withName("FlywheelSetVelocitySupplierCommand");
+    return m_flywheel.setSpeed(speed)
+      .withName("FlywheelSetVelocitySupplierCommand");
   }
 
   public Command setDutyCycleCommand(double dutyCycle) {
-    return m_flywheel.set(dutyCycle).withName("FlywheelSetDutyCycleCommand");
+    return m_flywheel.set(dutyCycle)
+      .withName("FlywheelSetDutyCycleCommand");
   }
 
   public Command setDutyCycleCommand(Supplier<Double> dutyCycle) {
-    return m_flywheel.set(dutyCycle).withName("FlywheelSetDutyCycleSupplierCommand");
+    return m_flywheel.set(dutyCycle)
+      .withName("FlywheelSetDutyCycleSupplierCommand");
   }
 
   public Command sysIdCommand() {
@@ -208,5 +212,10 @@ public class FlywheelSubsystem extends SubsystemBase {
 
   private void updateTelemetry() {
     m_flywheel.updateTelemetry();
+  }
+
+  /** Get the master flywheel motor for health monitoring. */
+  public TalonFX getFlywheelMasterMotor() {
+    return m_flywheelMasterMotor;
   }
 }
