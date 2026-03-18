@@ -46,8 +46,7 @@ public class RobotContainer {
   // separate telemetry object if dynamic toggling is required.
   private final Telemetry logger = new Telemetry(
       DriveTrainConstants.maxSpeed.vxMetersPerSecond,
-      edu.wpi.first.wpilibj.DriverStation.isTest() ||
-          edu.wpi.first.wpilibj.RobotBase.isSimulation());
+      Constants.DEBUG_LOGGING || edu.wpi.first.wpilibj.RobotBase.isSimulation());
 
   /* Operator Interface */
   public OperatorInterface oi = new OperatorInterface() {};
