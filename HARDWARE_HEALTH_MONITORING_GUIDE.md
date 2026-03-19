@@ -119,18 +119,20 @@ Check health before executing critical operations:
 // In a targeting command or autonomous routine:
 public void execute() {
     if (robotContainer.healthMonitor.isOverallHealthy()) {
-        // Safe to operate
+        // All systems healthy - safe to operate
         shooter.aimAtHub();
     } else {
-        // Health issue detected - handle gracefully
-        System.err.println("⚠️ Hardware issue detected! Check diagnostics.");
+        // Hardware issue detected - drill down to identify the problem
+        System.err.println("⚠️ Hardware issue detected!");
         
-        // Can drill down to specific subsystems
         if (!robotContainer.healthMonitor.areAllMotorsHealthy()) {
-            DriverStation.reportWarning("Motor issue detected - check telemetry", false);
+            DriverStation.reportWarning("Motor stall/jam detected - check telemetry", false);
         }
         if (!robotContainer.healthMonitor.isBatteryHealthy()) {
-            DriverStation.reportWarning("Battery voltage critical - brownout risk", false);
+            DriverStation.reportWarning("Battery critical - brownout risk", false);
+        }
+        if (!robotContainer.healthMonitor.isCANBusHealthy()) {
+            DriverStation.reportWarning("CAN communication error - check wiring", false);
         }
     }
 }
@@ -152,37 +154,48 @@ t=5.24s   Health/Current/Turret = 92.3A
 
 ## Configuration
 
-Each subsystem's motor health threshold is a static constant in the subsystem class:
+Motor health thresholds are static constants defined in each subsystem class and passed to the factory method:
 
 ```java
 // In FlywheelSubsystem
-private static final double FLYWHEEL_STALL_THRESHOLD = 80.0;
+private static final double FLYWHEEL_STALL_THRESHOLD = 80.0;  // Kraken X60 warning threshold
+
+public FlywheelSubsystem(SystemHealthMonitor healthMonitor) {
+    this.masterMotorHealth = healthMonitor.createMotorHealthMonitor(
+        m_flywheelMasterMotor,
+        "Flywheel",
+        FLYWHEEL_STALL_THRESHOLD  // ← Pass threshold here
+    );
+}
 
 // In TurretSubsystem
 private static final double TURRET_STALL_THRESHOLD = 80.0;
 
-// In CollectorSubsystem
-private static final double COLLECTOR_STALL_THRESHOLD = 80.0;
-
-// ... etc for each subsystem
+public TurretSubsystem(SystemHealthMonitor healthMonitor) {
+    this.motorHealth = healthMonitor.createMotorHealthMonitor(
+        turretMotor,
+        "Turret",
+        TURRET_STALL_THRESHOLD
+    );
+}
 ```
 
-Power system thresholds are in `SystemHealthMonitor`:
+Power system thresholds are constants inside `SystemHealthMonitor`:
 
 ```java
-private static final double BROWNOUT_VOLTAGE_THRESHOLD = 6.5;      // Warning
-private static final double CRITICAL_VOLTAGE_THRESHOLD = 6.0;      // Critical
+private static final double BROWNOUT_VOLTAGE_THRESHOLD = 6.5;  // Warning level
+private static final double CRITICAL_VOLTAGE_THRESHOLD = 6.0;  // Critical level
 ```
 
 ### Tuning During Practice
 
 1. Enable `DEBUG_LOGGING = true` in `Constants.java`
 2. Run robot through all subsystem motions
-3. Watch `Health/Current/` telemetry entries
+3. Watch `Health/Motors/{Name}/Current` telemetry entries (only visible in DEBUG mode)
 4. Note maximum normal current for each motor:
-   - If motor never exceeds 50A, set threshold to 70A
-   - If collector stalls at 90A when jamming, set to 120A for margin
-5. Adjust thresholds based on observed data
+   - If motor never exceeds 50A, set threshold to 70A (margin for safety)
+   - If collector jams at 90A, set threshold to 120A (avoid false alarms during acceleration)
+5. Update subsystem threshold constants with observed data
 6. Set `DEBUG_LOGGING = false` before competition
 
 ### Kraken X60 Current Specifications
@@ -196,128 +209,145 @@ private static final double CRITICAL_VOLTAGE_THRESHOLD = 6.0;      // Critical
 
 ## How It Works
 
-### Architecture: Distributed Monitoring
+### Architecture: Distributed Monitoring with Factory Registration
 
-Rather than a centralized subsystem knowing about all motors, each subsystem monitors its own motors:
+Each subsystem monitors its own motors; the aggregator queries them all without needing explicit subsystem cooperation:
 
 ```
-1. Subsystem Initialization (RobotContainer constructor):
-   ├─ Create SystemHealthMonitor aggregator
-   ├─ Create subsystems (Flywheel, Turret, Collector, Feeder, RakeArm, RakeIntake)
-   │  └─ Each subsystem creates its own MotorHealthMonitor during __init__
-   └─ Register all monitors with aggregator
-      healthMonitor.registerMonitor(shooter.flywheel.getHealthMonitor());
-      healthMonitor.registerMonitor(shooter.turret.getHealthMonitor());
-      // ... etc
+1. Initialization (RobotContainer constructor):
+   
+   a) Create aggregator:
+      healthMonitor = new SystemHealthMonitor(logger)
+   
+   b) Create subsystems, each with aggregator reference:
+      shooter = new ShooterSubsystem(drivetrain, healthMonitor)
+      rakeArm = new RakeArmSubsystem(healthMonitor)
+      rakeIntake = new RakeIntakeSubsystem(healthMonitor)
+   
+   c) Within each subsystem constructor:
+      - Create TalonFX motor instance
+      - Call healthMonitor.createMotorHealthMonitor(motor, "Name", threshold)
+      - Factory method creates MotorHealthMonitor AND auto-registers it
+      → Result: All monitors are now registered with aggregator
 
 2. Per-Loop Periodic (50Hz):
    
    a) Subsystem periodic() runs first (in any order):
-      ├─ Flywheel: calls masterMotorHealth.update() → samples current
-      ├─ Turret: calls motorHealth.update() → samples current
-      ├─ Collector: calls motorHealth.update() → samples current
-      ├─ Feeder: calls motorHealth.update() → samples current
-      ├─ RakeArm: calls motorHealth.update() → samples current
-      └─ RakeIntake: calls motorHealth.update() → samples current
+      ├─ Flywheel.periodic(): masterMotorHealth.update()    [samples stator current]
+      ├─ Turret.periodic():   motorHealth.update()           [samples stator current]
+      ├─ Collector.periodic(): motorHealth.update()          [samples stator current]
+      ├─ Feeder.periodic():    motorHealth.update()          [samples stator current]
+      ├─ RakeArm.periodic():   motorHealth.update()          [samples stator current]
+      └─ RakeIntake.periodic(): motorHealth.update()         [samples stator current]
    
    b) SystemHealthMonitor.periodic() runs (via CommandScheduler):
       ├─ checkPowerSystem()
       │  ├─ Read battery voltage
-      │  ├─ Read CAN bus faults
+      │  ├─ Check CAN bus faults
       │  └─ Set battery_healthy, can_bus_healthy
       │
       ├─ updateOverallHealth()
       │  ├─ Query all motors: motorMonitors.stream().allMatch(m -> m.isHealthy())
-      │  └─ Aggregate: overall_healthy = allMotorsHealthy && battery_healthy && can_bus_healthy
+      │  ├─ Query custom checks: customHealthChecks.stream().allMatch(s -> s.get())
+      │  └─ Aggregate: overall_healthy = allMotorsHealthy && customHealthy && battery_healthy && can_bus_healthy
       │
       └─ publishTelemetry()
-         ├─ Health/Overall → overall_healthy
+         ├─ Health/Overall → overall_healthy        [driver sees this]
          ├─ Health/Battery → battery_healthy
          ├─ Health/CANBus → can_bus_healthy
-         └─ Health/Power/BatteryVoltage → battery_voltage
+         └─ Health/Power/BatteryVoltage → voltage
 ```
+
+### Key Design Advantages
+
+| Aspect | Benefit |
+|--------|---------|
+| **Factory Method** | Subsystems don't manually call `registerMonitor()` — auto-registration reduces boilerplate |
+| **Nested Class** | `MotorHealthMonitor` is non-static, so it has access to parent `SystemHealthMonitor` state if needed |
+| **Subsystem Ownership** | Each subsystem owns its monitor; motor references stay where they're used |
+| **No Circular Dependencies** | Subsystems don't need the aggregator to function; they only pass it during init for registration |
+| **Scalability** | New subsystems can add monitors without touching the aggregator code |
 
 ### Class Responsibilities
 
 | Class | Location | Responsibility |
 |-------|----------|-----------------|
-| `SystemHealthMonitor` | `frc.lib.util` | Aggregates health, monitors power system, publishes telemetry |
-| `SystemHealthMonitor.MotorHealthMonitor` | (nested static) | Monitors single motor current, detects stalls |
-| Each Subsystem | `frc.robot.subsystems` | Creates and updates its own MotorHealthMonitor |
+| `SystemHealthMonitor` | `frc.lib.util` | Aggregates health from all motors; monitors power system (battery, CAN); publishes overall health to dashboard; provides factory methods for subsystems |
+| `SystemHealthMonitor.MotorHealthMonitor` | (nested non-static) | Monitors single motor current; detects stalls/jams; owned and updated by each subsystem |
+| Each Subsystem | `frc.robot.subsystems` | Creates motor monitor via factory method; calls `update()` in periodic; owns its own motor(s) |
 
 ### Initialization (RobotContainer)
 
+The pattern is extremely clean: create the aggregator, then pass it to subsystems.
+
 ```java
 public class RobotContainer {
-    // ... other fields ...
-    
     public final SystemHealthMonitor healthMonitor;
     public final ShooterSubsystem shooter;
     public final RakeArmSubsystem rakeArm;
     public final RakeIntakeSubsystem rakeIntake;
     
     public RobotContainer() {
-        // 1. Create the system aggregator
-        this.healthMonitor = new SystemHealthMonitor(logger, power);
+        // 1. Create the system aggregator (aggregates and publishes health)
+        this.healthMonitor = new SystemHealthMonitor(logger);
         
-        // 2. Create subsystems (each creates its own motor monitor internally)
-        this.shooter = new ShooterSubsystem(drivetrain, logger);
-            // Internally creates monitors for Flywheel, Turret, Collector, Feeder
-            // but does NOT auto-register (passed null)
-        this.rakeArm = new RakeArmSubsystem(logger, healthMonitor);
-            // Creates monitor and auto-registers with aggregator
-        this.rakeIntake = new RakeIntakeSubsystem(logger, healthMonitor);
-            // Creates monitor and auto-registers with aggregator
+        // 2. Create subsystems, each passing the aggregator
+        //    (subsystems use factory method to auto-register their monitors)
+        this.shooter = new ShooterSubsystem(drivetrain, healthMonitor);
+        this.rakeArm = new RakeArmSubsystem(healthMonitor);
+        this.rakeIntake = new RakeIntakeSubsystem(healthMonitor);
         
-        // 3. Manually register shooter subsystem motors
-        //    (ShooterSubsystem contains nested subsystems)
-        healthMonitor.registerMonitor(shooter.flywheel.getHealthMonitor());
-        healthMonitor.registerMonitor(shooter.turret.getHealthMonitor());
-        healthMonitor.registerMonitor(shooter.collector.getHealthMonitor());
-        healthMonitor.registerMonitor(shooter.feeder.getHealthMonitor());
+        // That's it! All motors are now monitored and aggregated.
     }
 }
 ```
 
 ### Subsystem Pattern
 
-Each subsystem creates and owns a `MotorHealthMonitor`:
+Each subsystem creates and owns a `MotorHealthMonitor` via the factory method.
 
 ```java
-public class MySubsystem extends SubsystemBase {
-    private final TalonFX motor;
-    private final MotorHealthMonitor motorHealth;
+public class FlywheelSubsystem extends SubsystemBase {
+    private static final double FLYWHEEL_STALL_THRESHOLD = 80.0;  // Kraken X60 warning threshold
     
-    // Constructor signature: accepts optional healthMonitor aggregator
-    public MySubsystem(Telemetry telemetry, SystemHealthMonitor healthMonitor) {
-        this.motor = createMotor();  // CTRE Phoenix setup
+    private final TalonFX m_flywheelMasterMotor;
+    private final MotorHealthMonitor masterMotorHealth;
+    
+    /**
+     * Constructor accepts the system health monitor (aggregator).
+     * The subsystem will create its own motor monitor and auto-register it.
+     */
+    public FlywheelSubsystem(SystemHealthMonitor healthMonitor) {
+        this.m_flywheelMasterMotor = new TalonFX(FLYWHEEL_MASTER_ID, kCANBus);
         
-        // Create monitor for this motor
-        this.motorHealth = new SystemHealthMonitor.MotorHealthMonitor(
-            motor,
-            "MyMotorName",
-            telemetry,
-            80.0  // stall threshold in Amps
+        // Create a motor health monitor and auto-register with aggregator
+        // (using the factory method on the aggregator)
+        this.masterMotorHealth = healthMonitor.createMotorHealthMonitor(
+            m_flywheelMasterMotor,
+            "Flywheel",
+            FLYWHEEL_STALL_THRESHOLD
         );
-        
-        // Auto-register with aggregator (if provided)
-        if (healthMonitor != null) {
-            healthMonitor.registerMonitor(motorHealth);
-        }
     }
     
     @Override
     public void periodic() {
         // Update motor health (samples stator current each loop)
-        motorHealth.update();
+        masterMotorHealth.update();
         
         // ... rest of subsystem logic ...
     }
     
     public MotorHealthMonitor getHealthMonitor() {
-        return motorHealth;
+        return masterMotorHealth;
     }
 }
+```
+
+**Key Points:**
+- **Factory Method:** `healthMonitor.createMotorHealthMonitor()` creates AND auto-registers in one call
+- **Nested Class:** `MotorHealthMonitor` is a nested non-static class within `SystemHealthMonitor`
+- **Subsystem Owns Monitor:** Each subsystem creates and updates its own monitor via `update()` in periodic
+- **Single Dependency:** Subsystems only need the aggregator passed in constructor
 ```
 
 ---
