@@ -104,14 +104,14 @@ public class ShooterSubsystem extends SubsystemBase {
   @Logged(importance = Logged.Importance.CRITICAL)
   private Distance distanceToTarget = Meters.of(0);
 
-  public ShooterSubsystem(CommandSwerveDrivetrain drivetrain, Telemetry telemetry) {
+  public ShooterSubsystem(CommandSwerveDrivetrain drivetrain, SystemHealthMonitor healthMonitor) {
     this.drivetrain = drivetrain;
-    this.telemetry = telemetry;
+    this.telemetry = healthMonitor.telemetry;
     // Pass null for healthMonitor; RobotContainer will register monitors after subsystems are created
-    this.turret = new TurretSubsystem(telemetry, null);
-    this.flywheel = new FlywheelSubsystem(telemetry, null);
-    this.feeder = new FeederSubsystem(telemetry, null);
-    this.collector = new CollectorSubsystem(telemetry, null);
+    this.turret = new TurretSubsystem(healthMonitor);
+    this.flywheel = new FlywheelSubsystem(healthMonitor);
+    this.feeder = new FeederSubsystem(healthMonitor);
+    this.collector = new CollectorSubsystem(healthMonitor);
   }
   
   @Override

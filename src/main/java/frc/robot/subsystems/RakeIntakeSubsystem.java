@@ -29,7 +29,6 @@ import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-import frc.robot.Telemetry;
 import frc.lib.util.SystemHealthMonitor;
 import frc.lib.util.SystemHealthMonitor.MotorHealthMonitor;
 
@@ -109,25 +108,15 @@ public class RakeIntakeSubsystem extends SubsystemBase {
   // Health monitoring (owned by this subsystem, not central monitoring)
   private final MotorHealthMonitor motorHealth;
 
-  private final Telemetry telemetry;
-
   /**
    * Creates a new RakeIntakeSubsystem.
    * 
-   * @param telemetry the telemetry instance for health monitoring
    * @param healthMonitor the system health monitor to register with (pass null to skip registration)
    */
-  public RakeIntakeSubsystem(Telemetry telemetry, SystemHealthMonitor healthMonitor) {
-    this.telemetry = telemetry;
-    this.motorHealth = new MotorHealthMonitor(
-        m_rakeIntakeMotor,
-        "RakeIntake",
-        telemetry,
-        RAKEINTAKE_STALL_THRESHOLD
-    );
-    if (healthMonitor != null) {
-      healthMonitor.registerMonitor(motorHealth);
-    }
+  public RakeIntakeSubsystem(SystemHealthMonitor healthMonitor) {
+    this.motorHealth = healthMonitor.createMotorHealthMonitor(m_rakeIntakeMotor,
+                                                              "RakeIntake",
+                                                              RAKEINTAKE_STALL_THRESHOLD);
   }
 
   @Override
@@ -227,15 +216,4 @@ public class RakeIntakeSubsystem extends SubsystemBase {
   private void updateTelemetry() {
     m_rakeIntake.updateTelemetry();
   }
-
-  /** Get the rake intake motor for health monitoring. */
-  public TalonFX getRakeIntakeMotor() {
-    return m_rakeIntakeMotor;
-  }
-
-  /** Get the health monitor for this subsystem. */
-  public MotorHealthMonitor getHealthMonitor() {
-    return motorHealth;
-  }
-
 }

@@ -8,7 +8,6 @@ import com.pathplanner.lib.commands.PathfindingCommand;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.livewindow.LiveWindow;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
@@ -20,13 +19,15 @@ import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj2.command.Commands;
+
+import frc.lib.util.SystemHealthMonitor;
+
 import frc.robot.Constants.DriveTrainConstants;
 import frc.robot.commands.*;
 import frc.robot.generated.TunerConstants;
 import frc.robot.operator_interface.OISelector;
 import frc.robot.operator_interface.OperatorInterface;
 import frc.robot.subsystems.*;
-import frc.lib.util.SystemHealthMonitor;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -46,7 +47,6 @@ public class RobotContainer {
   public OperatorInterface oi = new OperatorInterface() {};
 
   /* Subsystems */
-  public final PowerDistribution power;
   public final CommandSwerveDrivetrain drivetrain;
   public final VisionSubsystem vision;
   public final ShooterSubsystem shooter;
@@ -61,19 +61,13 @@ public class RobotContainer {
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    this.power = new PowerDistribution();
+    this.healthMonitor = new SystemHealthMonitor(logger);
+
     this.drivetrain = TunerConstants.createDrivetrain();
     this.vision = new VisionSubsystem(logger);
-    this.shooter = new ShooterSubsystem(drivetrain, logger);
-    this.healthMonitor = new SystemHealthMonitor(logger, power);
-    this.rakeArm = new RakeArmSubsystem(logger, healthMonitor);
-    this.rakeIntake = new RakeIntakeSubsystem(logger, healthMonitor);
-
-    // Register all motor health monitors with the system health monitor
-    healthMonitor.registerMonitor(shooter.flywheel.getHealthMonitor());
-    healthMonitor.registerMonitor(shooter.turret.getHealthMonitor());
-    healthMonitor.registerMonitor(shooter.collector.getHealthMonitor());
-    healthMonitor.registerMonitor(shooter.feeder.getHealthMonitor());
+    this.shooter = new ShooterSubsystem(drivetrain, healthMonitor);
+    this.rakeArm = new RakeArmSubsystem(healthMonitor);
+    this.rakeIntake = new RakeIntakeSubsystem(healthMonitor);
 
     // disable all telemetry in the LiveWindow to reduce the processing during each iteration
     LiveWindow.disableAllTelemetry();

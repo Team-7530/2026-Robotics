@@ -127,17 +127,11 @@ public class TurretSubsystem extends SubsystemBase {
   // Health monitoring (owned by this subsystem, not central monitoring)
   private final MotorHealthMonitor motorHealth;
 
-  public TurretSubsystem(Telemetry telemetry, SystemHealthMonitor healthMonitor) {
-    this.telemetry = telemetry;
-    this.motorHealth = new MotorHealthMonitor(
-        m_turretMotor,
-        "Turret",
-        telemetry,
-        TURRET_STALL_THRESHOLD
-    );
-    if (healthMonitor != null) {
-      healthMonitor.registerMonitor(motorHealth);
-    }
+  public TurretSubsystem(SystemHealthMonitor healthMonitor) {
+    this.telemetry = healthMonitor.telemetry;
+    this.motorHealth = healthMonitor.createMotorHealthMonitor(m_turretMotor,
+                                                              "Turret",
+                                                              TURRET_STALL_THRESHOLD);
   }
 
   private void seedTurretPosition() {
@@ -271,15 +265,4 @@ public class TurretSubsystem extends SubsystemBase {
     return runOnce(this::seedTurretPosition)
       .withName("SeedTurretPositionCommand");
   }
-
-  /** Get the turret motor for health monitoring. */
-  public TalonFX getTurretMotor() {
-    return m_turretMotor;
-  }
-
-  /** Get the health monitor for this subsystem. */
-  public MotorHealthMonitor getHealthMonitor() {
-    return motorHealth;
-  }
-
 }

@@ -22,7 +22,7 @@ import frc.robot.Telemetry;
  */
 @Logged
 public class HealthMonitoringSubsystem extends SubsystemBase {
-  private final Telemetry telemetry;
+  public final Telemetry telemetry;
   private final PowerDistribution pdp;
 
   // Motor current thresholds (in Amps)

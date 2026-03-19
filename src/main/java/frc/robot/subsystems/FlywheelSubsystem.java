@@ -30,7 +30,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.math.Pair;
 
-import frc.robot.Telemetry;
 import frc.lib.util.SystemHealthMonitor;
 import frc.lib.util.SystemHealthMonitor.MotorHealthMonitor;
 
@@ -112,25 +111,15 @@ public class FlywheelSubsystem extends SubsystemBase {
   @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
 
-  private final Telemetry telemetry;
-
   /**
    * Creates a new FlywheelSubsystem.
    * 
-   * @param telemetry the telemetry instance for health monitoring
    * @param healthMonitor the system health monitor to register with (pass null to skip registration)
    */
-  public FlywheelSubsystem(Telemetry telemetry, SystemHealthMonitor healthMonitor) {
-    this.telemetry = telemetry;
-    this.masterMotorHealth = new MotorHealthMonitor(
-        m_flywheelMasterMotor,
-        "Flywheel",
-        telemetry,
-        FLYWHEEL_STALL_THRESHOLD
-    );
-    if (healthMonitor != null) {
-      healthMonitor.registerMonitor(masterMotorHealth);
-    }
+  public FlywheelSubsystem(SystemHealthMonitor healthMonitor) {
+    this.masterMotorHealth = healthMonitor.createMotorHealthMonitor(m_flywheelMasterMotor,
+                                                                    "Flywheel",
+                                                                    FLYWHEEL_STALL_THRESHOLD);
   }
 
   @Override
@@ -242,15 +231,5 @@ public class FlywheelSubsystem extends SubsystemBase {
 
   private void updateTelemetry() {
     m_flywheel.updateTelemetry();
-  }
-
-  /** Get the master flywheel motor for health monitoring. */
-  public TalonFX getFlywheelMasterMotor() {
-    return m_flywheelMasterMotor;
-  }
-
-  /** Get the health monitor for this subsystem. */
-  public MotorHealthMonitor getHealthMonitor() {
-    return masterMotorHealth;
   }
 }

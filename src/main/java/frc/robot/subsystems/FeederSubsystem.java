@@ -29,7 +29,6 @@ import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-import frc.robot.Telemetry;
 import frc.lib.util.SystemHealthMonitor;
 import frc.lib.util.SystemHealthMonitor.MotorHealthMonitor;
 
@@ -109,25 +108,15 @@ public class FeederSubsystem extends SubsystemBase {
   // Health monitoring (owned by this subsystem, not central monitoring)
   private final MotorHealthMonitor motorHealth;
 
-  private final Telemetry telemetry;
-
   /**
    * Creates a new FeederSubsystem.
    * 
-   * @param telemetry the telemetry instance for health monitoring
    * @param healthMonitor the system health monitor to register with (pass null to skip registration)
    */
-  public FeederSubsystem(Telemetry telemetry, SystemHealthMonitor healthMonitor) {
-    this.telemetry = telemetry;
-    this.motorHealth = new MotorHealthMonitor(
-        m_feederMotor,
-        "Feeder",
-        telemetry,
-        FEEDER_STALL_THRESHOLD
-    );
-    if (healthMonitor != null) {
-      healthMonitor.registerMonitor(motorHealth);
-    }
+  public FeederSubsystem(SystemHealthMonitor healthMonitor) {
+    this.motorHealth = healthMonitor.createMotorHealthMonitor(m_feederMotor,
+                                                              "Feeder",
+                                                              FEEDER_STALL_THRESHOLD);
   }
 
   @Override
@@ -226,15 +215,5 @@ public class FeederSubsystem extends SubsystemBase {
 
   private void updateTelemetry() {
     m_feeder.updateTelemetry();
-  }
-
-  /** Get the feeder motor for health monitoring. */
-  public TalonFX getFeederMotor() {
-    return m_feederMotor;
-  }
-
-  /** Get the health monitor for this subsystem. */
-  public MotorHealthMonitor getHealthMonitor() {
-    return motorHealth;
   }
 }

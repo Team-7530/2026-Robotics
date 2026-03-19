@@ -29,7 +29,6 @@ import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
 import yams.motorcontrollers.remote.TalonFXWrapper;
 
-import frc.robot.Telemetry;
 import frc.lib.util.SystemHealthMonitor;
 import frc.lib.util.SystemHealthMonitor.MotorHealthMonitor;
 
@@ -117,25 +116,15 @@ public class RakeArmSubsystem extends SubsystemBase {
   // Health monitoring (owned by this subsystem, not central monitoring)
   private final MotorHealthMonitor motorHealth;
 
-  private final Telemetry telemetry;
-
   /**
    * Creates a new RakeArmSubsystem.
    * 
-   * @param telemetry the telemetry instance for health monitoring
    * @param healthMonitor the system health monitor to register with (pass null to skip registration)
    */
-  public RakeArmSubsystem(Telemetry telemetry, SystemHealthMonitor healthMonitor) {
-    this.telemetry = telemetry;
-    this.motorHealth = new MotorHealthMonitor(
-        m_rakeArmMotor,
-        "RakeArm",
-        telemetry,
-        RAKEARM_STALL_THRESHOLD
-    );
-    if (healthMonitor != null) {
-      healthMonitor.registerMonitor(motorHealth);
-    }
+  public RakeArmSubsystem(SystemHealthMonitor healthMonitor) {
+    this.motorHealth = healthMonitor.createMotorHealthMonitor(m_rakeArmMotor,
+                                                              "RakeArm",
+                                                              RAKEARM_STALL_THRESHOLD);
   }
     
   @Override
@@ -224,15 +213,5 @@ public class RakeArmSubsystem extends SubsystemBase {
 
   private void updateTelemetry() {
     m_rakeArm.updateTelemetry();
-  }
-
-  /** Get the rake arm motor for health monitoring. */
-  public TalonFX getRakeArmMotor() {
-    return m_rakeArmMotor;
-  }
-
-  /** Get the health monitor for this subsystem. */
-  public MotorHealthMonitor getHealthMonitor() {
-    return motorHealth;
   }
 }
