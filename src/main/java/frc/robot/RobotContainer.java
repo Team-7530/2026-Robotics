@@ -26,7 +26,7 @@ import frc.robot.generated.TunerConstants;
 import frc.robot.operator_interface.OISelector;
 import frc.robot.operator_interface.OperatorInterface;
 import frc.robot.subsystems.*;
-import frc.robot.util.SystemHealthAggregator;
+import frc.lib.util.SystemHealthMonitor;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -52,7 +52,7 @@ public class RobotContainer {
   public final ShooterSubsystem shooter;
   public final RakeArmSubsystem rakeArm;
   public final RakeIntakeSubsystem rakeIntake;
-  public final SystemHealthAggregator healthAggregator;
+  public final SystemHealthMonitor healthMonitor;
 
   /* Path follower */
   private SendableChooser<Command> autoChooser;
@@ -65,17 +65,15 @@ public class RobotContainer {
     this.drivetrain = TunerConstants.createDrivetrain();
     this.vision = new VisionSubsystem(logger);
     this.shooter = new ShooterSubsystem(drivetrain, logger);
-    this.rakeArm = new RakeArmSubsystem(logger);
-    this.rakeIntake = new RakeIntakeSubsystem(logger);
-    this.healthAggregator = new SystemHealthAggregator(logger, power);
+    this.healthMonitor = new SystemHealthMonitor(logger, power);
+    this.rakeArm = new RakeArmSubsystem(logger, healthMonitor);
+    this.rakeIntake = new RakeIntakeSubsystem(logger, healthMonitor);
 
-    // Register all motor health monitors with the system aggregator
-    healthAggregator.registerMonitor(shooter.flywheel.getHealthMonitor());
-    healthAggregator.registerMonitor(shooter.turret.getHealthMonitor());
-    healthAggregator.registerMonitor(shooter.collector.getHealthMonitor());
-    healthAggregator.registerMonitor(shooter.feeder.getHealthMonitor());
-    healthAggregator.registerMonitor(rakeArm.getHealthMonitor());
-    healthAggregator.registerMonitor(rakeIntake.getHealthMonitor());
+    // Register all motor health monitors with the system health monitor
+    healthMonitor.registerMonitor(shooter.flywheel.getHealthMonitor());
+    healthMonitor.registerMonitor(shooter.turret.getHealthMonitor());
+    healthMonitor.registerMonitor(shooter.collector.getHealthMonitor());
+    healthMonitor.registerMonitor(shooter.feeder.getHealthMonitor());
 
     // disable all telemetry in the LiveWindow to reduce the processing during each iteration
     LiveWindow.disableAllTelemetry();

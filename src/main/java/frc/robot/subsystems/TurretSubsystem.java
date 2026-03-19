@@ -4,7 +4,8 @@ import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.*;
 
 import frc.robot.Telemetry;
-import frc.robot.util.MotorHealthMonitor;
+import frc.lib.util.SystemHealthMonitor;
+import frc.lib.util.SystemHealthMonitor.MotorHealthMonitor;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.CANBus;
@@ -126,7 +127,7 @@ public class TurretSubsystem extends SubsystemBase {
   // Health monitoring (owned by this subsystem, not central monitoring)
   private final MotorHealthMonitor motorHealth;
 
-  public TurretSubsystem(Telemetry telemetry) {
+  public TurretSubsystem(Telemetry telemetry, SystemHealthMonitor healthMonitor) {
     this.telemetry = telemetry;
     this.motorHealth = new MotorHealthMonitor(
         m_turretMotor,
@@ -134,6 +135,9 @@ public class TurretSubsystem extends SubsystemBase {
         telemetry,
         TURRET_STALL_THRESHOLD
     );
+    if (healthMonitor != null) {
+      healthMonitor.registerMonitor(motorHealth);
+    }
   }
 
   private void seedTurretPosition() {

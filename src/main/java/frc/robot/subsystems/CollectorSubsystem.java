@@ -30,7 +30,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.Telemetry;
-import frc.robot.util.MotorHealthMonitor;
+import frc.lib.util.SystemHealthMonitor;
+import frc.lib.util.SystemHealthMonitor.MotorHealthMonitor;
 
 // Moves Fuel through the collector rollers.
 @Logged
@@ -113,8 +114,9 @@ public class CollectorSubsystem extends SubsystemBase {
    * Creates a new CollectorSubsystem.
    * 
    * @param telemetry the telemetry instance for health monitoring
+   * @param healthMonitor the system health monitor to register with (pass null to skip registration)
    */
-  public CollectorSubsystem(Telemetry telemetry) {
+  public CollectorSubsystem(Telemetry telemetry, SystemHealthMonitor healthMonitor) {
     this.telemetry = telemetry;
     this.motorHealth = new MotorHealthMonitor(
         m_collectorMotor,
@@ -122,6 +124,9 @@ public class CollectorSubsystem extends SubsystemBase {
         telemetry,
         COLLECTOR_STALL_THRESHOLD
     );
+    if (healthMonitor != null) {
+      healthMonitor.registerMonitor(motorHealth);
+    }
   }
 
   @Override

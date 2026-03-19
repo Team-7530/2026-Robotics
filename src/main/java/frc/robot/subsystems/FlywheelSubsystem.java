@@ -31,7 +31,8 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.math.Pair;
 
 import frc.robot.Telemetry;
-import frc.robot.util.MotorHealthMonitor;
+import frc.lib.util.SystemHealthMonitor;
+import frc.lib.util.SystemHealthMonitor.MotorHealthMonitor;
 
 // Drives the main shooter flywheel.
 @Logged
@@ -68,8 +69,6 @@ public class FlywheelSubsystem extends SubsystemBase {
 
   // Health monitoring (owned by this subsystem, not central monitoring)
   private final MotorHealthMonitor masterMotorHealth;
-
-  private final Telemetry telemetry;
 
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
       .withControlMode(ControlMode.CLOSED_LOOP)
@@ -113,19 +112,25 @@ public class FlywheelSubsystem extends SubsystemBase {
   @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
 
+  private final Telemetry telemetry;
+
   /**
    * Creates a new FlywheelSubsystem.
    * 
    * @param telemetry the telemetry instance for health monitoring
+   * @param healthMonitor the system health monitor to register with (pass null to skip registration)
    */
-  public FlywheelSubsystem(Telemetry telemetry) {
+  public FlywheelSubsystem(Telemetry telemetry, SystemHealthMonitor healthMonitor) {
     this.telemetry = telemetry;
     this.masterMotorHealth = new MotorHealthMonitor(
-        m_flywheelMasterMotor, 
-        "Flywheel", 
-        telemetry, 
+        m_flywheelMasterMotor,
+        "Flywheel",
+        telemetry,
         FLYWHEEL_STALL_THRESHOLD
     );
+    if (healthMonitor != null) {
+      healthMonitor.registerMonitor(masterMotorHealth);
+    }
   }
 
   @Override

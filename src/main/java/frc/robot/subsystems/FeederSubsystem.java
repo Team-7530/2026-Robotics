@@ -30,7 +30,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.Telemetry;
-import frc.robot.util.MotorHealthMonitor;
+import frc.lib.util.SystemHealthMonitor;
+import frc.lib.util.SystemHealthMonitor.MotorHealthMonitor;
 
 // Feeds Fuel from the hopper into the shooter flywheel.
 @Logged
@@ -114,8 +115,9 @@ public class FeederSubsystem extends SubsystemBase {
    * Creates a new FeederSubsystem.
    * 
    * @param telemetry the telemetry instance for health monitoring
+   * @param healthMonitor the system health monitor to register with (pass null to skip registration)
    */
-  public FeederSubsystem(Telemetry telemetry) {
+  public FeederSubsystem(Telemetry telemetry, SystemHealthMonitor healthMonitor) {
     this.telemetry = telemetry;
     this.motorHealth = new MotorHealthMonitor(
         m_feederMotor,
@@ -123,6 +125,9 @@ public class FeederSubsystem extends SubsystemBase {
         telemetry,
         FEEDER_STALL_THRESHOLD
     );
+    if (healthMonitor != null) {
+      healthMonitor.registerMonitor(motorHealth);
+    }
   }
 
   @Override

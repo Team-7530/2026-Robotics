@@ -4,6 +4,7 @@ import static edu.wpi.first.units.Units.*;
 
 import frc.robot.Constants;
 import frc.robot.Telemetry;
+import frc.lib.util.SystemHealthMonitor;
 import java.util.function.Supplier;
 
 import edu.wpi.first.epilogue.Logged;
@@ -106,10 +107,11 @@ public class ShooterSubsystem extends SubsystemBase {
   public ShooterSubsystem(CommandSwerveDrivetrain drivetrain, Telemetry telemetry) {
     this.drivetrain = drivetrain;
     this.telemetry = telemetry;
-    this.turret = new TurretSubsystem(telemetry);
-    this.flywheel = new FlywheelSubsystem(telemetry);
-    this.feeder = new FeederSubsystem(telemetry);
-    this.collector = new CollectorSubsystem(telemetry);
+    // Pass null for healthMonitor; RobotContainer will register monitors after subsystems are created
+    this.turret = new TurretSubsystem(telemetry, null);
+    this.flywheel = new FlywheelSubsystem(telemetry, null);
+    this.feeder = new FeederSubsystem(telemetry, null);
+    this.collector = new CollectorSubsystem(telemetry, null);
   }
   
   @Override

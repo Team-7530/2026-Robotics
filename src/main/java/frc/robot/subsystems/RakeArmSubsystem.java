@@ -30,7 +30,8 @@ import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
 import yams.motorcontrollers.remote.TalonFXWrapper;
 
 import frc.robot.Telemetry;
-import frc.robot.util.MotorHealthMonitor;
+import frc.lib.util.SystemHealthMonitor;
+import frc.lib.util.SystemHealthMonitor.MotorHealthMonitor;
 
 @Logged
 public class RakeArmSubsystem extends SubsystemBase {
@@ -122,8 +123,9 @@ public class RakeArmSubsystem extends SubsystemBase {
    * Creates a new RakeArmSubsystem.
    * 
    * @param telemetry the telemetry instance for health monitoring
+   * @param healthMonitor the system health monitor to register with (pass null to skip registration)
    */
-  public RakeArmSubsystem(Telemetry telemetry) {
+  public RakeArmSubsystem(Telemetry telemetry, SystemHealthMonitor healthMonitor) {
     this.telemetry = telemetry;
     this.motorHealth = new MotorHealthMonitor(
         m_rakeArmMotor,
@@ -131,6 +133,9 @@ public class RakeArmSubsystem extends SubsystemBase {
         telemetry,
         RAKEARM_STALL_THRESHOLD
     );
+    if (healthMonitor != null) {
+      healthMonitor.registerMonitor(motorHealth);
+    }
   }
     
   @Override

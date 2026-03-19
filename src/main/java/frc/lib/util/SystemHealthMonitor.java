@@ -1,9 +1,10 @@
-package frc.robot.util;
+package frc.lib.util;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
+import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotController;
@@ -11,11 +12,12 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Telemetry;
 
 /**
- * SystemHealthAggregator is a subsystem that aggregates health checks from throughout
- * the robot and provides a single "overall health" status for the driver.
+ * SystemHealthMonitor is a comprehensive health monitoring subsystem that aggregates
+ * health checks from throughout the robot and provides a single "overall health" status
+ * for the driver.
  *
  * This subsystem collects health from:
- * - Individual motor monitors registered by each subsystem
+ * - Individual motor monitors (via nested MotorHealthMonitor.create() factory)
  * - Power system checks (battery voltage, CAN errors)
  * - Custom health suppliers from any subsystem
  *
@@ -32,16 +34,23 @@ import frc.robot.Telemetry;
  *
  * USAGE:
  * In RobotContainer:
- *   SystemHealthAggregator aggregator = new SystemHealthAggregator(telemetry, pdp);
- *   aggregator.registerMonitor(flywheelMonitor);
- *   aggregator.registerMonitor(turretMonitor);
- *   // ... register other monitors ...
- *   addPeriodic(aggregator::periodic, 0.02);
+ *   SystemHealthMonitor monitor = new SystemHealthMonitor(telemetry, pdp);
  *
- * The aggregator will periodically query all monitors and publish overall health.
+ * In a subsystem:
+ *   private final MotorHealthMonitor flywheelMonitor = MotorHealthMonitor.create(
+ *       master, "Flywheel", telemetry, 80.0, monitor);
+ *
+ *   @Override
+ *   public void periodic() {
+ *     flywheelMonitor.update();
+ *     // ... existing motor control logic ...
+ *   }
+ *
+ * The monitor will periodically query all registered motor monitors and publish
+ * overall health to the dashboard and logs.
  */
 @Logged
-public class SystemHealthAggregator extends SubsystemBase {
+public class SystemHealthMonitor extends SubsystemBase {
   private final Telemetry telemetry;
   private final PowerDistribution pdp;
 
@@ -71,14 +80,14 @@ public class SystemHealthAggregator extends SubsystemBase {
   private static final double BROWNOUT_VOLTAGE_THRESHOLD = 6.5;
   private static final double CRITICAL_VOLTAGE_THRESHOLD = 6.0;
 
-  public SystemHealthAggregator(Telemetry telemetry, PowerDistribution pdp) {
+  public SystemHealthMonitor(Telemetry telemetry, PowerDistribution pdp) {
     this.telemetry = telemetry;
     this.pdp = pdp;
   }
 
   /**
    * Register a motor health monitor for aggregation.
-   * Typically called during subsystem initialization.
+   * Typically called when creating a MotorHealthMonitor via the factory method.
    *
    * @param monitor MotorHealthMonitor instance from a subsystem
    */
@@ -234,5 +243,162 @@ public class SystemHealthAggregator extends SubsystemBase {
    */
   public int getMonitorCount() {
     return motorMonitors.size();
+  }
+
+  // ========== NESTED MotorHealthMonitor CLASS ==========
+
+  /**
+   * MotorHealthMonitor tracks the health of a single motor controller.
+   *
+   * This nested helper class is designed to be owned by and instantiated within a subsystem,
+   * allowing each subsystem to be responsible for monitoring its own motors. This follows
+   * the Single Responsibility Principle: each subsystem owns its hardware and diagnostics.
+   *
+   * USAGE:
+   * In your subsystem constructor:
+   * ```
+   * public class FlywheelSubsystem extends SubsystemBase {
+   *   private final TalonFX master;
+   *   private final MotorHealthMonitor masterMonitor;
+   *
+   *   public FlywheelSubsystem(Telemetry telemetry, SystemHealthMonitor monitor) {
+   *     master = new TalonFX(...);
+   *     masterMonitor = MotorHealthMonitor.create(master, "Flywheel", telemetry, 80.0, monitor);
+   *   }
+   *
+   *   @Override
+   *   public void periodic() {
+   *     masterMonitor.update();
+   *   }
+   *
+   *   public MotorHealthMonitor getHealthMonitor() { return masterMonitor; }
+   * }
+   * ```
+   *
+   * The aggregator (SystemHealthMonitor) periodically queries all registered monitors
+   * to compute system-wide health without needing each subsystem to report back to a
+   * central authority.
+   */
+  public static class MotorHealthMonitor {
+    private final TalonFX motor;
+    private final String motorName;
+    private final Telemetry telemetry;
+    private final double stallCurrentThreshold;
+
+    // Current health state
+    private boolean healthy = true;
+    private double currentAmps = 0.0;
+
+    /**
+     * Create a health monitor for a motor and automatically register it with the system monitor.
+     *
+     * @param motor The TalonFX motor controller to monitor
+     * @param motorName Display name for telemetry (e.g., "Flywheel", "Turret", "Collector")
+     * @param telemetry Telemetry instance for logging health data
+     * @param stallCurrentThreshold Current in amps above which the motor is considered unhealthy
+     *                             (e.g., 80A for Kraken X60 as a jam indicator)
+     * @param systemMonitor The SystemHealthMonitor to register this monitor with
+     * @return A new MotorHealthMonitor instance registered with the system monitor
+     */
+    public static MotorHealthMonitor create(
+        TalonFX motor,
+        String motorName,
+        Telemetry telemetry,
+        double stallCurrentThreshold,
+        SystemHealthMonitor systemMonitor) {
+      MotorHealthMonitor monitor = new MotorHealthMonitor(motor, motorName, telemetry, stallCurrentThreshold);
+      systemMonitor.registerMonitor(monitor);
+      return monitor;
+    }
+
+    /**
+     * Create a health monitor for a motor without automatic registration.
+     * Useful if you want to manage registration manually.
+     *
+     * @param motor The TalonFX motor controller to monitor
+     * @param motorName Display name for telemetry (e.g., "Flywheel", "Turret", "Collector")
+     * @param telemetry Telemetry instance for logging health data
+     * @param stallCurrentThreshold Current in amps above which the motor is considered unhealthy
+     * @return A new MotorHealthMonitor instance
+     */
+    public static MotorHealthMonitor createUnregistered(
+        TalonFX motor,
+        String motorName,
+        Telemetry telemetry,
+        double stallCurrentThreshold) {
+      return new MotorHealthMonitor(motor, motorName, telemetry, stallCurrentThreshold);
+    }
+
+    /**
+     * Public constructor for direct use by subsystems.
+     * Subsystems can instantiate monitors directly and register them manually, or use the factory
+     * methods create() and createUnregistered() for convenience.
+     */
+    public MotorHealthMonitor(TalonFX motor, String motorName, Telemetry telemetry, double stallCurrentThreshold) {
+      this.motor = motor;
+      this.motorName = motorName;
+      this.telemetry = telemetry;
+      this.stallCurrentThreshold = stallCurrentThreshold;
+    }
+
+    /**
+     * Sample the motor's stator current and update health status.
+     * Call this from your subsystem's periodic() method (typically alongside updateTelemetry()).
+     *
+     * High current can indicate:
+     * - Mechanical jam or obstruction
+     * - Motor stall condition
+     * - Loss of power (internal fault)
+     * - Disconnected motor
+     */
+    public void update() {
+      if (motor == null) {
+        healthy = false;
+        return;
+      }
+
+      currentAmps = motor.getStatorCurrent().getValueAsDouble();
+      healthy = (currentAmps < stallCurrentThreshold);
+
+      // Always log current (helps with competition diagnostics)
+      telemetry.putNumber("Health/Motors/" + motorName + "/Current", currentAmps, true);
+      telemetry.putBoolean("Health/Motors/" + motorName + "/OK", healthy, true);
+    }
+
+    /**
+     * Query whether this motor is currently healthy.
+     *
+     * @return true if current is below threshold, false otherwise
+     */
+    public boolean isHealthy() {
+      return healthy;
+    }
+
+    /**
+     * Get the last sampled stator current in amps.
+     *
+     * @return Motor stator current (only valid after calling update())
+     */
+    public double getCurrentAmps() {
+      return currentAmps;
+    }
+
+    /**
+     * Get the motor name for display/logging.
+     *
+     * @return Display name (e.g., "Flywheel")
+     */
+    public String getMotorName() {
+      return motorName;
+    }
+
+    /**
+     * Get the stall current threshold.
+     *
+     * @return Threshold in amps
+     */
+    public double getThreshold() {
+      return stallCurrentThreshold;
+    }
   }
 }

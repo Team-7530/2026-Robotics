@@ -30,7 +30,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.Telemetry;
-import frc.robot.util.MotorHealthMonitor;
+import frc.lib.util.SystemHealthMonitor;
+import frc.lib.util.SystemHealthMonitor.MotorHealthMonitor;
 
 // Powers the rake intake rollers.
 @Logged
@@ -114,8 +115,9 @@ public class RakeIntakeSubsystem extends SubsystemBase {
    * Creates a new RakeIntakeSubsystem.
    * 
    * @param telemetry the telemetry instance for health monitoring
+   * @param healthMonitor the system health monitor to register with (pass null to skip registration)
    */
-  public RakeIntakeSubsystem(Telemetry telemetry) {
+  public RakeIntakeSubsystem(Telemetry telemetry, SystemHealthMonitor healthMonitor) {
     this.telemetry = telemetry;
     this.motorHealth = new MotorHealthMonitor(
         m_rakeIntakeMotor,
@@ -123,6 +125,9 @@ public class RakeIntakeSubsystem extends SubsystemBase {
         telemetry,
         RAKEINTAKE_STALL_THRESHOLD
     );
+    if (healthMonitor != null) {
+      healthMonitor.registerMonitor(motorHealth);
+    }
   }
 
   @Override
