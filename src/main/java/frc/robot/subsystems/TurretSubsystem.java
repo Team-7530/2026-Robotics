@@ -4,6 +4,7 @@ import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.*;
 
 import frc.robot.Telemetry;
+import frc.robot.util.MotorHealthMonitor;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.CANBus;
@@ -64,6 +65,9 @@ public class TurretSubsystem extends SubsystemBase {
 
   private static final double kTurretTeleopSpeed = 0.8;
   
+  // Motor health monitoring threshold
+  private static final double TURRET_STALL_THRESHOLD = 80.0;  // Kraken X60 warning at 80A
+  
   // TalonFX hardware + YAMS controller
   private final TalonFX m_turretMotor = new TalonFX(TURRET_MASTER_ID, kCANBus);
 
@@ -119,8 +123,17 @@ public class TurretSubsystem extends SubsystemBase {
   @Logged(importance = Logged.Importance.CRITICAL)
   private Angle potentiometerAngle = Degrees.of(0.0);
 
+  // Health monitoring (owned by this subsystem, not central monitoring)
+  private final MotorHealthMonitor motorHealth;
+
   public TurretSubsystem(Telemetry telemetry) {
     this.telemetry = telemetry;
+    this.motorHealth = new MotorHealthMonitor(
+        m_turretMotor,
+        "Turret",
+        telemetry,
+        TURRET_STALL_THRESHOLD
+    );
   }
 
   private void seedTurretPosition() {
@@ -134,6 +147,7 @@ public class TurretSubsystem extends SubsystemBase {
     if (!m_isSeeded)
       seedTurretPosition();
 
+    motorHealth.update();
     this.updateTelemetry();
   }
 
@@ -257,6 +271,11 @@ public class TurretSubsystem extends SubsystemBase {
   /** Get the turret motor for health monitoring. */
   public TalonFX getTurretMotor() {
     return m_turretMotor;
+  }
+
+  /** Get the health monitor for this subsystem. */
+  public MotorHealthMonitor getHealthMonitor() {
+    return motorHealth;
   }
 
 }

@@ -29,6 +29,9 @@ import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
+import frc.robot.Telemetry;
+import frc.robot.util.MotorHealthMonitor;
+
 // Feeds Fuel from the hopper into the shooter flywheel.
 @Logged
 public class FeederSubsystem extends SubsystemBase {
@@ -55,6 +58,9 @@ public class FeederSubsystem extends SubsystemBase {
   private static final AngularVelocity feederUnstuckVelocity = RPM.of(-2000);
     
   private static final double kFeederTeleopFactor = 0.8;
+
+  // Motor health monitoring threshold
+  private static final double FEEDER_STALL_THRESHOLD = 80.0;  // Kraken X60 warning at 80A
 
   // TalonFX hardware instance (kept for wrapper)
   private final TalonFX m_feederMotor = new TalonFX(FEEDERMOTOR_ID, kCANBus);
@@ -99,10 +105,29 @@ public class FeederSubsystem extends SubsystemBase {
   @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
 
-  public FeederSubsystem() {}
+  // Health monitoring (owned by this subsystem, not central monitoring)
+  private final MotorHealthMonitor motorHealth;
+
+  private final Telemetry telemetry;
+
+  /**
+   * Creates a new FeederSubsystem.
+   * 
+   * @param telemetry the telemetry instance for health monitoring
+   */
+  public FeederSubsystem(Telemetry telemetry) {
+    this.telemetry = telemetry;
+    this.motorHealth = new MotorHealthMonitor(
+        m_feederMotor,
+        "Feeder",
+        telemetry,
+        FEEDER_STALL_THRESHOLD
+    );
+  }
 
   @Override
   public void periodic() {
+    motorHealth.update();
     this.updateTelemetry();
   }
 
@@ -201,5 +226,10 @@ public class FeederSubsystem extends SubsystemBase {
   /** Get the feeder motor for health monitoring. */
   public TalonFX getFeederMotor() {
     return m_feederMotor;
+  }
+
+  /** Get the health monitor for this subsystem. */
+  public MotorHealthMonitor getHealthMonitor() {
+    return motorHealth;
   }
 }

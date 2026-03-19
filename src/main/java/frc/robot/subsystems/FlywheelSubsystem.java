@@ -30,6 +30,9 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.math.Pair;
 
+import frc.robot.Telemetry;
+import frc.robot.util.MotorHealthMonitor;
+
 // Drives the main shooter flywheel.
 @Logged
 public class FlywheelSubsystem extends SubsystemBase {
@@ -51,6 +54,9 @@ public class FlywheelSubsystem extends SubsystemBase {
   private static final AngularAcceleration FLYWHEEL_kMaxA = RotationsPerSecondPerSecond.of(100);
   private static final AngularVelocity READY_TOLERANCE = RPM.of(250);
 
+  // Motor health monitoring thresholds
+  private static final double FLYWHEEL_STALL_THRESHOLD = 80.0;  // Kraken X60 warning at 80A
+
   private final Distance flywheelDiameter = Inches.of(4);
   private final Mass flywheelMass = Pounds.of(1);
 
@@ -59,6 +65,11 @@ public class FlywheelSubsystem extends SubsystemBase {
   // TalonFX hardware instances
   private final TalonFX m_flywheelMasterMotor = new TalonFX(FLYWHEEL_MASTER_ID, kCANBus);
   private final TalonFX m_flywheelFollowerMotor = new TalonFX(FLYWHEEL_FOLLOWER_ID, kCANBus);
+
+  // Health monitoring (owned by this subsystem, not central monitoring)
+  private final MotorHealthMonitor masterMotorHealth;
+
+  private final Telemetry telemetry;
 
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
       .withControlMode(ControlMode.CLOSED_LOOP)
@@ -102,10 +113,24 @@ public class FlywheelSubsystem extends SubsystemBase {
   @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
 
-  public FlywheelSubsystem() {}
+  /**
+   * Creates a new FlywheelSubsystem.
+   * 
+   * @param telemetry the telemetry instance for health monitoring
+   */
+  public FlywheelSubsystem(Telemetry telemetry) {
+    this.telemetry = telemetry;
+    this.masterMotorHealth = new MotorHealthMonitor(
+        m_flywheelMasterMotor, 
+        "Flywheel", 
+        telemetry, 
+        FLYWHEEL_STALL_THRESHOLD
+    );
+  }
 
   @Override
   public void periodic() {
+    masterMotorHealth.update();
     this.updateTelemetry();
   }
 
@@ -217,5 +242,10 @@ public class FlywheelSubsystem extends SubsystemBase {
   /** Get the master flywheel motor for health monitoring. */
   public TalonFX getFlywheelMasterMotor() {
     return m_flywheelMasterMotor;
+  }
+
+  /** Get the health monitor for this subsystem. */
+  public MotorHealthMonitor getHealthMonitor() {
+    return masterMotorHealth;
   }
 }

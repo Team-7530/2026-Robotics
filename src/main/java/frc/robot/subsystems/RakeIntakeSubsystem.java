@@ -29,6 +29,9 @@ import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
+import frc.robot.Telemetry;
+import frc.robot.util.MotorHealthMonitor;
+
 // Powers the rake intake rollers.
 @Logged
 public class RakeIntakeSubsystem extends SubsystemBase {
@@ -55,6 +58,9 @@ public class RakeIntakeSubsystem extends SubsystemBase {
   private static final AngularVelocity rakeIntakeUnstuckVelocity = RPM.of(-2000);
 
   private static final double kRakeIntakeTeleopFactor = 0.8;
+
+  // Motor health monitoring threshold
+  private static final double RAKEINTAKE_STALL_THRESHOLD = 80.0;  // Kraken X60 warning at 80A
 
   // TalonFX hardware instance (kept for wrapper)
   private final TalonFX m_rakeIntakeMotor = new TalonFX(RAKEINTAKEMOTOR_ID, kCANBus);
@@ -99,10 +105,29 @@ public class RakeIntakeSubsystem extends SubsystemBase {
   @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
 
-  public RakeIntakeSubsystem() {}
+  // Health monitoring (owned by this subsystem, not central monitoring)
+  private final MotorHealthMonitor motorHealth;
+
+  private final Telemetry telemetry;
+
+  /**
+   * Creates a new RakeIntakeSubsystem.
+   * 
+   * @param telemetry the telemetry instance for health monitoring
+   */
+  public RakeIntakeSubsystem(Telemetry telemetry) {
+    this.telemetry = telemetry;
+    this.motorHealth = new MotorHealthMonitor(
+        m_rakeIntakeMotor,
+        "RakeIntake",
+        telemetry,
+        RAKEINTAKE_STALL_THRESHOLD
+    );
+  }
 
   @Override
   public void periodic() {
+    motorHealth.update();
     this.updateTelemetry();
   }
 
@@ -201,6 +226,11 @@ public class RakeIntakeSubsystem extends SubsystemBase {
   /** Get the rake intake motor for health monitoring. */
   public TalonFX getRakeIntakeMotor() {
     return m_rakeIntakeMotor;
+  }
+
+  /** Get the health monitor for this subsystem. */
+  public MotorHealthMonitor getHealthMonitor() {
+    return motorHealth;
   }
 
 }

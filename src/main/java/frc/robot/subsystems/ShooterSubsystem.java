@@ -39,9 +39,9 @@ public class ShooterSubsystem extends SubsystemBase {
 
   // Shooter owns the turret and all Fuel-moving mechanisms used during a shot.
   public final TurretSubsystem turret;
-  public final FlywheelSubsystem flywheel = new FlywheelSubsystem();
-  public final FeederSubsystem feeder = new FeederSubsystem();
-  public final CollectorSubsystem collector = new CollectorSubsystem();
+  public final FlywheelSubsystem flywheel;
+  public final FeederSubsystem feeder;
+  public final CollectorSubsystem collector;
 
   private final CommandSwerveDrivetrain drivetrain;
 
@@ -107,6 +107,9 @@ public class ShooterSubsystem extends SubsystemBase {
     this.drivetrain = drivetrain;
     this.telemetry = telemetry;
     this.turret = new TurretSubsystem(telemetry);
+    this.flywheel = new FlywheelSubsystem(telemetry);
+    this.feeder = new FeederSubsystem(telemetry);
+    this.collector = new CollectorSubsystem(telemetry);
   }
   
   @Override

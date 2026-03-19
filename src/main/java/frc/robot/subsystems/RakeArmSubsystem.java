@@ -29,6 +29,9 @@ import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
 import yams.motorcontrollers.remote.TalonFXWrapper;
 
+import frc.robot.Telemetry;
+import frc.robot.util.MotorHealthMonitor;
+
 @Logged
 public class RakeArmSubsystem extends SubsystemBase {
   private static final CANBus kCANBus = CANBUS_FD;
@@ -51,6 +54,9 @@ public class RakeArmSubsystem extends SubsystemBase {
   private static final Angle kRakeArmPositionUp = Degrees.of(90.0);
   
   private static final double kRakeArmTeleopSpeed = 0.2;
+  
+  // Motor health monitoring threshold
+  private static final double RAKEARM_STALL_THRESHOLD = 80.0;  // Kraken X60 warning at 80A
     
   private final TalonFX m_rakeArmMotor = new TalonFX(RAKEARMMOTOR_ID, kCANBus);
   private final CANcoder m_rakeArmEncoder = new CANcoder(RAKEARMENCODER_ID, kCANBus);
@@ -107,10 +113,29 @@ public class RakeArmSubsystem extends SubsystemBase {
   @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
 
-  public RakeArmSubsystem() {}
+  // Health monitoring (owned by this subsystem, not central monitoring)
+  private final MotorHealthMonitor motorHealth;
+
+  private final Telemetry telemetry;
+
+  /**
+   * Creates a new RakeArmSubsystem.
+   * 
+   * @param telemetry the telemetry instance for health monitoring
+   */
+  public RakeArmSubsystem(Telemetry telemetry) {
+    this.telemetry = telemetry;
+    this.motorHealth = new MotorHealthMonitor(
+        m_rakeArmMotor,
+        "RakeArm",
+        telemetry,
+        RAKEARM_STALL_THRESHOLD
+    );
+  }
     
   @Override
   public void periodic() {
+    motorHealth.update();
     this.updateTelemetry();
   }
 
@@ -199,5 +224,10 @@ public class RakeArmSubsystem extends SubsystemBase {
   /** Get the rake arm motor for health monitoring. */
   public TalonFX getRakeArmMotor() {
     return m_rakeArmMotor;
+  }
+
+  /** Get the health monitor for this subsystem. */
+  public MotorHealthMonitor getHealthMonitor() {
+    return motorHealth;
   }
 }
