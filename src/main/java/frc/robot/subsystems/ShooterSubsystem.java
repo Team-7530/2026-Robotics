@@ -33,7 +33,7 @@ public class ShooterSubsystem extends SubsystemBase {
   // Set to false to use optimized primitive math (99% reduction in GC pressure).
   // This allows side-by-side comparison for educational purposes.
   // See updateTargeting() method for implementation details.
-  private static final boolean USE_READABLE_GEOMETRY_CODE = false;
+  private static final boolean USE_READABLE_GEOMETRY_CODE = true;
   // ===================================================
 
   private final Telemetry telemetry;
@@ -73,8 +73,8 @@ public class ShooterSubsystem extends SubsystemBase {
   private static final String TELEMETRY_DISTANCE = "Shooter/DistanceToTargetM";
   private static final String TELEMETRY_RPM = "Shooter/FlywheelVelocityRPM";
   private static final String TELEMETRY_PROFILE = "Shooter/ActiveShotProfile";
-  private static final String TELEMETRY_TURRET_FIELD_X = "Shooter/TurretFieldX";
-  private static final String TELEMETRY_TURRET_FIELD_Y = "Shooter/TurretFieldY";
+  // private static final String TELEMETRY_TURRET_FIELD_X = "Shooter/TurretFieldX";
+  // private static final String TELEMETRY_TURRET_FIELD_Y = "Shooter/TurretFieldY";
   private static final String TELEMETRY_TARGET_FIELD_X = "Shooter/TargetFieldX";
   private static final String TELEMETRY_TARGET_FIELD_Y = "Shooter/TargetFieldY";
   // ========================================================================
@@ -210,8 +210,8 @@ public class ShooterSubsystem extends SubsystemBase {
     telemetry.putString(TELEMETRY_PROFILE, activeShotProfile, true);
     
     // Intermediate geometric calculations (debug only; not essential for match analysis)
-    telemetry.putNumber(TELEMETRY_TURRET_FIELD_X, turretFieldPosition.getX(), false);
-    telemetry.putNumber(TELEMETRY_TURRET_FIELD_Y, turretFieldPosition.getY(), false);
+    // telemetry.putNumber(TELEMETRY_TURRET_FIELD_X, turretFieldPosition.getX(), false);
+    // telemetry.putNumber(TELEMETRY_TURRET_FIELD_Y, turretFieldPosition.getY(), false);
   }
 
   @Logged(importance = Logged.Importance.CRITICAL)

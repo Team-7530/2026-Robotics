@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 
 import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.hal.PowerDistributionFaults;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -167,8 +168,8 @@ public class SystemHealthMonitor extends SubsystemBase {
 
         // Check CAN bus health via PowerDistribution faults
         // PowerDistributionFaults returns null when healthy, object when faults present
-        var faults = pdp.getFaults();
-        can_bus_healthy = (faults == null);
+        PowerDistributionFaults faults = pdp.getFaults();
+        can_bus_healthy = (faults.CanWarning == false);
     }
 
     /**

@@ -96,6 +96,7 @@ import edu.wpi.first.wpilibj.RobotBase;
 import frc.lib.limelightvision.LimelightHelpers;
 import frc.lib.limelightvision.LimelightHelpers.PoseEstimate;
 
+import java.util.List;
 import java.util.Optional;
 
 @Logged
@@ -167,8 +168,12 @@ public class VisionSubsystem extends SubsystemBase {
   //    pipeline (hub-blue, hub-red, tower-blue, tower-red, etc.).
   // 5. Test live in the UI and adjust detection thresholds or downscale as
   //    necessary before using from robot code.
-  private static final int LIMELIGHT_PIPELINE_HUB = 0;
-  private static final int LIMELIGHT_PIPELINE_BUMP = 0;
+  private static final int LIMELIGHT_PIPELINE_HUB = 1;
+  private static final int LIMELIGHT_PIPELINE_BUMP = 2;
+
+  private static final List<int[]> ApriltagFilters = List.of(
+    new int[]{7,9,10,12,13,14,15,16,23,25,26,28,29,30,31,32}, 
+    new int[]{1,3,4,6,17,19,20,22});
 
   private Matrix<N3, N1> curStdDevs;
 
@@ -529,6 +534,9 @@ public class VisionSubsystem extends SubsystemBase {
 
   private void setPipeline(int pipelineIndex, String activeMode) {
     LimelightHelpers.setPipelineIndex(LIMELIGHTNAME, pipelineIndex);
+    if ((pipelineIndex > 0) && (pipelineIndex <= ApriltagFilters.size())) {
+      LimelightHelpers.SetFiducialIDFiltersOverride(LIMELIGHTNAME, ApriltagFilters.get(pipelineIndex - 1));
+    }
     telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/Pipeline", pipelineIndex, true);
     telemetry.putString("Vision/ActiveMode", activeMode, true);
   }

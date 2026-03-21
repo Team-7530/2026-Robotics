@@ -258,6 +258,7 @@ public class TurretSubsystem extends SubsystemBase {
     // YAMS already publishes the turret mechanism angle, setpoint, and rotor state.
     telemetry.putNumber("Turret/TurretPotentiometer", -m_turretPotentiometer.get(), true);
     telemetry.putNumber("Turret/SeededTurretDeg", this.potentiometerAngle.in(Degrees), true);
+    telemetry.putNumber("Turret/TurretAngle", this.getAngle().in(Degrees), true);
   }
 
   // -- Commands -----------------------------------------------------------
