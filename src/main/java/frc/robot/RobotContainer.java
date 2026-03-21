@@ -112,9 +112,13 @@ public class RobotContainer {
         .onTrue(setDriveMaxSpeedsCommand(DriveTrainConstants.maxSpeed));
     oi.driveScalingDown()
         .onTrue(setDriveMaxSpeedsCommand(DriveTrainConstants.cruiseSpeed));
-    oi.driveScalingSlow()
+    oi.driverLeftTrigger()
         .onTrue(setDriveMaxSpeedsCommand(DriveTrainConstants.slowSpeed))
         .onFalse(setDriveMaxSpeedsCommand(DriveTrainConstants.cruiseSpeed));
+    oi.driverRightTrigger()
+       .onTrue(rakeArm.rakeArmRetractCommand()
+          .alongWith(shooter.shooterStopCommand()
+            .andThen(shooter.turret.setAngleCommand(Degrees.of(70.0)))));
 
     drivetrain.setDefaultCommand(new SwerveTeleopCommand(drivetrain, oi));
   }
@@ -127,8 +131,10 @@ public class RobotContainer {
     oi.getBButton()
       .onTrue(vision.setBumpPipelineCommand())
       .whileTrue(shooter.targetBumpCommand().alongWith(vision.updateGlobalPoseCommand(drivetrain)));
-    oi.getXButton().onTrue(shooter.setManualLowShotProfileCommand());
-    oi.getYButton().onTrue(shooter.setManualHighShotProfileCommand());
+    oi.getXButton()
+      .onTrue(vision.setDriverPipelineCommand().andThen(shooter.setManualLowShotProfileCommand()));
+    oi.getYButton()
+      .onTrue(vision.setDriverPipelineCommand().andThen(shooter.setManualHighShotProfileCommand()));
 
     oi.getLeftBumper()
       .onTrue(shooter.shooterSpinupCommand());
@@ -146,7 +152,9 @@ public class RobotContainer {
     
     oi.getPOVUp().onTrue(rakeArm.rakeArmRetractCommand());
     oi.getPOVDown().onTrue(rakeArm.rakeArmDeployCommand());
-    oi.getPOVLeft().onTrue(shooter.turret.setAngleCommand(Degrees.of(0)));
+    oi.getPOVLeft().onTrue(rakeArm.rakeArmRetractCommand()
+      .alongWith(shooter.shooterStopCommand()
+        .andThen(shooter.turret.setAngleCommand(Degrees.of(70.0)))));
     oi.getPOVRight().onTrue(rakeArm.rakeArmUpCommand());
 
     oi.getStartButton().onTrue(shooter.turret.seedTurretPositionCommand());

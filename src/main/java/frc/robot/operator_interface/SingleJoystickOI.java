@@ -52,7 +52,7 @@ public class SingleJoystickOI implements OperatorInterface {
   }
 
   @Override
-  public Trigger driveScalingSlow() {
+  public Trigger driverLeftTrigger() {
     return joystickButtons[1];
   }
 

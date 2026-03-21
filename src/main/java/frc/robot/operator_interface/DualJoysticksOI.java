@@ -56,8 +56,13 @@ public class DualJoysticksOI implements OperatorInterface {
   }
 
   @Override
-  public Trigger driveScalingSlow() {
+  public Trigger driverLeftTrigger() {
     return translateJoystickButtons[1];
+  }
+
+  @Override
+  public Trigger driverRightTrigger() {
+    return rotateJoystickButtons[1];
   }
 
   @Override

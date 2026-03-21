@@ -550,6 +550,12 @@ public class VisionSubsystem extends SubsystemBase {
         .withName("VisionSetPipelineAll-" + pipelineIndex);
   }
 
+  public Command setDriverPipelineCommand() {
+  // Hub targeting and bump targeting may eventually use different tag filters or exposure settings.
+  return runOnce(() -> setPipeline(0))
+      .withName("VisionSetHubPipelineCommand");
+  }
+
   public Command setHubPipelineCommand() {
     // Hub targeting and bump targeting may eventually use different tag filters or exposure settings.
     return runOnce(() -> setPipeline(LIMELIGHT_PIPELINE_HUB, "HubTargeting"))

@@ -33,7 +33,11 @@ public interface OperatorInterface {
     return new Trigger(() -> false);
   }
 
-  public default Trigger driveScalingSlow() {
+  public default Trigger driverLeftTrigger() {
+    return new Trigger(() -> false);
+  }
+
+  public default Trigger driverRightTrigger() {
     return new Trigger(() -> false);
   }
 
