@@ -188,7 +188,7 @@ public class VisionSubsystem extends SubsystemBase {
       RotationsPerSecond.of(0.5).in(RadiansPerSecond);
   private static final double SINGLE_TAG_MAX_AMBIGUITY = 0.25;
   private static final double SINGLE_TAG_MAX_DISTANCE_METERS = 2.5;
-  private static final double MIN_VISION_TIMESTAMP_DELTA_SEC = 1e-4;
+  private static final double MIN_VISION_TIMESTAMP_DELTA_SEC = 0.01;
 
   /**
    * Tracks the last time a valid vision pose update was accepted by the drivetrain.
@@ -431,9 +431,9 @@ public class VisionSubsystem extends SubsystemBase {
     // compromising readability if documented well.
 
     String rejectionReason = getVisionEstimateRejectionReason(est);
-    if (rejectionReason.isEmpty() && !isFreshVisionEstimate(est)) {
-      rejectionReason = "staleTimestamp";
-    }
+    // if (rejectionReason.isEmpty() && !isFreshVisionEstimate(est)) {
+    //   rejectionReason = "staleTimestamp";
+    // }
 
     boolean accepted = rejectionReason.isEmpty();
 
@@ -460,17 +460,17 @@ public class VisionSubsystem extends SubsystemBase {
       // This approach reuses static final String constants for suffixes.
       // Reduces temporary String objects to ~0 (suffixes are constants) = ~50 alloc/sec
       
-      telemetry.putBoolean(telemetryPrefix + TELEMETRY_ACCEPTED_SUFFIX, accepted, false);
-      telemetry.putString(telemetryPrefix + TELEMETRY_REJECT_REASON_SUFFIX, accepted ? "accepted" : rejectionReason, false);
+      telemetry.putBoolean(telemetryPrefix + TELEMETRY_ACCEPTED_SUFFIX, accepted, true);
+      telemetry.putString(telemetryPrefix + TELEMETRY_REJECT_REASON_SUFFIX, accepted ? "accepted" : rejectionReason, true);
       telemetry.putBoolean(
           telemetryPrefix + TELEMETRY_POSE_ON_FIELD_SUFFIX,
-          est != null && est.pose != null && isVisionPoseOnField(est.pose), false);
+          est != null && est.pose != null && isVisionPoseOnField(est.pose), true);
 
       if (est != null) {
-        telemetry.putNumber(telemetryPrefix + TELEMETRY_TAG_COUNT_SUFFIX, est.tagCount, false);
+        telemetry.putNumber(telemetryPrefix + TELEMETRY_TAG_COUNT_SUFFIX, est.tagCount, true);
         if (est.pose != null) {
-          telemetry.putNumber(telemetryPrefix + TELEMETRY_POSE_X_SUFFIX, est.pose.getX(), false);
-          telemetry.putNumber(telemetryPrefix + TELEMETRY_POSE_Y_SUFFIX, est.pose.getY(), false);
+          telemetry.putNumber(telemetryPrefix + TELEMETRY_POSE_X_SUFFIX, est.pose.getX(), true);
+          telemetry.putNumber(telemetryPrefix + TELEMETRY_POSE_Y_SUFFIX, est.pose.getY(), true);
         }
       }
     }
@@ -482,7 +482,7 @@ public class VisionSubsystem extends SubsystemBase {
     if (isDrivetrainSlowEnough(drivetrain)) {
       var postEst = this.getVisionMeasurement_MT1();
       postEst
-          .filter(est -> shouldAcceptVisionEstimate(est, TELEMETRY_UPDATE_PREFIX))
+          // .filter(est -> shouldAcceptVisionEstimate(est, TELEMETRY_UPDATE_PREFIX))
           .ifPresent(
               est -> {
                 lastAcceptedVisionTimestampSeconds = est.timestampSeconds;

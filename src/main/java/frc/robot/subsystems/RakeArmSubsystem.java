@@ -41,7 +41,7 @@ public class RakeArmSubsystem extends SubsystemBase {
 
   private static final double kRakeArmChainRatio = 60.0 / 8.0; // 8:60 ratio
   private static final double kRakeArmGearboxRatio = 45.0; // 45:1
-  private static final double kRakeArmEncoderOffset = 0.11; // offset needed so encoder 0 is horizontal
+  private static final double kRakeArmEncoderOffset = 0.27; // offset needed so encoder 0 is horizontal
   
   private static final double RAKEARM_KS = 0.0;
   private static final double RAKEARM_KP = 110.0; // 70

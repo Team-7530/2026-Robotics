@@ -1,112 +1,15 @@
 {
   "version": 1.0,
-  "grid_size": 128,
+  "grid_size": 64,
   "tabs": [
     {
       "name": "Drive",
       "grid_layout": {
         "layouts": [
           {
-            "title": "Shooter",
-            "x": 1536.0,
-            "y": 0.0,
-            "width": 256.0,
-            "height": 512.0,
-            "type": "List Layout",
-            "properties": {
-              "label_position": "TOP"
-            },
-            "children": [
-              {
-                "title": "ActiveShotProfile",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Shuffleboard/Telemetry/Shooter/ActiveShotProfile",
-                  "period": 0.06,
-                  "data_type": "string",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "DistanceToTargetM",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Shuffleboard/Telemetry/Shooter/DistanceToTargetM",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "FlywheelVelocityRPM",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Shuffleboard/Telemetry/Shooter/FlywheelVelocityRPM",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "TurretAngleToTargetDeg",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Shuffleboard/Telemetry/Shooter/TurretAngleToTargetDeg",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "TurretFieldX",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Shuffleboard/Telemetry/Shooter/TurretFieldX",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "TurretFieldY",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Shuffleboard/Telemetry/Shooter/TurretFieldY",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              }
-            ]
-          },
-          {
             "title": "Health",
-            "x": 896.0,
-            "y": 512.0,
+            "x": 1664.0,
+            "y": 0.0,
             "width": 256.0,
             "height": 384.0,
             "type": "List Layout",
@@ -168,10 +71,107 @@
             ]
           },
           {
+            "title": "Shooter",
+            "x": 1280.0,
+            "y": 0.0,
+            "width": 192.0,
+            "height": 512.0,
+            "type": "List Layout",
+            "properties": {
+              "label_position": "TOP"
+            },
+            "children": [
+              {
+                "title": "ActiveShotProfile",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Shuffleboard/Telemetry/Shooter/ActiveShotProfile",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "DistanceToTargetM",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Shuffleboard/Telemetry/Shooter/DistanceToTargetM",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "FlywheelVelocityRPM",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Shuffleboard/Telemetry/Shooter/FlywheelVelocityRPM",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "TargetFieldX",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Shuffleboard/Telemetry/Shooter/TargetFieldX",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "TargetFieldY",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Shuffleboard/Telemetry/Shooter/TargetFieldY",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "TurretAngleToTargetDeg",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Shuffleboard/Telemetry/Shooter/TurretAngleToTargetDeg",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              }
+            ]
+          },
+          {
             "title": "Turret",
-            "x": 1152.0,
-            "y": 512.0,
-            "width": 256.0,
+            "x": 1472.0,
+            "y": 0.0,
+            "width": 192.0,
             "height": 256.0,
             "type": "List Layout",
             "properties": {
@@ -187,6 +187,20 @@
                 "type": "Text Display",
                 "properties": {
                   "topic": "/Shuffleboard/Telemetry/Turret/SeededTurretDeg",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "TurretAngle",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Shuffleboard/Telemetry/Turret/TurretAngle",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
@@ -214,8 +228,8 @@
             "title": "limelight",
             "x": 0.0,
             "y": 0.0,
-            "width": 768.0,
-            "height": 512.0,
+            "width": 704.0,
+            "height": 448.0,
             "type": "Camera Stream",
             "properties": {
               "topic": "/CameraPublisher/limelight",
@@ -226,9 +240,9 @@
           {
             "title": "Field",
             "x": 256.0,
-            "y": 512.0,
-            "width": 640.0,
-            "height": 384.0,
+            "y": 448.0,
+            "width": 1024.0,
+            "height": 448.0,
             "type": "Field",
             "properties": {
               "topic": "/Shuffleboard/Telemetry/Field",
@@ -246,9 +260,9 @@
           },
           {
             "title": "PoseX",
-            "x": 0.0,
-            "y": 640.0,
-            "width": 128.0,
+            "x": 1472.0,
+            "y": 256.0,
+            "width": 192.0,
             "height": 128.0,
             "type": "Text Display",
             "properties": {
@@ -260,9 +274,9 @@
           },
           {
             "title": "PoseY",
-            "x": 128.0,
-            "y": 640.0,
-            "width": 128.0,
+            "x": 1472.0,
+            "y": 384.0,
+            "width": 192.0,
             "height": 128.0,
             "type": "Text Display",
             "properties": {
@@ -274,9 +288,9 @@
           },
           {
             "title": "PoseTheta",
-            "x": 0.0,
-            "y": 768.0,
-            "width": 128.0,
+            "x": 1664.0,
+            "y": 384.0,
+            "width": 192.0,
             "height": 128.0,
             "type": "Text Display",
             "properties": {
@@ -288,9 +302,9 @@
           },
           {
             "title": "MaxSpeed",
-            "x": 128.0,
-            "y": 768.0,
-            "width": 128.0,
+            "x": 0.0,
+            "y": 576.0,
+            "width": 256.0,
             "height": 128.0,
             "type": "Text Display",
             "properties": {
@@ -303,7 +317,7 @@
           {
             "title": "AutoChooser",
             "x": 0.0,
-            "y": 512.0,
+            "y": 448.0,
             "width": 256.0,
             "height": 128.0,
             "type": "ComboBox Chooser",
@@ -315,57 +329,15 @@
           },
           {
             "title": "USB Camera 0",
-            "x": 768.0,
+            "x": 704.0,
             "y": 0.0,
-            "width": 768.0,
-            "height": 512.0,
+            "width": 576.0,
+            "height": 448.0,
             "type": "Camera Stream",
             "properties": {
               "topic": "/CameraPublisher/USB Camera 0",
               "period": 0.06,
               "rotation_turns": 0
-            }
-          },
-          {
-            "title": "angle",
-            "x": 1536.0,
-            "y": 512.0,
-            "width": 256.0,
-            "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Turret/mechanism/TurretRoot/Turret/angle",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
-            }
-          },
-          {
-            "title": "position",
-            "x": 1536.0,
-            "y": 640.0,
-            "width": 256.0,
-            "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/Mechanisms/Turret/TurretMotor/mechanism/position",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
-            }
-          },
-          {
-            "title": "angle",
-            "x": 1536.0,
-            "y": 768.0,
-            "width": 256.0,
-            "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Turret/mechanism/TurretRoot/Setpoint/angle",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
             }
           }
         ]
