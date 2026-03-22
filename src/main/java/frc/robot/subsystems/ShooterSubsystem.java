@@ -184,8 +184,12 @@ public class ShooterSubsystem extends SubsystemBase {
       double robotHeadingRad = robotPose.getRotation().getRadians();
       double turretRelativeRad = fieldAngleRad - robotHeadingRad;
       
-      // Step 4: Negate using primitive arithmetic (equivalent to unaryMinus())
-      turretAngleToTarget = Radians.of(-turretRelativeRad);
+      // Step 4: Negate and normalize to [-π, π] range (equivalent to unaryMinus() on Rotation2d)
+      // Use atan2(sin, cos) to normalize the negated angle. This is the mathematical trick that
+      // Rotation2d uses internally: atan2 naturally wraps angles to [-π, π].
+      // Without normalization, -5.76 rad appears as 350° instead of the expected -10°.
+      double turretAngleRad = Math.atan2(Math.sin(-turretRelativeRad), Math.cos(-turretRelativeRad));
+      turretAngleToTarget = Radians.of(turretAngleRad);
       
       // Step 5: Calculate distance using Pythagorean theorem (equivalent to getDistance())
       double deltaX = turretFieldPosition.getX() - targetPosition.getX();
