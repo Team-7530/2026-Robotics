@@ -101,14 +101,6 @@ import java.util.Optional;
 
 @Logged
 public class VisionSubsystem extends SubsystemBase {
-  // ========== PERFORMANCE OPTIMIZATION TOGGLE ==========
-  // Set to true to use original, readable string concatenation code.
-  // Set to false to use optimized cached telemetry constants (96.7% reduction in GC pressure).
-  // This allows side-by-side comparison for educational purposes.
-  // See shouldAcceptVisionEstimate() method for implementation details.
-  private static final boolean USE_READABLE_STRING_CODE = false;
-  // ===================================================
-
   private final Telemetry telemetry;
 
   private static final String LIMELIGHTNAME = "limelight";
@@ -188,31 +180,21 @@ public class VisionSubsystem extends SubsystemBase {
       RotationsPerSecond.of(0.5).in(RadiansPerSecond);
   private static final double SINGLE_TAG_MAX_AMBIGUITY = 0.25;
   private static final double SINGLE_TAG_MAX_DISTANCE_METERS = 2.5;
-  private static final double MIN_VISION_TIMESTAMP_DELTA_SEC = 0.01;
+  // private static final double MIN_VISION_TIMESTAMP_DELTA_SEC = 0.01;
 
   /**
    * Tracks the last time a valid vision pose update was accepted by the drivetrain.
    * Used to detect if vision has gone stale (e.g., camera disconnect, pipeline crash).
    */
-  private long lastValidPoseUpdateTime = System.currentTimeMillis();
+  // @Logged(importance = Logged.Importance.DEBUG)
+  // private long lastValidPoseUpdateTime = System.currentTimeMillis();
 
   /**
    * If no valid vision measurements are accepted within this timeout (milliseconds),
    * vision data is considered stale and should not be used for pose estimation.
    */
-  private static final long VISION_TIMEOUT_MS = 500;
+  // private static final long VISION_TIMEOUT_MS = 500;
 
-  // ========== TELEMETRY KEY CACHING (Reduces String allocation) ==========
-  // Vision telemetry methods concatenate prefix + metric name on each call.
-  // Pre-caching these strings eliminates ~100+ allocations/sec during measurements.
-  private static final String TELEMETRY_UPDATE_PREFIX = "Vision/Camera/" + "limelight" + "/Update";
-  private static final String TELEMETRY_RESET_PREFIX = "Vision/Camera/" + "limelight" + "/Reset";
-  private static final String TELEMETRY_ACCEPTED_SUFFIX = "/Accepted";
-  private static final String TELEMETRY_REJECT_REASON_SUFFIX = "/RejectReason";
-  private static final String TELEMETRY_POSE_ON_FIELD_SUFFIX = "/PoseOnField";
-  private static final String TELEMETRY_TAG_COUNT_SUFFIX = "/TagCount";
-  private static final String TELEMETRY_POSE_X_SUFFIX = "/PoseX";
-  private static final String TELEMETRY_POSE_Y_SUFFIX = "/PoseY";
   // ========================================================================
 
   /* Cameras */
@@ -256,18 +238,10 @@ public class VisionSubsystem extends SubsystemBase {
    *
    * @return true if vision is providing fresh estimates, false if stale/unavailable
    */
-  public boolean isVisionValid() {
-    long timeSinceLastValidUpdate = System.currentTimeMillis() - lastValidPoseUpdateTime;
-    return timeSinceLastValidUpdate < VISION_TIMEOUT_MS;
-  }
-
-  /**
-   * Called internally whenever a valid vision estimate is accepted by the drivetrain.
-   * Updates the watchdog timer to indicate vision is healthy.
-   */
-  private void recordValidPoseUpdate() {
-    lastValidPoseUpdateTime = System.currentTimeMillis();
-  }
+  // public boolean isVisionValid() {
+  //   long timeSinceLastValidUpdate = System.currentTimeMillis() - lastValidPoseUpdateTime;
+  //   return timeSinceLastValidUpdate < VISION_TIMEOUT_MS;
+  // }
 
   /**
    * The latest estimated robot pose on the field from vision data. This may be empty. This should
@@ -286,39 +260,47 @@ public class VisionSubsystem extends SubsystemBase {
    * leave heading effectively gyro-owned. Distance and single-tag ambiguity inflate the
    * translational standard deviations before the sample is fused.
    */
-  private Optional<PoseEstimate> updateEstimationStdDevs(PoseEstimate estimatedPose) {
-    if (estimatedPose == null) {
+  private Optional<PoseEstimate> updateEstimationStdDevs(PoseEstimate est) {
+    // is valid PoseEstimate object?
+    if ((est == null) || (est.tagCount < 1) || (est.pose == null)) {
       curStdDevs = kSingleTagStdDevs;
       return Optional.empty();
     }
 
-    if (estimatedPose.tagCount == 0) {
+    // does it has AprilTags?
+    if ((est.rawFiducials == null) || (est.rawFiducials.length == 0)) {
       curStdDevs = kSingleTagStdDevs;
       return Optional.empty();
     }
 
-    if (estimatedPose.tagCount > 1) {
-      double distanceScale = 1.0 + (estimatedPose.avgTagDist * estimatedPose.avgTagDist / 30.0);
+    // scale multi-tag by distance
+    if (est.tagCount > 1) {
+      double distanceScale = 1.0 + (est.avgTagDist * est.avgTagDist / 30.0);
       curStdDevs = kMultiTagStdDevs.times(distanceScale);
-      return Optional.of(estimatedPose);
+      return Optional.of(est);
     }
 
-    double amb = Double.MAX_VALUE;
-    double dist = estimatedPose.avgTagDist;
-    if (estimatedPose.rawFiducials != null && estimatedPose.rawFiducials.length > 0) {
-      amb = estimatedPose.rawFiducials[0].ambiguity;
-      dist = estimatedPose.rawFiducials[0].distToCamera;
+    // compute ambiguity and distance to camera
+    double minAmbiguity = Double.POSITIVE_INFINITY;
+    double minDistance = Double.POSITIVE_INFINITY;
+    for (var fiducial : est.rawFiducials) {
+      minAmbiguity = Math.min(minAmbiguity, fiducial.ambiguity);
+      minDistance = Math.min(minDistance, fiducial.distToCamera);
     }
 
-    double distanceScale = 1.0 + (dist * dist / 15.0);
-    double ambiguityScale = 1.0 + Math.max(0.0, amb);
+    // reject singletg if too ambiguous or too far away
+    if ((minAmbiguity > SINGLE_TAG_MAX_AMBIGUITY) ||
+        (minDistance > SINGLE_TAG_MAX_DISTANCE_METERS)) {
+      curStdDevs = kSingleTagStdDevs;
+      return Optional.empty();
+    }
+
+    // scale singletag by ambiguity and/or distance
+    double distanceScale = 1.0 + (minDistance * minDistance / 15.0);
+    double ambiguityScale = 1.0 + Math.max(0.0, minAmbiguity);
     double baseScale = distanceScale * ambiguityScale;
-
-    curStdDevs =
-        (amb <= SINGLE_TAG_MAX_AMBIGUITY && dist <= SINGLE_TAG_MAX_DISTANCE_METERS)
-            ? kSingleTagStdDevs.times(baseScale)
-            : kSingleTagStdDevs.times(4.0 * baseScale);
-    return Optional.of(estimatedPose);
+    curStdDevs = kSingleTagStdDevs.times(baseScale);
+    return Optional.of(est);
   }
 
   /**
@@ -351,146 +333,34 @@ public class VisionSubsystem extends SubsystemBase {
         && Math.abs(speeds.omegaRadiansPerSecond) < POSE_UPDATE_MAX_ROTATION_SPEED_RAD_PER_SEC;
   }
 
-  private boolean isVisionPoseOnField(Pose2d pose) {
-    if (pose == null) {
-      return false;
-    }
+  // private boolean isFreshVisionEstimate(PoseEstimate est) {
+  //     if (est.timestampSeconds > (lastAcceptedVisionTimestampSeconds + MIN_VISION_TIMESTAMP_DELTA_SEC)) {
+  //       lastAcceptedVisionTimestampSeconds = est.timestampSeconds;
+  //       lastValidPoseUpdateTime = System.currentTimeMillis();
+  //       return true;
+  //     }
+  //     return false;
+  // }
 
+  private boolean isVisionPoseOnField(Pose2d pose) {
     return pose.getX() >= -FIELD_BORDER_MARGIN_METERS
         && pose.getX() <= (FieldConstants.fieldLength + FIELD_BORDER_MARGIN_METERS)
         && pose.getY() >= -FIELD_BORDER_MARGIN_METERS
         && pose.getY() <= (FieldConstants.fieldWidth + FIELD_BORDER_MARGIN_METERS);
   }
 
-  private String getVisionEstimateRejectionReason(PoseEstimate est) {
-    if (est == null || est.tagCount < 1 || est.pose == null) {
-      return "missingEstimate";
-    }
-
-    if (!Double.isFinite(est.pose.getX()) || !Double.isFinite(est.pose.getY())) {
-      return "nonFinitePose";
-    }
-
-    if (!isVisionPoseOnField(est.pose)) {
-      return "outOfField";
-    }
-
-    if (est.tagCount > 1) {
-      return "";
-    }
-
-    if (est.rawFiducials == null || est.rawFiducials.length == 0) {
-      return "singleTagMissingFiducial";
-    }
-
-    double minAmbiguity = Double.POSITIVE_INFINITY;
-    double minDistance = Double.POSITIVE_INFINITY;
-    for (var fiducial : est.rawFiducials) {
-      minAmbiguity = Math.min(minAmbiguity, fiducial.ambiguity);
-      minDistance = Math.min(minDistance, fiducial.distToCamera);
-    }
-
-    if (minAmbiguity > SINGLE_TAG_MAX_AMBIGUITY) {
-      return "singleTagAmbiguity";
-    }
-
-    if (minDistance > SINGLE_TAG_MAX_DISTANCE_METERS) {
-      return "singleTagDistance";
-    }
-
-    return "";
-  }
-
-  private boolean isFreshVisionEstimate(PoseEstimate est) {
-    return Double.isFinite(est.timestampSeconds)
-        && est.timestampSeconds > (lastAcceptedVisionTimestampSeconds + MIN_VISION_TIMESTAMP_DELTA_SEC);
-  }
-
-  private boolean shouldAcceptVisionEstimate(PoseEstimate est, String telemetryPrefix) {
-    // This method has two implementations: a straightforward string concatenation approach,
-    // and an optimized version using cached telemetry suffix constants. Toggle USE_READABLE_STRING_CODE
-    // to switch between them.
-    //
-    // READABLE VERSION (when USE_READABLE_STRING_CODE = true):
-    //   - Uses string concatenation to build telemetry keys on each call
-    //   - Concatenates telemetryPrefix + "/Accepted", telemetryPrefix + "/RejectReason", etc.
-    //   - Each concatenation creates a temporary String object
-    //   - Result: 6 string concatenations × 50Hz vision attempts = 1500+ allocations/sec ≈ 2 KB/sec
-    //   - Pros: Very straightforward to read, obvious what each key is
-    //   - Cons: Creates garbage on every measurement, adds GC pressure
-    //
-    // OPTIMIZED VERSION (when USE_READABLE_STRING_CODE = false):
-    //   - Uses static final suffix constants: TELEMETRY_ACCEPTED_SUFFIX, etc.
-    //   - String concatenation now reuses cached strings instead of creating new ones
-    //   - Result: String suffixes cached = ~50 allocations/sec ≈ 200 bytes/sec
-    //   - Pros: 96.7% reduction in garbage, minimal GC pressure
-    //   - Cons: Requires looking up the constant definitions (slight cognitive overhead)
-    //
-    // OPTIMIZATION TIP: For performance-critical code paths called frequently (50+ times/sec),
-    // caching constant strings is a simple, effective way to reduce GC pressure without
-    // compromising readability if documented well.
-
-    String rejectionReason = getVisionEstimateRejectionReason(est);
-    // if (rejectionReason.isEmpty() && !isFreshVisionEstimate(est)) {
-    //   rejectionReason = "staleTimestamp";
-    // }
-
-    boolean accepted = rejectionReason.isEmpty();
-
-    if (USE_READABLE_STRING_CODE) {
-      // ===== READABLE IMPLEMENTATION (string concatenation) =====
-      // This approach builds strings directly in each method call.
-      // Creates 6 temporary String objects per call × 50Hz attempts = 1500 alloc/sec
-      
-      telemetry.putBoolean(telemetryPrefix + "/Accepted", accepted, false);
-      telemetry.putString(telemetryPrefix + "/RejectReason", accepted ? "accepted" : rejectionReason, false);
-      telemetry.putBoolean(
-          telemetryPrefix + "/PoseOnField",
-          est != null && est.pose != null && isVisionPoseOnField(est.pose), false);
-
-      if (est != null) {
-        telemetry.putNumber(telemetryPrefix + "/TagCount", est.tagCount, false);
-        if (est.pose != null) {
-          telemetry.putNumber(telemetryPrefix + "/PoseX", est.pose.getX(), false);
-          telemetry.putNumber(telemetryPrefix + "/PoseY", est.pose.getY(), false);
-        }
-      }
-    } else {
-      // ===== OPTIMIZED IMPLEMENTATION (cached suffix constants) =====
-      // This approach reuses static final String constants for suffixes.
-      // Reduces temporary String objects to ~0 (suffixes are constants) = ~50 alloc/sec
-      
-      telemetry.putBoolean(telemetryPrefix + TELEMETRY_ACCEPTED_SUFFIX, accepted, true);
-      telemetry.putString(telemetryPrefix + TELEMETRY_REJECT_REASON_SUFFIX, accepted ? "accepted" : rejectionReason, true);
-      telemetry.putBoolean(
-          telemetryPrefix + TELEMETRY_POSE_ON_FIELD_SUFFIX,
-          est != null && est.pose != null && isVisionPoseOnField(est.pose), true);
-
-      if (est != null) {
-        telemetry.putNumber(telemetryPrefix + TELEMETRY_TAG_COUNT_SUFFIX, est.tagCount, true);
-        if (est.pose != null) {
-          telemetry.putNumber(telemetryPrefix + TELEMETRY_POSE_X_SUFFIX, est.pose.getX(), true);
-          telemetry.putNumber(telemetryPrefix + TELEMETRY_POSE_Y_SUFFIX, est.pose.getY(), true);
-        }
-      }
-    }
-
-    return accepted;
-  }
-
   public void updateGlobalPose(CommandSwerveDrivetrain drivetrain) {
     if (isDrivetrainSlowEnough(drivetrain)) {
       var postEst = this.getVisionMeasurement_MT1();
       postEst
-          // .filter(est -> shouldAcceptVisionEstimate(est, TELEMETRY_UPDATE_PREFIX))
           .ifPresent(
               est -> {
-                lastAcceptedVisionTimestampSeconds = est.timestampSeconds;
-                recordValidPoseUpdate();
-                drivetrain.addVisionMeasurement(
-                    est.pose,
-                    est.timestampSeconds,
-                    this.getEstimationStdDevs());
+                if (isVisionPoseOnField(est.pose)) {
+                  drivetrain.addVisionMeasurement(
+                        est.pose,
+                        est.timestampSeconds,
+                        this.getEstimationStdDevs());
+                }
               });
     }
   }
@@ -499,8 +369,12 @@ public class VisionSubsystem extends SubsystemBase {
     if (isDrivetrainSlowEnough(drivetrain)) {
       var postEst = this.getVisionMeasurement_MT1();
       postEst
-          .filter(est -> shouldAcceptVisionEstimate(est, TELEMETRY_RESET_PREFIX))
-          .ifPresent(est -> drivetrain.resetPose(est.pose));
+          .ifPresent(
+            est -> {
+              if (isVisionPoseOnField(est.pose)) {
+                drivetrain.resetPose(est.pose);
+              }
+            });
     }
   }
 
