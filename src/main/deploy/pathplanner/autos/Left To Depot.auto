@@ -5,6 +5,12 @@
     "data": {
       "commands": [
         {
+          "type": "named",
+          "data": {
+            "name": "spinup"
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "Left to Depot"
@@ -19,31 +25,13 @@
         {
           "type": "named",
           "data": {
-            "name": "spinup"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 0.2
-          }
-        },
-        {
-          "type": "named",
-          "data": {
             "name": "shoot"
           }
         },
         {
           "type": "wait",
           "data": {
-            "waitTime": 5.0
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "stopShoot"
+            "waitTime": 3.5
           }
         },
         {
@@ -56,12 +44,6 @@
           "type": "named",
           "data": {
             "name": "rakeIntake"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 0.5
           }
         },
         {
@@ -79,19 +61,13 @@
         {
           "type": "named",
           "data": {
-            "name": "spinup"
+            "name": "shoot"
           }
         },
         {
           "type": "wait",
           "data": {
-            "waitTime": 0.5
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "shoot"
+            "waitTime": 1.5
           }
         },
         {

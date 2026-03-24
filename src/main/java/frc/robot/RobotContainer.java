@@ -325,5 +325,6 @@ public class RobotContainer {
 
   public void disabledPeriodic() {
     this.updateOI();
+    // vision.updateGlobalPose(drivetrain);
   }
 }

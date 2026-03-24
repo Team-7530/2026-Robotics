@@ -5,6 +5,12 @@
     "data": {
       "commands": [
         {
+          "type": "named",
+          "data": {
+            "name": "spinup"
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "Mid to Depot"
@@ -19,31 +25,13 @@
         {
           "type": "named",
           "data": {
-            "name": "spinup"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 0.2
-          }
-        },
-        {
-          "type": "named",
-          "data": {
             "name": "shoot"
           }
         },
         {
           "type": "wait",
           "data": {
-            "waitTime": 5.0
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "stopShoot"
+            "waitTime": 3.5
           }
         },
         {
@@ -59,12 +47,6 @@
           }
         },
         {
-          "type": "wait",
-          "data": {
-            "waitTime": 0.5
-          }
-        },
-        {
           "type": "path",
           "data": {
             "pathName": "Depot Collect"
@@ -77,21 +59,9 @@
           }
         },
         {
-          "type": "named",
-          "data": {
-            "name": "spinup"
-          }
-        },
-        {
           "type": "wait",
           "data": {
-            "waitTime": 0.5
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "shoot"
+            "waitTime": 1.5
           }
         },
         {
@@ -109,7 +79,7 @@
         {
           "type": "wait",
           "data": {
-            "waitTime": 6.0
+            "waitTime": 4.0
           }
         },
         {

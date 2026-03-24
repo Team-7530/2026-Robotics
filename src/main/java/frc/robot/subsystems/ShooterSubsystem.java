@@ -33,7 +33,7 @@ public class ShooterSubsystem extends SubsystemBase {
   // Set to false to use optimized primitive math (99% reduction in GC pressure).
   // This allows side-by-side comparison for educational purposes.
   // See updateTargeting() method for implementation details.
-  private static final boolean USE_READABLE_GEOMETRY_CODE = true;
+  private static final boolean USE_READABLE_GEOMETRY_CODE = false;
   // ===================================================
 
   private final Telemetry telemetry;

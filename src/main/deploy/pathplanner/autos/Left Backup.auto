@@ -5,6 +5,12 @@
     "data": {
       "commands": [
         {
+          "type": "named",
+          "data": {
+            "name": "spinup"
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "Left Backup"
@@ -14,18 +20,6 @@
           "type": "named",
           "data": {
             "name": "aimRange"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "spinup"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 0.2
           }
         },
         {

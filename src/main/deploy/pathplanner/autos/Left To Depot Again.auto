@@ -13,7 +13,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Right to Outpost"
+            "pathName": "Left to Depot"
           }
         },
         {
@@ -43,13 +43,31 @@
         {
           "type": "named",
           "data": {
+            "name": "rakeIntake"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Depot Collect"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
             "name": "aimRange"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "shoot"
           }
         },
         {
           "type": "wait",
           "data": {
-            "waitTime": 2.0
+            "waitTime": 1.5
           }
         },
         {
@@ -61,7 +79,49 @@
         {
           "type": "wait",
           "data": {
-            "waitTime": 5.0
+            "waitTime": 1.0
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "rakeDeploy"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Depot Collect Again"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "aimRange"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 1.5
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "rakeUp"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "rakeIntakeStop"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 3.0
           }
         },
         {
