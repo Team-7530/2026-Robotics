@@ -66,7 +66,6 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
-import frc.lib.util.FieldConstants;
 import frc.robot.Robot;
 import frc.robot.Telemetry;
 
@@ -342,12 +341,12 @@ public class VisionSubsystem extends SubsystemBase {
   //     return false;
   // }
 
-  private boolean isVisionPoseOnField(Pose2d pose) {
-    return pose.getX() >= -FIELD_BORDER_MARGIN_METERS
-        && pose.getX() <= (FieldConstants.fieldLength + FIELD_BORDER_MARGIN_METERS)
-        && pose.getY() >= -FIELD_BORDER_MARGIN_METERS
-        && pose.getY() <= (FieldConstants.fieldWidth + FIELD_BORDER_MARGIN_METERS);
-  }
+  // private boolean isVisionPoseOnField(Pose2d pose) {
+  //   return pose.getX() >= -FIELD_BORDER_MARGIN_METERS
+  //       && pose.getX() <= (Constants.FIELD_LENGTH + FIELD_BORDER_MARGIN_METERS)
+  //       && pose.getY() >= -FIELD_BORDER_MARGIN_METERS
+  //       && pose.getY() <= (FieldConstants.fieldWidth + FIELD_BORDER_MARGIN_METERS);
+  // }
 
   public void updateGlobalPose(CommandSwerveDrivetrain drivetrain) {
     if (isDrivetrainSlowEnough(drivetrain)) {
@@ -355,13 +354,12 @@ public class VisionSubsystem extends SubsystemBase {
       postEst
           .ifPresent(
               est -> {
-                if (isVisionPoseOnField(est.pose)) {
                   drivetrain.addVisionMeasurement(
                         est.pose,
                         est.timestampSeconds,
                         this.getEstimationStdDevs());
                 }
-              });
+              );
     }
   }
 
@@ -371,10 +369,9 @@ public class VisionSubsystem extends SubsystemBase {
       postEst
           .ifPresent(
             est -> {
-              if (isVisionPoseOnField(est.pose)) {
                 drivetrain.resetPose(est.pose);
               }
-            });
+            );
     }
   }
 

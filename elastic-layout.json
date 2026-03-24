@@ -8,10 +8,10 @@
         "layouts": [
           {
             "title": "Health",
-            "x": 1664.0,
-            "y": 0.0,
+            "x": 1536.0,
+            "y": 256.0,
             "width": 256.0,
-            "height": 384.0,
+            "height": 256.0,
             "type": "List Layout",
             "properties": {
               "label_position": "TOP"
@@ -74,7 +74,7 @@
             "title": "Shooter",
             "x": 1280.0,
             "y": 0.0,
-            "width": 192.0,
+            "width": 256.0,
             "height": 512.0,
             "type": "List Layout",
             "properties": {
@@ -169,9 +169,9 @@
           },
           {
             "title": "Turret",
-            "x": 1472.0,
+            "x": 1536.0,
             "y": 0.0,
-            "width": 192.0,
+            "width": 256.0,
             "height": 256.0,
             "type": "List Layout",
             "properties": {
@@ -260,8 +260,8 @@
           },
           {
             "title": "PoseX",
-            "x": 1472.0,
-            "y": 256.0,
+            "x": 1280.0,
+            "y": 512.0,
             "width": 192.0,
             "height": 128.0,
             "type": "Text Display",
@@ -274,8 +274,8 @@
           },
           {
             "title": "PoseY",
-            "x": 1472.0,
-            "y": 384.0,
+            "x": 1280.0,
+            "y": 640.0,
             "width": 192.0,
             "height": 128.0,
             "type": "Text Display",
@@ -288,8 +288,8 @@
           },
           {
             "title": "PoseTheta",
-            "x": 1664.0,
-            "y": 384.0,
+            "x": 1280.0,
+            "y": 768.0,
             "width": 192.0,
             "height": 128.0,
             "type": "Text Display",

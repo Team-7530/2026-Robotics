@@ -74,6 +74,7 @@ public class RobotContainer {
 
     drivetrain.setMaxSpeeds(DriveTrainConstants.cruiseSpeed);
     logger.setMaxSpeed(DriveTrainConstants.cruiseSpeed.vxMetersPerSecond);
+
     configureAutoPaths();
     configureAutoCommands();
     configureTelemetry();
@@ -305,6 +306,7 @@ public class RobotContainer {
     if (autonomousCommand != null) {
       autonomousCommand.cancel();
     }
+      CommandScheduler.getInstance().schedule(shooter.shooterStopCommand().andThen(rakeIntake.rakeIntakeStopCommand()));
   }
 
   public void teleopPeriodic() {}
