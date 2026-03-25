@@ -100,8 +100,10 @@ public class RobotContainer {
 
     configureDriverControls();
     configureOperatorControls();
-    configureTestingControls();
-    configureDriveTestingControls();
+    if (Constants.DEBUG_LOGGING) {
+      configureTestingControls();
+      configureDriveTestingControls();
+    }
   }
 
   private void configureDriverControls() {
