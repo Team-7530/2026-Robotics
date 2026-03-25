@@ -32,9 +32,11 @@
  *    create at least two pipelines:
  *      - one that detects only your alliance's HUB tags (multi-tag detection).
  *      - one that detects the tower tag for your alliance (single-tag).
- *    Write down the pipeline index numbers (0..9) and copy them into the
- *    constants LIMELIGHT_PIPELINE_HUB_BLUE/RED and
- *    LIMELIGHT_PIPELINE_TOWER_BLUE/RED below.
+ *    For this robot's current setup, maintain these saved whitelists in the
+ *    Limelight web UI:
+ *      - pipeline 1 / Hub: 7, 9, 10, 12, 13, 14, 15, 16, 23, 25, 26, 28, 29, 30, 31, 32
+ *      - pipeline 2 / Bump: 1, 3, 4, 6, 17, 19, 20, 22
+ *    Robot code does not override the fiducial whitelist at runtime.
  *
  *    The code uses `setHubPipelineForAlliance` and
  *    `setTowerPipelineForAlliance` helpers to choose the correct pipeline at
@@ -66,6 +68,7 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
+import frc.robot.Constants;
 import frc.robot.Robot;
 import frc.robot.Telemetry;
 
@@ -95,7 +98,6 @@ import edu.wpi.first.wpilibj.RobotBase;
 import frc.lib.limelightvision.LimelightHelpers;
 import frc.lib.limelightvision.LimelightHelpers.PoseEstimate;
 
-import java.util.List;
 import java.util.Optional;
 
 @Logged
@@ -162,10 +164,6 @@ public class VisionSubsystem extends SubsystemBase {
   private static final int LIMELIGHT_PIPELINE_HUB = 1;
   private static final int LIMELIGHT_PIPELINE_BUMP = 2;
 
-  private static final List<int[]> ApriltagFilters = List.of(
-    new int[]{7,9,10,12,13,14,15,16,23,25,26,28,29,30,31,32}, 
-    new int[]{1,3,4,6,17,19,20,22});
-
   private Matrix<N3, N1> curStdDevs;
 
   // Simulation debug field
@@ -174,25 +172,17 @@ public class VisionSubsystem extends SubsystemBase {
 
   // Vision acceptance and scaling thresholds.
   private static final double FIELD_BORDER_MARGIN_METERS = 0.25;
+  private static final double VISION_FIELD_MIN_X_METERS = -FIELD_BORDER_MARGIN_METERS;
+  private static final double VISION_FIELD_MIN_Y_METERS = -FIELD_BORDER_MARGIN_METERS;
+  private static final double VISION_FIELD_MAX_X_METERS =
+      Constants.Field.FIELD_LENGTH.in(Meters) + FIELD_BORDER_MARGIN_METERS;
+  private static final double VISION_FIELD_MAX_Y_METERS =
+      Constants.Field.FIELD_WIDTH.in(Meters) + FIELD_BORDER_MARGIN_METERS;
   private static final double POSE_UPDATE_MAX_TRANSLATION_SPEED_MPS = 0.15;
   private static final double POSE_UPDATE_MAX_ROTATION_SPEED_RAD_PER_SEC =
       RotationsPerSecond.of(0.5).in(RadiansPerSecond);
   private static final double SINGLE_TAG_MAX_AMBIGUITY = 0.25;
   private static final double SINGLE_TAG_MAX_DISTANCE_METERS = 2.5;
-  // private static final double MIN_VISION_TIMESTAMP_DELTA_SEC = 0.01;
-
-  /**
-   * Tracks the last time a valid vision pose update was accepted by the drivetrain.
-   * Used to detect if vision has gone stale (e.g., camera disconnect, pipeline crash).
-   */
-  // @Logged(importance = Logged.Importance.DEBUG)
-  // private long lastValidPoseUpdateTime = System.currentTimeMillis();
-
-  /**
-   * If no valid vision measurements are accepted within this timeout (milliseconds),
-   * vision data is considered stale and should not be used for pose estimation.
-   */
-  // private static final long VISION_TIMEOUT_MS = 500;
 
   // ========================================================================
 
@@ -231,18 +221,6 @@ public class VisionSubsystem extends SubsystemBase {
   }
 
   /**
-   * Check if vision system is actively providing valid measurements.
-   * Returns false if no valid pose update has been received within VISION_TIMEOUT_MS.
-   * Useful for detecting camera disconnect, pipeline crash, or Limelight reboot.
-   *
-   * @return true if vision is providing fresh estimates, false if stale/unavailable
-   */
-  // public boolean isVisionValid() {
-  //   long timeSinceLastValidUpdate = System.currentTimeMillis() - lastValidPoseUpdateTime;
-  //   return timeSinceLastValidUpdate < VISION_TIMEOUT_MS;
-  // }
-
-  /**
    * The latest estimated robot pose on the field from vision data. This may be empty. This should
    * only be called once per loop.
    *
@@ -268,6 +246,12 @@ public class VisionSubsystem extends SubsystemBase {
 
     // does it has AprilTags?
     if ((est.rawFiducials == null) || (est.rawFiducials.length == 0)) {
+      curStdDevs = kSingleTagStdDevs;
+      return Optional.empty();
+    }
+
+    // is pose estimate on the field?
+    if (!isVisionPoseOnField(est.pose)) {
       curStdDevs = kSingleTagStdDevs;
       return Optional.empty();
     }
@@ -332,21 +316,22 @@ public class VisionSubsystem extends SubsystemBase {
         && Math.abs(speeds.omegaRadiansPerSecond) < POSE_UPDATE_MAX_ROTATION_SPEED_RAD_PER_SEC;
   }
 
-  // private boolean isFreshVisionEstimate(PoseEstimate est) {
-  //     if (est.timestampSeconds > (lastAcceptedVisionTimestampSeconds + MIN_VISION_TIMESTAMP_DELTA_SEC)) {
-  //       lastAcceptedVisionTimestampSeconds = est.timestampSeconds;
-  //       lastValidPoseUpdateTime = System.currentTimeMillis();
-  //       return true;
-  //     }
-  //     return false;
-  // }
+  private boolean isVisionPoseOnField(Pose2d pose) {
+    if (pose == null) {
+      return false;
+    }
 
-  // private boolean isVisionPoseOnField(Pose2d pose) {
-  //   return pose.getX() >= -FIELD_BORDER_MARGIN_METERS
-  //       && pose.getX() <= (Constants.FIELD_LENGTH + FIELD_BORDER_MARGIN_METERS)
-  //       && pose.getY() >= -FIELD_BORDER_MARGIN_METERS
-  //       && pose.getY() <= (FieldConstants.fieldWidth + FIELD_BORDER_MARGIN_METERS);
-  // }
+    // Keep this check on primitive doubles only; previous versions referenced a
+    // FieldConstants class that performed expensive static initialization.
+    double xMeters = pose.getX();
+    double yMeters = pose.getY();
+    return Double.isFinite(xMeters)
+        && Double.isFinite(yMeters)
+        && xMeters >= VISION_FIELD_MIN_X_METERS
+        && xMeters <= VISION_FIELD_MAX_X_METERS
+        && yMeters >= VISION_FIELD_MIN_Y_METERS
+        && yMeters <= VISION_FIELD_MAX_Y_METERS;
+  }
 
   public void updateGlobalPose(CommandSwerveDrivetrain drivetrain) {
     if (isDrivetrainSlowEnough(drivetrain)) {
@@ -405,9 +390,6 @@ public class VisionSubsystem extends SubsystemBase {
 
   private void setPipeline(int pipelineIndex, String activeMode) {
     LimelightHelpers.setPipelineIndex(LIMELIGHTNAME, pipelineIndex);
-    if ((pipelineIndex > 0) && (pipelineIndex <= ApriltagFilters.size())) {
-      LimelightHelpers.SetFiducialIDFiltersOverride(LIMELIGHTNAME, ApriltagFilters.get(pipelineIndex - 1));
-    }
     telemetry.putNumber("Vision/Camera/" + LIMELIGHTNAME + "/Pipeline", pipelineIndex, true);
     telemetry.putString("Vision/ActiveMode", activeMode, true);
   }
