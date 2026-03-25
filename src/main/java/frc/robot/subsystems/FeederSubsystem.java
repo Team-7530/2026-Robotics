@@ -75,7 +75,7 @@ public class FeederSubsystem extends SubsystemBase {
       .withFeedforward(new SimpleMotorFeedforward(FEEDER_KS, 0, 0))
       .withSimFeedforward(new SimpleMotorFeedforward(FEEDER_KS, 0, 0))
       // Telemetry name and verbosity level
-      .withTelemetry("FeederMotor", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withTelemetry("FeederMotor", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
       // Gearing from the motor rotor to final shaft.
       // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
       .withGearing(new MechanismGearing(GearBox.fromReductionStages(kFeederChainRatio, kFeederGearboxRatio)))
@@ -97,7 +97,7 @@ public class FeederSubsystem extends SubsystemBase {
       // Maximum speed of the shooter.
       .withSoftLimit(FEEDER_kMaxV.unaryMinus(), FEEDER_kMaxV)
       // Telemetry name and verbosity for the arm.
-      .withTelemetry("Feeder", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withTelemetry("Feeder", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
       .withSpeedometerSimulation(FEEDER_kMaxV);
 
   private final FlyWheel m_feeder = new FlyWheel(m_feederConfig);

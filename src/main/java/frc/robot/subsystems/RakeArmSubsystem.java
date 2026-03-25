@@ -71,7 +71,7 @@ public class RakeArmSubsystem extends SubsystemBase {
       .withFeedforward(new ArmFeedforward(RAKEARM_KS, 0, 0))
       .withSimFeedforward(new ArmFeedforward(RAKEARM_KS, 0, 0))
       // Telemetry name and verbosity level
-      .withTelemetry("RakeArmMotor", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withTelemetry("RakeArmMotor", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
       // Gearing from the motor rotor to final shaft.
       // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
       .withGearing(new MechanismGearing(GearBox.fromReductionStages(kRakeArmChainRatio, kRakeArmGearboxRatio)))
@@ -105,7 +105,7 @@ public class RakeArmSubsystem extends SubsystemBase {
       // Mass of the flywheel.
       .withMass(Pounds.of(1))
       // Telemetry name and verbosity for the arm.
-      .withTelemetry("RakeArm", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withTelemetry("RakeArm", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
       .withMechanismPositionConfig(robotToMechanism);
 
   private final Arm m_rakeArm = new Arm(m_rakeArmConfig);

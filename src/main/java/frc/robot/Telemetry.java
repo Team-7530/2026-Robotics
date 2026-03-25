@@ -218,9 +218,11 @@ public class Telemetry {
     // also publish the drivetrain maximum speed; this is used on the
     // competition layout so drivers know what the robot is currently allowed to do.
     putNumber("DriveTrain/MaxSpeed", m_maxSpeed, true);
-    putNumber("DriveTrain/PoseX", m_poseX, true);
-    putNumber("DriveTrain/PoseY", m_poseY, true);
-    putNumber("DriveTrain/PoseTheta", m_poseRotation, true);
+    // The Field2d widget already shows robot pose; keep the raw numeric pose behind
+    // the debug gate to reduce redundant dashboard traffic during matches.
+    putNumber("DriveTrain/PoseX", m_poseX, false);
+    putNumber("DriveTrain/PoseY", m_poseY, false);
+    putNumber("DriveTrain/PoseTheta", m_poseRotation, false);
 
     /* Telemeterize the module's states */
     double moduleSpeedDenominator = Math.max(1e-6, 2.0 * m_maxSpeed);

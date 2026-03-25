@@ -75,7 +75,7 @@ public class RakeIntakeSubsystem extends SubsystemBase {
       .withFeedforward(new SimpleMotorFeedforward(RAKEINTAKE_KS, 0, 0))
       .withSimFeedforward(new SimpleMotorFeedforward(RAKEINTAKE_KS, 0, 0))
       // Telemetry name and verbosity level
-      .withTelemetry("RakeIntakeMotor", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withTelemetry("RakeIntakeMotor", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
       // Gearing from the motor rotor to final shaft.
       // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
       .withGearing(new MechanismGearing(GearBox.fromReductionStages(kRakeIntakeChainRatio, kRakeIntakeGearboxRatio)))
@@ -97,7 +97,7 @@ public class RakeIntakeSubsystem extends SubsystemBase {
       // Maximum speed of the shooter.
       .withSoftLimit(RAKEINTAKE_kMaxV.unaryMinus(), RAKEINTAKE_kMaxV)
       // Telemetry name and verbosity for the arm.
-      .withTelemetry("RakeIntake", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withTelemetry("RakeIntake", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
       .withSpeedometerSimulation(RAKEINTAKE_kMaxV);
 
   private final FlyWheel m_rakeIntake = new FlyWheel(m_rakeIntakeConfig);

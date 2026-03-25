@@ -74,7 +74,7 @@ public class CollectorSubsystem extends SubsystemBase {
       .withFeedforward(new SimpleMotorFeedforward(COLLECTOR_KS, 0, 0))
       .withSimFeedforward(new SimpleMotorFeedforward(COLLECTOR_KS, 0, 0))
       // Telemetry name and verbosity level
-      .withTelemetry("CollectorMotor", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withTelemetry("CollectorMotor", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
       // Gearing from the motor rotor to final shaft.
       // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
       .withGearing(new MechanismGearing(GearBox.fromReductionStages(kCollectorChainRatio, kCollectorGearboxRatio)))
@@ -96,7 +96,7 @@ public class CollectorSubsystem extends SubsystemBase {
       // Maximum speed of the shooter.
       .withSoftLimit(COLLECTOR_kMaxV.unaryMinus(), COLLECTOR_kMaxV)
       // Telemetry name and verbosity for the arm.
-      .withTelemetry("Collector", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withTelemetry("Collector", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
       .withSpeedometerSimulation(COLLECTOR_kMaxV);
 
   private final FlyWheel m_collector = new FlyWheel(m_collectorConfig);

@@ -201,15 +201,15 @@ public class ShooterSubsystem extends SubsystemBase {
     turret.setAngleDirect(turretAngleToTarget);
     this.setFlywheelVelocityOnDistance(distanceToTarget);
 
-    telemetry.putNumber(TELEMETRY_TARGET_FIELD_X, targetPosition.getX(), true);
-    telemetry.putNumber(TELEMETRY_TARGET_FIELD_Y, targetPosition.getY(), true);
+    telemetry.putNumber(TELEMETRY_TARGET_FIELD_X, targetPosition.getX(), false);
+    telemetry.putNumber(TELEMETRY_TARGET_FIELD_Y, targetPosition.getY(), false);
   }
 
   private void updateTelemetry() {
     // Critical targeting data (always logged for post-match analysis).
     // Using cached String keys eliminates ~50 string allocations per loop cycle.
     telemetry.putNumber(TELEMETRY_TURRET_ANGLE, turretAngleToTarget.in(Degrees), true);
-    telemetry.putNumber(TELEMETRY_DISTANCE, distanceToTarget.in(Meters), true);
+    telemetry.putNumber(TELEMETRY_DISTANCE, distanceToTarget.in(Meters), false);
     telemetry.putNumber(TELEMETRY_RPM, getFlywheelVelocity().in(RPM), true);
     telemetry.putString(TELEMETRY_PROFILE, activeShotProfile, true);
     

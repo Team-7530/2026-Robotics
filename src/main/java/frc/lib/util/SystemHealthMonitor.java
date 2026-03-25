@@ -19,7 +19,7 @@ import frc.robot.Telemetry;
  *
  * This subsystem collects health from:
  * - Individual motor monitors (via nested MotorHealthMonitor.create() factory)
- * - Power system checks (battery voltage, CAN errors)
+ * - Power system checks (battery voltage, power distribution comms)
  * - Custom health suppliers from any subsystem
  *
  * ARCHITECTURE NOTES:
@@ -64,7 +64,7 @@ public class SystemHealthMonitor extends SubsystemBase {
     private boolean battery_healthy = true;
 
     @Logged(importance = Logged.Importance.INFO)
-    private boolean can_bus_healthy = true;
+    private boolean power_distribution_healthy = true;
 
     // Overall aggregate health
     @Logged(importance = Logged.Importance.CRITICAL)
@@ -150,7 +150,7 @@ public class SystemHealthMonitor extends SubsystemBase {
     }
 
     /**
-     * Check battery voltage and CAN bus health.
+     * Check battery voltage and power distribution communications health.
      * Aggregates power system diagnostics for driver visibility.
      */
     private void checkPowerSystem() {
@@ -166,10 +166,10 @@ public class SystemHealthMonitor extends SubsystemBase {
             battery_healthy = true;
         }
 
-        // Check CAN bus health via PowerDistribution faults
-        // PowerDistributionFaults returns null when healthy, object when faults present
+        // This is only the power distribution device's CAN warning bit, not a
+        // robot-wide CAN bus health indicator.
         PowerDistributionFaults faults = pdp.getFaults();
-        can_bus_healthy = (faults.CanWarning == false);
+        power_distribution_healthy = !faults.CanWarning;
     }
 
     /**
@@ -189,7 +189,7 @@ public class SystemHealthMonitor extends SubsystemBase {
         overall_healthy = allMotorsHealthy
             && allCustomChecksHealthy
             && battery_healthy
-            && can_bus_healthy;
+            && power_distribution_healthy;
     }
 
     /**
@@ -198,13 +198,13 @@ public class SystemHealthMonitor extends SubsystemBase {
     private void publishTelemetry() {
         // Power system health
         telemetry.putBoolean("Health/Battery", battery_healthy, true);
-        telemetry.putBoolean("Health/CANBus", can_bus_healthy, true);
+        telemetry.putBoolean("Health/PowerDistribution/CAN", power_distribution_healthy, true);
 
         // Overall health (CRITICAL - driver must see this)
         telemetry.putBoolean("Health/Overall", overall_healthy, true);
 
         // Power diagnostics (for tuning/debugging)
-        telemetry.putNumber("Health/Power/BatteryVoltage", battery_voltage, true);
+        telemetry.putNumber("Health/Power/BatteryVoltage", battery_voltage, false);
         telemetry.putNumber("Health/Power/TotalCurrent", total_current_amps, false);
     }
 
@@ -220,11 +220,11 @@ public class SystemHealthMonitor extends SubsystemBase {
     }
 
     /**
-     * Query power system health (battery + CAN).
-     * @return true if both battery and CAN bus are healthy
+     * Query power system health (battery + power distribution communications).
+     * @return true if both battery voltage and power distribution comms are healthy
      */
     public boolean isPowerSystemHealthy() {
-        return battery_healthy && can_bus_healthy;
+        return battery_healthy && power_distribution_healthy;
     }
 
     /**
@@ -244,11 +244,11 @@ public class SystemHealthMonitor extends SubsystemBase {
     }
 
     /**
-     * Query CAN bus health specifically.
-     * @return true if no CAN errors detected
+     * Query power distribution communication health specifically.
+     * @return true if the power distribution device is not reporting a CAN warning
      */
-    public boolean isCANBusHealthy() {
-        return can_bus_healthy;
+    public boolean isPowerDistributionHealthy() {
+        return power_distribution_healthy;
     }
 
     /**
@@ -351,8 +351,8 @@ public class SystemHealthMonitor extends SubsystemBase {
             healthy = (currentAmps < stallCurrentThreshold);
 
             // Always log current (helps with competition diagnostics)
-            telemetry.putNumber("Health/Motors/" + motorName + "/Current", currentAmps, true);
-            telemetry.putBoolean("Health/Motors/" + motorName + "/OK", healthy, true);
+            telemetry.putNumber("Health/Motors/" + motorName + "/Current", currentAmps, false);
+            telemetry.putBoolean("Health/Motors/" + motorName + "/OK", healthy, false);
         }
 
         /**

@@ -243,8 +243,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     // (max speed, max acceleration, max angular speed, max angular acceleration)
     PathConstraints pathConstraints =
         new PathConstraints(
-            Units.metersToFeet(1.0),
-            Units.metersToFeet(1.0),
+            1.0,
+            1.0,
             Units.degreesToRadians(540),
             Units.degreesToRadians(720));
     return AutoBuilder.pathfindToPose(targetPose, pathConstraints, 0.0);
@@ -255,8 +255,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     // (max speed, max acceleration, max angular speed, max angular acceleration)
     PathConstraints pathConstraints =
         new PathConstraints(
-            Units.metersToFeet(1.0),
-            Units.metersToFeet(1.0),
+            1.0,
+            1.0,
             Units.degreesToRadians(540),
             Units.degreesToRadians(720));
 

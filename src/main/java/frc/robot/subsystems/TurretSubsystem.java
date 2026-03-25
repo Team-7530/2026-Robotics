@@ -84,7 +84,7 @@ public class TurretSubsystem extends SubsystemBase {
       .withFeedforward(new SimpleMotorFeedforward(TURRET_KV, TURRET_KA, 0))
       .withSimFeedforward(new SimpleMotorFeedforward(TURRET_KV, TURRET_KA, 0))
       // Telemetry name and verbosity level
-      .withTelemetry("TurretMotor", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withTelemetry("TurretMotor", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
       // Gearing from the motor rotor to final shaft.
       // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
       .withGearing(new MechanismGearing(GearBox.fromReductionStages(kTurretChainRatio, kTurretGearboxRatio)))
@@ -108,7 +108,7 @@ public class TurretSubsystem extends SubsystemBase {
       .withWrapping(Degrees.of(-180), Degrees.of(180)) // Wrapping enabled bc the pivot can spin infinitely
       .withSoftLimits(TURRET_MIN_DEG, TURRET_MAX_DEG) // Angle limit on motor bc wiring prevents infinite spinning
       .withHardLimit(TURRET_MIN_DEG, TURRET_MAX_DEG) // Angle limit in simulator bc wiring prevents infinite spinning
-      .withTelemetry("Turret", TelemetryVerbosity.HIGH) // Telemetry
+      .withTelemetry("Turret", TelemetryVerbosity.LOW) // Telemetry
       .withMOI(Meters.of(0.25), Pounds.of(4)) // MOI Calculation
       .withMechanismPositionConfig(robotToMechanism);
 
@@ -256,9 +256,9 @@ public class TurretSubsystem extends SubsystemBase {
   private void updateTelemetry() {
     m_turret.updateTelemetry();
     // YAMS already publishes the turret mechanism angle, setpoint, and rotor state.
-    telemetry.putNumber("Turret/TurretPotentiometer", -m_turretPotentiometer.get(), true);
-    telemetry.putNumber("Turret/SeededTurretDeg", this.potentiometerAngle.in(Degrees), true);
-    telemetry.putNumber("Turret/TurretAngle", this.getAngle().in(Degrees), true);
+    telemetry.putNumber("Turret/TurretPotentiometer", -m_turretPotentiometer.get(), false);
+    telemetry.putNumber("Turret/SeededTurretDeg", this.potentiometerAngle.in(Degrees), false);
+    telemetry.putNumber("Turret/TurretAngle", this.getAngle().in(Degrees), false);
   }
 
   // -- Commands -----------------------------------------------------------

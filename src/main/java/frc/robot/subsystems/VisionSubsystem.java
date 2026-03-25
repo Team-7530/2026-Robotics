@@ -343,6 +343,7 @@ public class VisionSubsystem extends SubsystemBase {
                         est.pose,
                         est.timestampSeconds,
                         this.getEstimationStdDevs());
+                  lastAcceptedVisionTimestampSeconds = est.timestampSeconds;
                 }
               );
     }

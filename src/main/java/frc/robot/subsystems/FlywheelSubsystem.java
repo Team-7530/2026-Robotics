@@ -78,7 +78,7 @@ public class FlywheelSubsystem extends SubsystemBase {
       .withFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, FLYWHEEL_kV, 0))
       .withSimFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, FLYWHEEL_kV, 0))
       // Telemetry name and verbosity level
-      .withTelemetry("FlywheelMotor", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withTelemetry("FlywheelMotor", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
       // Gearing from the motor rotor to final shaft.
       // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
       .withGearing(new MechanismGearing(GearBox.fromReductionStages(kFlywheelChainRatio, kFlywheelGearboxRatio)))
@@ -103,7 +103,7 @@ public class FlywheelSubsystem extends SubsystemBase {
       // Maximum speed of the shooter.
       .withSoftLimit(FLYWHEEL_kMaxV.unaryMinus(), FLYWHEEL_kMaxV)
       // Telemetry name and verbosity for the arm.
-      .withTelemetry("Flywheel", SmartMotorControllerConfig.TelemetryVerbosity.HIGH)
+      .withTelemetry("Flywheel", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
       .withSpeedometerSimulation(FLYWHEEL_kMaxV);
 
   private final FlyWheel m_flywheel = new FlyWheel(m_flywheelConfig);
