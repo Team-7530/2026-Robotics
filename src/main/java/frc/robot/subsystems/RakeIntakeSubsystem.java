@@ -5,6 +5,7 @@ import static frc.robot.Constants.*;
 
 import java.util.function.Supplier;
 
+import com.ctre.phoenix6.SignalLogger;
 import yams.motorcontrollers.SmartMotorController;
 import yams.motorcontrollers.SmartMotorControllerConfig;
 import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
@@ -28,6 +29,7 @@ import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 
 import frc.lib.util.SystemHealthMonitor;
 import frc.lib.util.SystemHealthMonitor.MotorHealthMonitor;
@@ -67,40 +69,53 @@ public class RakeIntakeSubsystem extends SubsystemBase {
 
   // YAMS controller and mechanism (initialized at declaration to match FlywheelSubsystem style)
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
-      .withControlMode(ControlMode.CLOSED_LOOP)
       // PID Constants
-      .withClosedLoopController(RAKEINTAKE_KP, RAKEINTAKE_KI, RAKEINTAKE_KD, RAKEINTAKE_kMaxV, RAKEINTAKE_kMaxA)
-      .withSimClosedLoopController(RAKEINTAKE_KP, RAKEINTAKE_KI, RAKEINTAKE_KD, RAKEINTAKE_kMaxV, RAKEINTAKE_kMaxA)
-      // Feedforward Constants
-      .withFeedforward(new SimpleMotorFeedforward(RAKEINTAKE_KS, 0, 0))
-      .withSimFeedforward(new SimpleMotorFeedforward(RAKEINTAKE_KS, 0, 0))
-      // Telemetry name and verbosity level
-      .withTelemetry("RakeIntakeMotor", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
+      .withClosedLoopController(RAKEINTAKE_KP, RAKEINTAKE_KI, RAKEINTAKE_KD)
+      .withSimClosedLoopController(RAKEINTAKE_KP, RAKEINTAKE_KI, RAKEINTAKE_KD)
+      .withTrapezoidalProfile(RAKEINTAKE_kMaxV, RAKEINTAKE_kMaxA)
       // Gearing from the motor rotor to final shaft.
       // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
       .withGearing(new MechanismGearing(GearBox.fromReductionStages(kRakeIntakeChainRatio, kRakeIntakeGearboxRatio)))
-      // Motor properties to prevent over currenting.
       .withMotorInverted(true)
       .withIdleMode(MotorMode.COAST)
-      // Power Optimization
+      // Telemetry name and verbosity level
+      .withTelemetry("RakeIntakeMotor", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
+      // Feedforward Constants
+      .withFeedforward(new SimpleMotorFeedforward(RAKEINTAKE_KS, 0, 0))
+      .withSimFeedforward(new SimpleMotorFeedforward(RAKEINTAKE_KS, 0, 0))
+      // Motor properties to prevent over currenting.
       .withStatorCurrentLimit(Amps.of(40))
+      // Power Optimization
       .withClosedLoopRampRate(Seconds.of(0.25))
-      .withOpenLoopRampRate(Seconds.of(0.25));
+      .withOpenLoopRampRate(Seconds.of(0.25))
+      // Mass of the flywheel.
+      .withMomentOfInertia(flywheelDiameter, flywheelMass)
+      .withControlMode(ControlMode.CLOSED_LOOP);
 
   private final SmartMotorController m_rakeIntakeSMC = new TalonFXWrapper(m_rakeIntakeMotor, DCMotor.getKrakenX60Foc(1), smc_config);
 
-  private final FlyWheelConfig m_rakeIntakeConfig = new FlyWheelConfig(m_rakeIntakeSMC)
-      // Diameter of the flywheel.
+  private final SysIdRoutine m_sysIdRoutine = new SysIdRoutine(
+      new SysIdRoutine.Config(
+          Volts.per(Second).of(1.0),
+          Volts.of(4.0),
+          Seconds.of(10.0),
+          state -> SignalLogger.writeString("RakeIntakeSysIdState", state.toString())),
+      new SysIdRoutine.Mechanism(
+          m_rakeIntakeSMC::setVoltage,
+          log -> log.motor("RakeIntakeMotor")
+              .voltage(m_rakeIntakeSMC.getVoltage())
+              .angularPosition(m_rakeIntakeSMC.getMechanismPosition())
+              .angularVelocity(m_rakeIntakeSMC.getMechanismVelocity())
+              .current(m_rakeIntakeSMC.getStatorCurrent()),
+          this,
+          "RakeIntakeMotor"));
+
+  private final FlyWheelConfig m_rakeIntakeConfig = new FlyWheelConfig()
       .withDiameter(flywheelDiameter)
-      // Mass of the flywheel.
-      .withMass(flywheelMass)
-      // Maximum speed of the shooter.
-      .withSoftLimit(RAKEINTAKE_kMaxV.unaryMinus(), RAKEINTAKE_kMaxV)
-      // Telemetry name and verbosity for the arm.
       .withTelemetry("RakeIntake", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
       .withSpeedometerSimulation(RAKEINTAKE_kMaxV);
 
-  private final FlyWheel m_rakeIntake = new FlyWheel(m_rakeIntakeConfig);
+  private final FlyWheel m_rakeIntake = new FlyWheel(m_rakeIntakeConfig, m_rakeIntakeSMC);
 
   @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
@@ -145,12 +160,12 @@ public class RakeIntakeSubsystem extends SubsystemBase {
   }
 
   public Command setVelocityCommand(AngularVelocity speed) {
-    return m_rakeIntake.setSpeed(speed)
+    return m_rakeIntake.run(speed)
       .withName("RakeIntakeSetVelocityCommand");
   }
 
   public Command setVelocityCommand(Supplier<AngularVelocity> speed) {
-    return m_rakeIntake.setSpeed(speed)
+    return m_rakeIntake.run(speed)
       .withName("RakeIntakeSetVelocityCommand");
   }
 
@@ -164,9 +179,14 @@ public class RakeIntakeSubsystem extends SubsystemBase {
       .withName("RakeIntakeSetDutyCycleCommand");
   }
 
-  public Command sysIdCommand() {
-    // run on the practice field to capture plant data
-    return m_rakeIntake.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
+  public Command sysIdQuasistaticCommand(SysIdRoutine.Direction direction) {
+    return m_sysIdRoutine.quasistatic(direction)
+      .withName("RakeIntakeSysIdQuasistatic" + direction.name());
+  }
+
+  public Command sysIdDynamicCommand(SysIdRoutine.Direction direction) {
+    return m_sysIdRoutine.dynamic(direction)
+      .withName("RakeIntakeSysIdDynamic" + direction.name());
   }
 
   /** Sets motors to constants intake speed */

@@ -4,6 +4,7 @@ import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.*;
 
 import com.ctre.phoenix6.CANBus;
+import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 
@@ -17,6 +18,7 @@ import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 
 import yams.gearing.GearBox;
 import yams.gearing.MechanismGearing;
@@ -63,23 +65,23 @@ public class RakeArmSubsystem extends SubsystemBase {
 
   // YAMS controller and mechanism (initialized at declaration to match FlywheelSubsystem style)
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
-      .withControlMode(ControlMode.CLOSED_LOOP)
       // PID Constants
-      .withClosedLoopController(RAKEARM_KP, RAKEARM_KI, RAKEARM_KD, RAKEARM_kMaxV, RAKEARM_kMaxA)
-      .withSimClosedLoopController(RAKEARM_KP, RAKEARM_KI, RAKEARM_KD, RAKEARM_kMaxV, RAKEARM_kMaxA)
-      // Feedforward Constants
-      .withFeedforward(new ArmFeedforward(RAKEARM_KS, 0, 0))
-      .withSimFeedforward(new ArmFeedforward(RAKEARM_KS, 0, 0))
-      // Telemetry name and verbosity level
-      .withTelemetry("RakeArmMotor", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
+      .withClosedLoopController(RAKEARM_KP, RAKEARM_KI, RAKEARM_KD)
+      .withSimClosedLoopController(RAKEARM_KP, RAKEARM_KI, RAKEARM_KD)
+      .withTrapezoidalProfile(RAKEARM_kMaxV, RAKEARM_kMaxA)
       // Gearing from the motor rotor to final shaft.
       // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
       .withGearing(new MechanismGearing(GearBox.fromReductionStages(kRakeArmChainRatio, kRakeArmGearboxRatio)))
-      // Motor properties to prevent over currenting.
       .withMotorInverted(true)
       .withIdleMode(MotorMode.COAST)
-      // Power Optimization
+      // Telemetry name and verbosity level
+      .withTelemetry("RakeArmMotor", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
+      // Feedforward Constants
+      .withFeedforward(new ArmFeedforward(RAKEARM_KS, 0, 0))
+      .withSimFeedforward(new ArmFeedforward(RAKEARM_KS, 0, 0))
+      // Motor properties to prevent over currenting.
       .withStatorCurrentLimit(Amps.of(40))
+      // Power Optimization
       .withClosedLoopRampRate(Seconds.of(0.25))
       .withOpenLoopRampRate(Seconds.of(0.25))
       // External Encoder
@@ -87,28 +89,45 @@ public class RakeArmSubsystem extends SubsystemBase {
       .withExternalEncoderGearing(1.0)
       .withExternalEncoderInverted(false)
       .withExternalEncoderZeroOffset(Rotations.of(kRakeArmEncoderOffset))
-      .withUseExternalFeedbackEncoder(true);
+      .withUseExternalFeedbackEncoder(true)
+      // Angle limits
+      .withSoftLimits(Degrees.of(0), Degrees.of(132))
+      .withSimStartingPosition(Degrees.of(0))
+      .withControlMode(ControlMode.CLOSED_LOOP);
 
   private final SmartMotorController m_rakeArmSMC = new TalonFXWrapper(m_rakeArmMotor, DCMotor.getKrakenX60Foc(1), smc_config);
+
+  private final SysIdRoutine m_sysIdRoutine = new SysIdRoutine(
+      new SysIdRoutine.Config(
+          Volts.per(Second).of(1.0),
+          Volts.of(4.0),
+          Seconds.of(10.0),
+          state -> SignalLogger.writeString("RakeArmSysIdState", state.toString())),
+      new SysIdRoutine.Mechanism(
+          m_rakeArmSMC::setVoltage,
+          log -> log.motor("RakeArmMotor")
+              .voltage(m_rakeArmSMC.getVoltage())
+              .angularPosition(getRakeArmPosition())
+              .angularVelocity(m_rakeArmSMC.getMechanismVelocity())
+              .current(m_rakeArmSMC.getStatorCurrent()),
+          this,
+          "RakeArmMotor"));
 
   private final MechanismPositionConfig robotToMechanism = new MechanismPositionConfig()
       .withMaxRobotHeight(Inches.of(23.0))
       .withMaxRobotLength(Inches.of(34.0))
       .withRelativePosition(new Translation3d(Inches.of(-10), Inches.of(-2), Inches.of(1)));
 
-  private final ArmConfig m_rakeArmConfig = new ArmConfig(m_rakeArmSMC)
+  private final ArmConfig m_rakeArmConfig = new ArmConfig()
       // Length of the arm.
       .withLength(Meters.of(0.135))
-      // Angle limits
-      .withHardLimit(Degrees.of(0), Degrees.of(132))
-      .withStartingPosition(Degrees.of(0))
-      // Mass of the flywheel.
-      .withMass(Pounds.of(1))
-      // Telemetry name and verbosity for the arm.
+      // Hard limits define the absolute range shown in simulation (-100..200 deg).
+      // Physical hard stops on the real robot should be placed slightly inside these values.
+      .withHardLimits(Degrees.of(-10), Degrees.of(150))
       .withTelemetry("RakeArm", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
       .withMechanismPositionConfig(robotToMechanism);
 
-  private final Arm m_rakeArm = new Arm(m_rakeArmConfig);
+  private final Arm m_rakeArm = new Arm(m_rakeArmConfig, m_rakeArmSMC);
   
   @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
@@ -153,16 +172,6 @@ public class RakeArmSubsystem extends SubsystemBase {
     return m_rakeArm.getAngle();
   }
 
-  /**
-   * Run a simple SysId routine on the rake arm motor.  This is useful when
-   * characterizing the mechanism during practice-field tuning. The command
-   * will apply a 10 V step for 5 s while logging the response; modify the
-   * parameters if you need a different profile.
-   */
-  public Command sysIdCommand() {
-    return m_rakeArm.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
-  }
-
   /** Move the rake to the deployed floor-intake angle. */
   public Command rakeArmDeployCommand() {
     return m_rakeArm.setAngle(kRakeArmPositionDeploy)
@@ -180,6 +189,16 @@ public class RakeArmSubsystem extends SubsystemBase {
     return m_rakeArm.setAngle(kRakeArmPositionUp)
       .withName("RakeArmUpCommand")
       .withTimeout(0.2);
+  }
+
+  public Command sysIdQuasistaticCommand(SysIdRoutine.Direction direction) {
+    return m_sysIdRoutine.quasistatic(direction)
+      .withName("RakeArmSysIdQuasistatic" + direction.name());
+  }
+
+  public Command sysIdDynamicCommand(SysIdRoutine.Direction direction) {
+    return m_sysIdRoutine.dynamic(direction)
+      .withName("RakeArmSysIdDynamic" + direction.name());
   }
 
   /** Stop the rake arm motor immediately. */

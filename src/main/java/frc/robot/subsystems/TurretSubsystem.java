@@ -9,6 +9,7 @@ import frc.lib.util.SystemHealthMonitor.MotorHealthMonitor;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.CANBus;
+import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.hardware.TalonFX;
 
 // YAMS pivot-style controller
@@ -35,6 +36,7 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.AnalogPotentiometer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 
 @Logged
 public class TurretSubsystem extends SubsystemBase {
@@ -76,43 +78,62 @@ public class TurretSubsystem extends SubsystemBase {
   private final AnalogPotentiometer m_turretPotentiometer = new AnalogPotentiometer(TURRET_ANALOG_ID, 360.0, -180.0);
 
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
-      .withControlMode(ControlMode.CLOSED_LOOP)
       // PID Constants
-      .withClosedLoopController(TURRET_KP, TURRET_KI, TURRET_KD, TURRET_kMaxV, TURRET_kMaxA)
-      .withSimClosedLoopController(TURRET_KP, TURRET_KI, TURRET_KD, TURRET_kMaxV, TURRET_kMaxA)
-      // Feedforward Constants
-      .withFeedforward(new SimpleMotorFeedforward(TURRET_KV, TURRET_KA, 0))
-      .withSimFeedforward(new SimpleMotorFeedforward(TURRET_KV, TURRET_KA, 0))
-      // Telemetry name and verbosity level
-      .withTelemetry("TurretMotor", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
+      .withClosedLoopController(TURRET_KP, TURRET_KI, TURRET_KD)
+      .withSimClosedLoopController(TURRET_KP, TURRET_KI, TURRET_KD)
+      .withTrapezoidalProfile(TURRET_kMaxV, TURRET_kMaxA)
       // Gearing from the motor rotor to final shaft.
       // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
       .withGearing(new MechanismGearing(GearBox.fromReductionStages(kTurretChainRatio, kTurretGearboxRatio)))
-      // Motor properties to prevent over currenting.
       .withMotorInverted(false)
       .withIdleMode(MotorMode.BRAKE)
-      // Power Optimization
+      // Telemetry name and verbosity level
+      .withTelemetry("TurretMotor", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
+      // Feedforward Constants
+      .withFeedforward(new SimpleMotorFeedforward(TURRET_KV, TURRET_KA, 0))
+      .withSimFeedforward(new SimpleMotorFeedforward(TURRET_KV, TURRET_KA, 0))
+      // Motor properties to prevent over currenting.
       .withStatorCurrentLimit(Amps.of(40))
+      // Power Optimization
       .withClosedLoopRampRate(Seconds.of(0.25))
-      .withOpenLoopRampRate(Seconds.of(0.25));
+      .withOpenLoopRampRate(Seconds.of(0.25))
+      // starting position of the turret (degrees)
+      .withStartingPosition(Degrees.of(0)) // Starting position of the Pivot
+      .withSimStartingPosition(Degrees.of(0))
+      // Angle limit on motor bc wiring prevents infinite spinning
+      .withSoftLimits(TURRET_MIN_DEG, TURRET_MAX_DEG) 
+      .withMomentOfInertia(Meters.of(0.25), Pounds.of(4)) // MOI Calculation
+      .withControlMode(ControlMode.CLOSED_LOOP);
 
   private final SmartMotorController m_turretSMC = new TalonFXWrapper(m_turretMotor, DCMotor.getKrakenX60Foc(1), smc_config);
+
+  private final SysIdRoutine m_sysIdRoutine = new SysIdRoutine(
+      new SysIdRoutine.Config(
+          Volts.per(Second).of(1.0),
+          Volts.of(4.0),
+          Seconds.of(10.0),
+          state -> SignalLogger.writeString("TurretSysIdState", state.toString())),
+      new SysIdRoutine.Mechanism(
+          m_turretSMC::setVoltage,
+          log -> log.motor("TurretMotor")
+              .voltage(m_turretSMC.getVoltage())
+              .angularPosition(getAngle())
+              .angularVelocity(m_turretSMC.getMechanismVelocity())
+              .current(m_turretSMC.getStatorCurrent()),
+          this,
+          "TurretMotor"));
 
   private final MechanismPositionConfig robotToMechanism = new MechanismPositionConfig()
       .withMaxRobotHeight(Inches.of(23.0))
       .withMaxRobotLength(Inches.of(34.0))
       .withRelativePosition(new Translation3d(Inches.of(0.0), Inches.of(8), Inches.of(8)));
 
-  PivotConfig m_turretConfig = new PivotConfig(m_turretSMC)
-      .withStartingPosition(Degrees.of(0)) // Starting position of the Pivot
-      .withWrapping(Degrees.of(-180), Degrees.of(180)) // Wrapping enabled bc the pivot can spin infinitely
-      .withSoftLimits(TURRET_MIN_DEG, TURRET_MAX_DEG) // Angle limit on motor bc wiring prevents infinite spinning
-      .withHardLimit(TURRET_MIN_DEG, TURRET_MAX_DEG) // Angle limit in simulator bc wiring prevents infinite spinning
+  PivotConfig m_turretConfig = new PivotConfig()
+      .withHardLimits(TURRET_MIN_DEG, TURRET_MAX_DEG) // Angle limit in simulator bc wiring prevents infinite spinning
       .withTelemetry("Turret", TelemetryVerbosity.LOW) // Telemetry
-      .withMOI(Meters.of(0.25), Pounds.of(4)) // MOI Calculation
       .withMechanismPositionConfig(robotToMechanism);
 
-  Pivot m_turret = new Pivot(m_turretConfig);
+  Pivot m_turret = new Pivot(m_turretConfig, m_turretSMC);
 
   @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
@@ -210,21 +231,22 @@ public class TurretSubsystem extends SubsystemBase {
       .withName("TurretSetDutyCycleCommand");
   }
 
+  public Command sysIdQuasistaticCommand(SysIdRoutine.Direction direction) {
+    return m_sysIdRoutine.quasistatic(direction)
+      .withName("TurretSysIdQuasistatic" + direction.name());
+  }
+
+  public Command sysIdDynamicCommand(SysIdRoutine.Direction direction) {
+    return m_sysIdRoutine.dynamic(direction)
+      .withName("TurretSysIdDynamic" + direction.name());
+  }
+
   public void setDutyCycleDirect(double dutyCycle) {
     // Direct motor call that bypasses the YAMS command wrappers.
     turretTargetAngle = Degrees.of(0.0);
     m_turretSMC.setDutyCycle(dutyCycle);
   }
 
-  public Command sysIdCommand() {
-    // Practice-field-only characterization helper.
-    return m_turret.sysId(
-                    Volts.of(4.0), // maximumVoltage
-                    Volts.per(Second).of(0.5), // step
-                    Seconds.of(8.0) // duration
-    );
-  }
-  
   public void stopTurret() {
     m_turretSMC.stopClosedLoopController();
     m_turretSMC.setDutyCycle(0.0);

@@ -5,6 +5,7 @@ import static frc.robot.Constants.*;
 
 import java.util.function.Supplier;
 
+import com.ctre.phoenix6.SignalLogger;
 import yams.motorcontrollers.SmartMotorController;
 import yams.motorcontrollers.SmartMotorControllerConfig;
 import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
@@ -28,6 +29,7 @@ import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.math.Pair;
 
 import frc.lib.util.SystemHealthMonitor;
@@ -70,43 +72,56 @@ public class FlywheelSubsystem extends SubsystemBase {
   private final MotorHealthMonitor masterMotorHealth;
 
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
-      .withControlMode(ControlMode.CLOSED_LOOP)
       // PID Constants
-      .withClosedLoopController(FLYWHEEL_kP, FLYWHEEL_kI, FLYWHEEL_kD, FLYWHEEL_kMaxV, FLYWHEEL_kMaxA)
-      .withSimClosedLoopController(FLYWHEEL_kP, FLYWHEEL_kI, FLYWHEEL_kD, FLYWHEEL_kMaxV, FLYWHEEL_kMaxA)
-      // Feedforward Constants
-      .withFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, FLYWHEEL_kV, 0))
-      .withSimFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, FLYWHEEL_kV, 0))
-      // Telemetry name and verbosity level
-      .withTelemetry("FlywheelMotor", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
+      .withClosedLoopController(FLYWHEEL_kP, FLYWHEEL_kI, FLYWHEEL_kD)
+      .withSimClosedLoopController(FLYWHEEL_kP, FLYWHEEL_kI, FLYWHEEL_kD)
+      .withTrapezoidalProfile(FLYWHEEL_kMaxV, FLYWHEEL_kMaxA)
       // Gearing from the motor rotor to final shaft.
       // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
       .withGearing(new MechanismGearing(GearBox.fromReductionStages(kFlywheelChainRatio, kFlywheelGearboxRatio)))
-      // Motor properties to prevent over currenting.
       .withMotorInverted(true)
       .withIdleMode(MotorMode.COAST)
-      // Power Optimization
+      // Telemetry name and verbosity level
+      .withTelemetry("FlywheelMotor", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
+      // Feedforward Constants
+      .withFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, FLYWHEEL_kV, 0))
+      .withSimFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, FLYWHEEL_kV, 0))
+      // Motor properties to prevent over currenting.
       .withStatorCurrentLimit(Amps.of(40))
+      // Power Optimization
       .withClosedLoopRampRate(Seconds.of(0.25))
       .withOpenLoopRampRate(Seconds.of(0.25))
+      // Mass of the flywheel.
+      .withMomentOfInertia(flywheelDiameter, flywheelMass)
       // Follower Motors
-      .withFollowers(Pair.of(m_flywheelFollowerMotor, true));
+      .withFollowers(Pair.of(m_flywheelFollowerMotor, true))
+      .withControlMode(ControlMode.CLOSED_LOOP);
 
   private final SmartMotorController m_flywheelSMC = new TalonFXWrapper(m_flywheelMasterMotor, DCMotor.getKrakenX60Foc(1), smc_config);
 
+  private final SysIdRoutine m_sysIdRoutine = new SysIdRoutine(
+      new SysIdRoutine.Config(
+          Volts.per(Second).of(1.0),
+          Volts.of(4.0),
+          Seconds.of(10.0),
+          state -> SignalLogger.writeString("FlywheelSysIdState", state.toString())),
+      new SysIdRoutine.Mechanism(
+          m_flywheelSMC::setVoltage,
+          log -> log.motor("FlywheelMotor")
+              .voltage(m_flywheelSMC.getVoltage())
+              .angularPosition(m_flywheelSMC.getMechanismPosition())
+              .angularVelocity(m_flywheelSMC.getMechanismVelocity())
+              .current(m_flywheelSMC.getStatorCurrent()),
+          this,
+          "FlywheelMotor"));
+
   // Construct YAMS FlyWheel config & mechanism (use master controller for mech config)
-  private final FlyWheelConfig m_flywheelConfig = new FlyWheelConfig(m_flywheelSMC)
-      // Diameter of the flywheel.
+  private final FlyWheelConfig m_flywheelConfig = new FlyWheelConfig()
       .withDiameter(flywheelDiameter)
-      // Mass of the flywheel.
-      .withMass(flywheelMass)
-      // Maximum speed of the shooter.
-      .withSoftLimit(FLYWHEEL_kMaxV.unaryMinus(), FLYWHEEL_kMaxV)
-      // Telemetry name and verbosity for the arm.
       .withTelemetry("Flywheel", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
       .withSpeedometerSimulation(FLYWHEEL_kMaxV);
 
-  private final FlyWheel m_flywheel = new FlyWheel(m_flywheelConfig);
+  private final FlyWheel m_flywheel = new FlyWheel(m_flywheelConfig, m_flywheelSMC);
   
   @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
@@ -156,12 +171,12 @@ public class FlywheelSubsystem extends SubsystemBase {
   }
 
   public Command setVelocityCommand(AngularVelocity speed) {
-    return m_flywheel.setSpeed(speed)
+    return m_flywheel.run(speed)
       .withName("FlywheelSetVelocityCommand");
   }
 
   public Command setVelocityCommand(Supplier<AngularVelocity> speed) {
-    return m_flywheel.setSpeed(speed)
+    return m_flywheel.run(speed)
       .withName("FlywheelSetVelocitySupplierCommand");
   }
 
@@ -175,8 +190,14 @@ public class FlywheelSubsystem extends SubsystemBase {
       .withName("FlywheelSetDutyCycleSupplierCommand");
   }
 
-  public Command sysIdCommand() {
-    return m_flywheel.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
+  public Command sysIdQuasistaticCommand(SysIdRoutine.Direction direction) {
+    return m_sysIdRoutine.quasistatic(direction)
+      .withName("FlywheelSysIdQuasistatic" + direction.name());
+  }
+
+  public Command sysIdDynamicCommand(SysIdRoutine.Direction direction) {
+    return m_sysIdRoutine.dynamic(direction)
+      .withName("FlywheelSysIdDynamic" + direction.name());
   }
 
   /** Sets motors to constants intake speed */

@@ -14,11 +14,13 @@ import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 
 import frc.lib.util.SystemHealthMonitor;
 
@@ -169,9 +171,12 @@ public class RobotContainer {
 
   private void configureTestingControls() {
     OperatorInterface testOI = oi.getTestOI();
+    Trigger quasistaticModifier = testOI.getStartButton();
+    Trigger dynamicModifier = testOI.getBackButton();
+    Trigger forwardModifier = testOI.getLeftBumper();
+    Trigger reverseModifier = testOI.getRightBumper();
 
-    // Testing controls: only activate these when neither modifier button is held
-    // (Start/Back are used as sysid modifiers below).
+    // Testing controls: only activate these when neither sysId modifier is held.
     testOI.getAButton()
       .and(testOI.getStartButton().negate())
       .and(testOI.getBackButton().negate())
@@ -189,29 +194,57 @@ public class RobotContainer {
       .and(testOI.getBackButton().negate())
       .onTrue(shooter.feeder.feederUnstuckCommand());
 
-    // sysID helpers bound to the test controller.  hold Start or Back together
-    // with a face button to exercise each mechanism's built-in sysid routine.
-    // these commands are short-lived (they run until the button is released)
-    // and log data to SignalLogger for later analysis.
-    testOI.getStartButton()
-      .and(testOI.getAButton())
-      .whileTrue(shooter.turret.sysIdCommand());
-    testOI.getStartButton()
-      .and(testOI.getBButton())
-      .whileTrue(rakeArm.sysIdCommand());
-    testOI.getStartButton()
-      .and(testOI.getXButton())
-      .whileTrue(shooter.flywheel.sysIdCommand());
-    testOI.getStartButton()
-      .and(testOI.getYButton())
-      .whileTrue(shooter.feeder.sysIdCommand());
+    bindSysId(quasistaticModifier.and(forwardModifier).and(testOI.getAButton()),
+        shooter.turret.sysIdQuasistaticCommand(Direction.kForward));
+    bindSysId(quasistaticModifier.and(forwardModifier).and(testOI.getBButton()),
+        rakeArm.sysIdQuasistaticCommand(Direction.kForward));
+    bindSysId(quasistaticModifier.and(forwardModifier).and(testOI.getXButton()),
+        shooter.flywheel.sysIdQuasistaticCommand(Direction.kForward));
+    bindSysId(quasistaticModifier.and(forwardModifier).and(testOI.getYButton()),
+        shooter.feeder.sysIdQuasistaticCommand(Direction.kForward));
+    bindSysId(quasistaticModifier.and(forwardModifier).and(testOI.getLeftThumbstickButton()),
+        shooter.collector.sysIdQuasistaticCommand(Direction.kForward));
+    bindSysId(quasistaticModifier.and(forwardModifier).and(testOI.getRightThumbstickButton()),
+        rakeIntake.sysIdQuasistaticCommand(Direction.kForward));
 
-    testOI.getBackButton()
-      .and(testOI.getAButton())
-      .whileTrue(shooter.collector.sysIdCommand());
-    testOI.getBackButton()
-      .and(testOI.getBButton())
-      .whileTrue(rakeIntake.sysIdCommand());
+    bindSysId(quasistaticModifier.and(reverseModifier).and(testOI.getAButton()),
+        shooter.turret.sysIdQuasistaticCommand(Direction.kReverse));
+    bindSysId(quasistaticModifier.and(reverseModifier).and(testOI.getBButton()),
+        rakeArm.sysIdQuasistaticCommand(Direction.kReverse));
+    bindSysId(quasistaticModifier.and(reverseModifier).and(testOI.getXButton()),
+        shooter.flywheel.sysIdQuasistaticCommand(Direction.kReverse));
+    bindSysId(quasistaticModifier.and(reverseModifier).and(testOI.getYButton()),
+        shooter.feeder.sysIdQuasistaticCommand(Direction.kReverse));
+    bindSysId(quasistaticModifier.and(reverseModifier).and(testOI.getLeftThumbstickButton()),
+        shooter.collector.sysIdQuasistaticCommand(Direction.kReverse));
+    bindSysId(quasistaticModifier.and(reverseModifier).and(testOI.getRightThumbstickButton()),
+        rakeIntake.sysIdQuasistaticCommand(Direction.kReverse));
+
+    bindSysId(dynamicModifier.and(forwardModifier).and(testOI.getAButton()),
+        shooter.turret.sysIdDynamicCommand(Direction.kForward));
+    bindSysId(dynamicModifier.and(forwardModifier).and(testOI.getBButton()),
+        rakeArm.sysIdDynamicCommand(Direction.kForward));
+    bindSysId(dynamicModifier.and(forwardModifier).and(testOI.getXButton()),
+        shooter.flywheel.sysIdDynamicCommand(Direction.kForward));
+    bindSysId(dynamicModifier.and(forwardModifier).and(testOI.getYButton()),
+        shooter.feeder.sysIdDynamicCommand(Direction.kForward));
+    bindSysId(dynamicModifier.and(forwardModifier).and(testOI.getLeftThumbstickButton()),
+        shooter.collector.sysIdDynamicCommand(Direction.kForward));
+    bindSysId(dynamicModifier.and(forwardModifier).and(testOI.getRightThumbstickButton()),
+        rakeIntake.sysIdDynamicCommand(Direction.kForward));
+
+    bindSysId(dynamicModifier.and(reverseModifier).and(testOI.getAButton()),
+        shooter.turret.sysIdDynamicCommand(Direction.kReverse));
+    bindSysId(dynamicModifier.and(reverseModifier).and(testOI.getBButton()),
+        rakeArm.sysIdDynamicCommand(Direction.kReverse));
+    bindSysId(dynamicModifier.and(reverseModifier).and(testOI.getXButton()),
+        shooter.flywheel.sysIdDynamicCommand(Direction.kReverse));
+    bindSysId(dynamicModifier.and(reverseModifier).and(testOI.getYButton()),
+        shooter.feeder.sysIdDynamicCommand(Direction.kReverse));
+    bindSysId(dynamicModifier.and(reverseModifier).and(testOI.getLeftThumbstickButton()),
+        shooter.collector.sysIdDynamicCommand(Direction.kReverse));
+    bindSysId(dynamicModifier.and(reverseModifier).and(testOI.getRightThumbstickButton()),
+        rakeIntake.sysIdDynamicCommand(Direction.kReverse));
 
     rakeIntake.setDefaultCommand(Commands.run(() -> rakeIntake.teleop(-testOI.getLeftThumbstickX()), rakeIntake));
     shooter.flywheel.setDefaultCommand(Commands.run(() -> shooter.flywheel.teleop(-testOI.getRightThumbstickY()), shooter.flywheel));
@@ -261,6 +294,10 @@ public class RobotContainer {
 
   private void configureTelemetry() {
     drivetrain.registerTelemetry(logger::telemeterize);
+  }
+
+  private void bindSysId(Trigger trigger, Command command) {
+    trigger.whileTrue(command);
   }
 
   private Command setDriveMaxSpeedsCommand(ChassisSpeeds speeds) {

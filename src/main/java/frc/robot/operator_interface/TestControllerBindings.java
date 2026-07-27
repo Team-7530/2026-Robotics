@@ -8,9 +8,19 @@ import frc.robot.subsystems.CommandSwerveDrivetrain;
  * Test controller bindings for drivetrain characterization and tuning.
  *
  * <p>This class contains commented-out button bindings for:
- * - SysId routines (forward/reverse quasistatic and dynamic)
+ * - SysId routines for each mechanism
  * - Manual drive test routines (forward/backward at fixed velocity)
  * - PathPlanner pose-based navigation tests
+ *
+ * <p>Current SysId map:
+ * - Start + A/B/X/Y/LeftStick/RightStick = quasistatic forward
+ * - Start + LB/RB + A/B/X/Y/LeftStick/RightStick = quasistatic reverse
+ * - Back + LB/RB + A/B/X/Y/LeftStick/RightStick = dynamic forward/reverse
+ * - A = turret, B = rake arm, X = flywheel, Y = feeder
+ * - Left stick button = collector, right stick button = rake intake
+ *
+ * <p>See <code>DOCUMENTATION_HUB.md</code> for the current student-facing docs and SysId cheat
+ * sheet.
  *
  * <p>To enable these bindings during tuning:
  * 1. Call {@link #configure(OperatorInterface, CommandSwerveDrivetrain)} from RobotContainer

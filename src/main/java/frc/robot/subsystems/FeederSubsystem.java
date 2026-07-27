@@ -5,6 +5,7 @@ import static frc.robot.Constants.*;
 
 import java.util.function.Supplier;
 
+import com.ctre.phoenix6.SignalLogger;
 import yams.motorcontrollers.SmartMotorController;
 import yams.motorcontrollers.SmartMotorControllerConfig;
 import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
@@ -28,6 +29,7 @@ import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 
 import frc.lib.util.SystemHealthMonitor;
 import frc.lib.util.SystemHealthMonitor.MotorHealthMonitor;
@@ -67,40 +69,53 @@ public class FeederSubsystem extends SubsystemBase {
 
   // YAMS controller and mechanism (initialized at declaration to match FlywheelSubsystem style)
   private final SmartMotorControllerConfig smc_config = new SmartMotorControllerConfig(this)
-      .withControlMode(ControlMode.CLOSED_LOOP)
       // PID Constants
-      .withClosedLoopController(FEEDER_KP, FEEDER_KI, FEEDER_KD, FEEDER_kMaxV, FEEDER_kMaxA)
-      .withSimClosedLoopController(FEEDER_KP, FEEDER_KI, FEEDER_KD, FEEDER_kMaxV, FEEDER_kMaxA)
-      // Feedforward Constants
-      .withFeedforward(new SimpleMotorFeedforward(FEEDER_KS, 0, 0))
-      .withSimFeedforward(new SimpleMotorFeedforward(FEEDER_KS, 0, 0))
-      // Telemetry name and verbosity level
-      .withTelemetry("FeederMotor", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
+      .withClosedLoopController(FEEDER_KP, FEEDER_KI, FEEDER_KD)
+      .withSimClosedLoopController(FEEDER_KP, FEEDER_KI, FEEDER_KD)
+      .withTrapezoidalProfile(FEEDER_kMaxV, FEEDER_kMaxA)
       // Gearing from the motor rotor to final shaft.
       // For example gearbox(3,4) is the same as gearbox("3:1","4:1")
       .withGearing(new MechanismGearing(GearBox.fromReductionStages(kFeederChainRatio, kFeederGearboxRatio)))
-      // Motor properties to prevent over currenting.
       .withMotorInverted(true)
       .withIdleMode(MotorMode.COAST)
-      // Power Optimization
+      // Telemetry name and verbosity level
+      .withTelemetry("FeederMotor", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
+      // Feedforward Constants
+      .withFeedforward(new SimpleMotorFeedforward(FEEDER_KS, 0, 0))
+      .withSimFeedforward(new SimpleMotorFeedforward(FEEDER_KS, 0, 0))
+      // Motor properties to prevent over currenting.
       .withStatorCurrentLimit(Amps.of(40))
+      // Power Optimization
       .withClosedLoopRampRate(Seconds.of(0.25))
-      .withOpenLoopRampRate(Seconds.of(0.25));
+      .withOpenLoopRampRate(Seconds.of(0.25))
+      // Mass of the flywheel.
+      .withMomentOfInertia(flywheelDiameter, flywheelMass)
+      .withControlMode(ControlMode.CLOSED_LOOP);
 
   private final SmartMotorController m_feederSMC = new TalonFXWrapper(m_feederMotor, DCMotor.getKrakenX60Foc(1), smc_config);
 
-  private final FlyWheelConfig m_feederConfig = new FlyWheelConfig(m_feederSMC)
-      // Diameter of the flywheel.
+  private final SysIdRoutine m_sysIdRoutine = new SysIdRoutine(
+      new SysIdRoutine.Config(
+          Volts.per(Second).of(1.0),
+          Volts.of(4.0),
+          Seconds.of(10.0),
+          state -> SignalLogger.writeString("FeederSysIdState", state.toString())),
+      new SysIdRoutine.Mechanism(
+          m_feederSMC::setVoltage,
+          log -> log.motor("FeederMotor")
+              .voltage(m_feederSMC.getVoltage())
+              .angularPosition(m_feederSMC.getMechanismPosition())
+              .angularVelocity(m_feederSMC.getMechanismVelocity())
+              .current(m_feederSMC.getStatorCurrent()),
+          this,
+          "FeederMotor"));
+
+  private final FlyWheelConfig m_feederConfig = new FlyWheelConfig()
       .withDiameter(flywheelDiameter)
-      // Mass of the flywheel.
-      .withMass(flywheelMass)
-      // Maximum speed of the shooter.
-      .withSoftLimit(FEEDER_kMaxV.unaryMinus(), FEEDER_kMaxV)
-      // Telemetry name and verbosity for the arm.
       .withTelemetry("Feeder", SmartMotorControllerConfig.TelemetryVerbosity.LOW)
       .withSpeedometerSimulation(FEEDER_kMaxV);
 
-  private final FlyWheel m_feeder = new FlyWheel(m_feederConfig);
+  private final FlyWheel m_feeder = new FlyWheel(m_feederConfig, m_feederSMC);
 
   @Logged(importance = Logged.Importance.DEBUG)
   private boolean m_isTeleop = false;
@@ -145,12 +160,12 @@ public class FeederSubsystem extends SubsystemBase {
   }
 
   public Command setVelocityCommand(AngularVelocity speed) {
-    return m_feeder.setSpeed(speed)
+    return m_feeder.run(speed)
       .withName("FeederSetVelocityCommand");
   }
 
   public Command setVelocityCommand(Supplier<AngularVelocity> speed) {
-    return m_feeder.setSpeed(speed)
+    return m_feeder.run(speed)
       .withName("FeederSetVelocitySupplierCommand");
   }
 
@@ -164,9 +179,14 @@ public class FeederSubsystem extends SubsystemBase {
       .withName("FeederSetDutyCycleSupplierCommand");
   }
 
-  public Command sysIdCommand() {
-    // run during practice to log system identification data
-    return m_feeder.sysId(Volts.of(10), Volts.of(1).per(Seconds), Seconds.of(5));
+  public Command sysIdQuasistaticCommand(SysIdRoutine.Direction direction) {
+    return m_sysIdRoutine.quasistatic(direction)
+      .withName("FeederSysIdQuasistatic" + direction.name());
+  }
+
+  public Command sysIdDynamicCommand(SysIdRoutine.Direction direction) {
+    return m_sysIdRoutine.dynamic(direction)
+      .withName("FeederSysIdDynamic" + direction.name());
   }
 
   /** Sets motors to constants intake speed */
